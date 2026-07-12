@@ -1,0 +1,28 @@
+{
+  "fixtureId": "extras-100-109",
+  "sourceName": "Ngoại truyện 10.docx",
+  "sourceSha256": "A2F5DA1CB49440D0E21CFE841C2018719B85E620D1738418380109B37E3E1B7E",
+  "documentStats": {
+    "paragraphs": 4452,
+    "nonEmptyParagraphs": 4451,
+    "heading1Count": 10,
+    "tables": 0,
+    "images": 0,
+    "explicitLineBreaks": 116,
+    "embeddedFonts": false
+  },
+  "expectedStructure": {
+    "storyTitle": "Ngoại truyện 10",
+    "sectionCount": 0,
+    "chapterCount": 10,
+    "chapterKind": "extra",
+    "firstChapterNumber": 100,
+    "lastChapterNumber": 109
+  },
+  "parserNotes": [
+    "Each Heading 1 that starts with Ngoại truyện becomes an extra chapter.",
+    "Hard line breaks inside paragraphs must survive normalization.",
+    "Repeated dialogue lines are prose, not structural boundaries."
+  ]
+}
+

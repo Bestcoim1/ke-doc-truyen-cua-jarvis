@@ -1,0 +1,37 @@
+{
+  "fixtureId": "arc-i-no-chapters",
+  "sourceName": "(1)ARC I_ Bạn gái tôi là thiên thần.docx",
+  "sourceSha256": "CC29695DBBBE0E17EC4D473BB5FED6027C59ECABBBDC263885BEA98333725E1A",
+  "documentStats": {
+    "paragraphs": 659,
+    "nonEmptyParagraphs": 650,
+    "heading1Count": 1,
+    "tables": 0,
+    "images": 0,
+    "explicitLineBreaks": 7,
+    "embeddedFonts": true
+  },
+  "expectedStructure": {
+    "storyTitle": "Bạn gái tôi là thiên thần!",
+    "sections": [
+      {
+        "type": "arc",
+        "title": "ARC I: Bạn gái tôi là thiên thần!",
+        "chapters": [
+          {
+            "kind": "regular",
+            "title": "ARC I: Bạn gái tôi là thiên thần!",
+            "synthetic": true,
+            "hideDuplicateTitle": true
+          }
+        ]
+      }
+    ]
+  },
+  "parserNotes": [
+    "Prefix ARC overrides the default single-heading-level-as-chapter heuristic.",
+    "Content directly below an Arc gets one synthetic leaf chapter.",
+    "Embedded fonts are ignored; inline bold, italic and hard breaks are preserved."
+  ]
+}
+

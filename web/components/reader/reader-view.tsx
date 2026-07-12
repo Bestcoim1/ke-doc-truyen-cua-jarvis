@@ -1,0 +1,427 @@
+"use client";
+
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, ChevronLeft, ChevronRight, List } from "lucide-react";
+
+import type { Block, ReadingSettings } from "@/lib/reader/types";
+import { FONT_SIZE_STEPS } from "@/lib/reader/types";
+import { extractFingerprintFromAnchorId } from "@/lib/reader/anchors";
+import { updateReadingSettings } from "@/lib/reader/actions";
+import type { ChapterRow, SectionRow } from "@/lib/reader/tree";
+import { BlockRenderer } from "./block-renderer";
+import { TocPanel } from "./toc-panel";
+import { SettingsSheet } from "./settings-sheet";
+
+type ReadState = { maxProgressPct: number; completedContentHash: string | null };
+
+function scrollAnchorToFocusLine(container: HTMLElement, anchorId: string) {
+  const el = container.querySelector<HTMLElement>(`[data-anchor-id="${CSS.escape(anchorId)}"]`);
+  if (!el) return;
+  const containerRect = container.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const targetY = containerRect.height * 0.3;
+  const delta = elRect.top - containerRect.top - targetY;
+  container.scrollTop += delta;
+}
+
+export function ReaderView({
+  storyId,
+  storyTitle,
+  chapter,
+  prevChapterId,
+  nextChapterEntry,
+  resumeAnchorId,
+  chapterReadState,
+  initialSettings,
+  tocSections,
+  tocChapters,
+  tocReadStates,
+}: {
+  storyId: string;
+  storyTitle: string;
+  chapter: {
+    chapterId: string;
+    chapterTitle: string;
+    sectionTitle: string | null;
+    revisionId: string;
+    contentHash: string;
+    blocks: Block[];
+  };
+  prevChapterId: string | null;
+  nextChapterEntry: { chapterId: string; chapterTitle: string } | null;
+  resumeAnchorId: string | null;
+  chapterReadState: ReadState | null;
+  initialSettings: ReadingSettings;
+  tocSections: SectionRow[];
+  tocChapters: ChapterRow[];
+  tocReadStates: Record<string, ReadState>;
+}) {
+  const router = useRouter();
+  const [settings, setSettings] = useState(initialSettings);
+  const [showToc, setShowToc] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [progressPct, setProgressPct] = useState(chapterReadState?.maxProgressPct ?? 0);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const endSentinelRef = useRef<HTMLDivElement>(null);
+  const currentAnchorRef = useRef<string | null>(resumeAnchorId);
+  const hasSeenEndRef = useRef(false);
+  const endTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingProgressRef = useRef<{
+    anchorId: string;
+    ordinal: number;
+    pct: number;
+    writeId: string;
+    observedAt: string;
+  } | null>(null);
+
+  const ordinalByAnchor = useMemo(() => {
+    const map = new Map<string, number>();
+    chapter.blocks.forEach((block, index) => map.set(block.anchor_id, index));
+    return map;
+  }, [chapter.blocks]);
+
+  /**
+   * All progress writes go through /api/reader/progress with
+   * `keepalive: true`: the flush triggers that matter (chapter
+   * navigation, pagehide, tab hide) fire right before the document goes
+   * away, and Server Action POSTs get aborted at exactly those moments.
+   * keepalive lets the browser complete the request after navigation
+   * starts (FR-10 / AC-PROG-03).
+   *
+   * writeId/observedAt were captured when the anchor was observed, so a
+   * delayed delivery keeps its original timestamp and the server's
+   * ordering guard can reject it against newer writes from other devices.
+   */
+  const flushProgress = useCallback(
+    (completion?: "reader_end" | "next_action") => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      const pending = pendingProgressRef.current;
+      pendingProgressRef.current = null;
+
+      const anchorId =
+        pending?.anchorId ?? currentAnchorRef.current ?? chapter.blocks.at(-1)?.anchor_id ?? "";
+      const body: {
+        progress?: Record<string, unknown>;
+        chapterState?: Record<string, unknown>;
+      } = {};
+
+      if (pending) {
+        body.progress = {
+          storyId,
+          chapterId: chapter.chapterId,
+          chapterRevisionId: chapter.revisionId,
+          paragraphAnchorId: pending.anchorId,
+          paragraphFingerprint: extractFingerprintFromAnchorId(pending.anchorId),
+          paragraphOrdinal: pending.ordinal,
+          paragraphOffsetRatio: null,
+          chapterProgressPct: pending.pct,
+          writeId: pending.writeId,
+          observedAt: pending.observedAt,
+        };
+      }
+      if (pending || completion) {
+        body.chapterState = {
+          storyId,
+          chapterId: chapter.chapterId,
+          revisionId: chapter.revisionId,
+          contentHash: chapter.contentHash,
+          anchorId,
+          progressPct: completion ? 100 : pending?.pct ?? 0,
+          markCompleted: Boolean(completion),
+          completionMethod: completion ?? null,
+        };
+      }
+      if (!body.progress && !body.chapterState) return;
+
+      try {
+        void fetch("/api/reader/progress", {
+          method: "POST",
+          keepalive: true,
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }).catch(() => {});
+      } catch {
+        // keepalive quota exceeded or offline — the debounced pending copy
+        // is already gone; the next observation will produce a fresh write.
+      }
+    },
+    [storyId, chapter.chapterId, chapter.revisionId, chapter.contentHash, chapter.blocks],
+  );
+
+  const onFocusAnchorChange = useCallback(
+    (anchorId: string) => {
+      currentAnchorRef.current = anchorId;
+      const ordinal = ordinalByAnchor.get(anchorId) ?? 0;
+      const pct = Math.round(((ordinal + 1) / chapter.blocks.length) * 100);
+      setProgressPct(pct);
+      pendingProgressRef.current = {
+        anchorId,
+        ordinal,
+        pct,
+        writeId: crypto.randomUUID(),
+        observedAt: new Date().toISOString(),
+      };
+
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => flushProgress(), 750);
+    },
+    [ordinalByAnchor, chapter.blocks.length, flushProgress],
+  );
+
+  // Resume scroll: run before paint so there's no visible jump.
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container || !resumeAnchorId) return;
+    scrollAnchorToFocusLine(container, resumeAnchorId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Focus-line tracking via a zero-height IntersectionObserver band at 30%
+  // from the top — event-driven, not a per-scroll-frame handler.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const intersecting = entries.filter((entry) => entry.isIntersecting);
+        if (intersecting.length === 0) return;
+        intersecting.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        const anchorId = intersecting[0].target.getAttribute("data-anchor-id");
+        if (anchorId && anchorId !== currentAnchorRef.current) {
+          onFocusAnchorChange(anchorId);
+        }
+      },
+      { root: container, rootMargin: "-30% 0px -70% 0px", threshold: 0 },
+    );
+
+    container.querySelectorAll("[data-anchor-id]").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [chapter.chapterId, onFocusAnchorChange]);
+
+  // End-of-chapter completion: 3s dwell on the end sentinel, no scroll needed.
+  useEffect(() => {
+    hasSeenEndRef.current = false;
+    const container = containerRef.current;
+    const sentinel = endSentinelRef.current;
+    if (!container || !sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          hasSeenEndRef.current = true;
+          endTimerRef.current = setTimeout(() => {
+            flushProgress("reader_end");
+          }, 3000);
+        } else if (endTimerRef.current) {
+          clearTimeout(endTimerRef.current);
+          endTimerRef.current = null;
+        }
+      },
+      { root: container, threshold: 0 },
+    );
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+      if (endTimerRef.current) clearTimeout(endTimerRef.current);
+    };
+  }, [chapter.chapterId, flushProgress]);
+
+  // Flush on tab hide / navigation away / unmount.
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") flushProgress();
+    }
+    function onPageHide() {
+      flushProgress();
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", onPageHide);
+      flushProgress();
+    };
+  }, [flushProgress]);
+
+  // Browser/system Back closes an open overlay before leaving the page.
+  useEffect(() => {
+    function onPopState() {
+      setShowToc(false);
+      setShowSettings(false);
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && (showToc || showSettings)) closeOverlays();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showToc, showSettings]);
+
+  function openOverlay(which: "toc" | "settings") {
+    window.history.pushState({ kdOverlay: which }, "");
+    if (which === "toc") setShowToc(true);
+    else setShowSettings(true);
+  }
+
+  function closeOverlays() {
+    if ((window.history.state as { kdOverlay?: string } | null)?.kdOverlay) {
+      window.history.back();
+    } else {
+      setShowToc(false);
+      setShowSettings(false);
+    }
+  }
+
+  function updateSetting(patch: Partial<ReadingSettings>) {
+    const anchorId = currentAnchorRef.current;
+    setSettings((prev) => ({ ...prev, ...patch }));
+    void updateReadingSettings(patch);
+    if (anchorId) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const container = containerRef.current;
+          if (container) scrollAnchorToFocusLine(container, anchorId);
+        });
+      });
+    }
+  }
+
+  function goToChapter(chapterId: string) {
+    flushProgress();
+    // A full navigation, not router.push(): the client Router Cache was
+    // observed reusing a stale render across [chapterId] param changes on
+    // the same page template (confirmed via direct server-side fetches
+    // returning correct, distinct data per chapter — the staleness is
+    // client-only). Correctness matters far more than SPA transition
+    // smoothness for chapter-to-chapter navigation here.
+    window.location.href = `/read/${storyId}/${chapterId}`;
+  }
+
+  function handleNext() {
+    flushProgress(hasSeenEndRef.current ? "next_action" : undefined);
+    if (nextChapterEntry) {
+      window.location.href = `/read/${storyId}/${nextChapterEntry.chapterId}`;
+    }
+  }
+
+  return (
+    <div
+      className="relative flex h-[100dvh] flex-col overflow-hidden"
+      data-kd-theme={settings.theme}
+      style={{ background: "var(--kd-bg)", color: "var(--kd-text)" }}
+    >
+      <header
+        className="flex flex-shrink-0 items-center gap-2 border-b px-3 py-3"
+        style={{ borderColor: "var(--kd-border)", background: "var(--kd-surface)" }}
+      >
+        <button onClick={() => router.push("/library")} aria-label="Về thư viện" className="rounded-md p-2">
+          <ArrowLeft size={18} />
+        </button>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-xs" style={{ color: "var(--kd-text-muted)" }}>
+            {storyTitle}
+            {chapter.sectionTitle ? ` · ${chapter.sectionTitle}` : ""}
+          </div>
+          <div className="truncate text-sm font-bold">{chapter.chapterTitle}</div>
+        </div>
+        <button onClick={() => openOverlay("toc")} aria-label="Mục lục" className="rounded-md p-2">
+          <List size={18} />
+        </button>
+        <button
+          onClick={() => openOverlay("settings")}
+          aria-label="Tuỳ chỉnh đọc"
+          className="rounded-md p-2 text-sm font-extrabold"
+        >
+          Aa
+        </button>
+      </header>
+
+      <div className="h-[3px] flex-shrink-0" style={{ background: "var(--kd-border)" }}>
+        <div
+          className="h-full transition-[width]"
+          style={{ width: `${progressPct}%`, background: "var(--kd-accent)" }}
+        />
+      </div>
+
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto px-5 py-5"
+        style={{
+          fontSize: `${FONT_SIZE_STEPS[settings.fontSizeStep]}px`,
+          lineHeight: settings.lineHeight,
+        }}
+      >
+        <BlockRenderer blocks={chapter.blocks} />
+        <div ref={endSentinelRef} />
+        <div className="mt-8 border-t pt-4 text-center" style={{ borderColor: "var(--kd-border)" }}>
+          {nextChapterEntry ? (
+            <>
+              <div className="mb-2 text-xs" style={{ color: "var(--kd-text-muted)" }}>
+                Chương tiếp theo
+              </div>
+              <button
+                className="rounded-full px-5 py-2.5 text-sm font-bold"
+                style={{ background: "var(--kd-accent)", color: "var(--kd-accent-foreground)" }}
+                onClick={handleNext}
+              >
+                {nextChapterEntry.chapterTitle}
+              </button>
+            </>
+          ) : (
+            <div className="text-sm" style={{ color: "var(--kd-text-muted)" }}>
+              Đã hết chương.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <footer
+        className="flex flex-shrink-0 items-center justify-between border-t px-3 py-3"
+        style={{ borderColor: "var(--kd-border)", background: "var(--kd-surface)" }}
+      >
+        <button
+          className="flex items-center gap-1 text-sm font-semibold disabled:opacity-30"
+          disabled={!prevChapterId}
+          onClick={() => prevChapterId && goToChapter(prevChapterId)}
+        >
+          <ChevronLeft size={16} /> Chương trước
+        </button>
+        <span className="text-xs" style={{ color: "var(--kd-text-muted)" }}>
+          {progressPct}% chương này
+        </span>
+        <button
+          className="flex items-center gap-1 text-sm font-semibold disabled:opacity-30"
+          disabled={!nextChapterEntry}
+          onClick={handleNext}
+        >
+          Chương sau <ChevronRight size={16} />
+        </button>
+      </footer>
+
+      {showToc && (
+        <TocPanel
+          storyId={storyId}
+          sections={tocSections}
+          chapters={tocChapters}
+          currentChapterId={chapter.chapterId}
+          readStates={tocReadStates}
+          onClose={closeOverlays}
+        />
+      )}
+      {showSettings && (
+        <SettingsSheet settings={settings} onUpdate={updateSetting} onClose={closeOverlays} />
+      )}
+    </div>
+  );
+}
