@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { ImportReimportPasteForm } from "@/components/import/import-reimport-paste-form";
+import { ImportReimportMethodPicker } from "@/components/import/import-reimport-method-picker";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/utils";
 
@@ -59,7 +59,7 @@ async function ReimportNewContent({ params }: ReimportNewPageProps) {
         className="rounded-xl border p-4 sm:p-6"
         style={{ background: "var(--kd-surface)", borderColor: "var(--kd-border)" }}
       >
-        <ImportReimportPasteForm storyId={story.id} storyTitle={story.title} />
+        <ImportReimportMethodPicker storyId={story.id} storyTitle={story.title} />
       </div>
     </div>
   );

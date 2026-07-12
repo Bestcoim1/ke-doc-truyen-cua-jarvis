@@ -5,20 +5,25 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logEvent } from "@/lib/telemetry";
-import { assertUnderJobQuota, countEmptyChapters, formString, requireUser, UUID_RE } from "./action-helpers";
+import {
+  assertUnderJobQuota,
+  countEmptyChapters,
+  deleteStorageObjectSafely,
+  DOCX_PARSER_VERSION,
+  formString,
+  requireUser,
+  STORAGE_BUCKET,
+  TXT_PARSER_VERSION,
+  UUID_RE,
+} from "./action-helpers";
 import { applyReviewSubmission } from "./draft-validation";
 import { parseDocxDraft } from "./docx-parser";
 import { decodeStrictUtf8Text, detectUploadKind, MAX_UPLOAD_BYTES } from "./file-validation";
 import { CANCELLABLE_STATUSES } from "./queries";
 import { parseStoryText, type ImportDraft } from "./text-parser";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/database.types";
 
 const PARSER_VERSION = "text-paste-v1";
-const DOCX_PARSER_VERSION = "docx-heading-v1";
-const TXT_PARSER_VERSION = "txt-utf8-v1";
 const MAX_PASTE_CHARACTERS = 5_000_000;
-const STORAGE_BUCKET = "story-sources";
 
 type ActionState = {
   error: string | null;
@@ -26,18 +31,6 @@ type ActionState = {
 };
 
 const EMPTY_STATE: ActionState = { error: null, message: null };
-
-async function deleteStorageObjectSafely(
-  supabase: SupabaseClient<Database>,
-  path: string,
-): Promise<void> {
-  try {
-    const { error } = await supabase.storage.from(STORAGE_BUCKET).remove([path]);
-    if (error) logEvent("import.storage_cleanup_error", { code: error.name });
-  } catch {
-    logEvent("import.storage_cleanup_error", { code: "exception" });
-  }
-}
 
 export async function createPasteImport(
   _previousState: ActionState,

@@ -9,13 +9,19 @@ import type { Json } from "@/database.types";
 import {
   assertUnderJobQuota,
   countEmptyChapters,
+  deleteStorageObjectSafely,
+  DOCX_PARSER_VERSION,
   formString,
   requireUser,
+  STORAGE_BUCKET,
+  TXT_PARSER_VERSION,
   UUID_RE,
 } from "./action-helpers";
 import { applyReviewSubmission } from "./draft-validation";
+import { parseDocxDraft } from "./docx-parser";
+import { decodeStrictUtf8Text, detectUploadKind, MAX_UPLOAD_BYTES } from "./file-validation";
 import { remapReadingProgressAfterReimport } from "./reimport-progress";
-import { parseStoryText } from "./text-parser";
+import { parseStoryText, type ImportDraft } from "./text-parser";
 
 const PARSER_VERSION = "text-paste-v1";
 const MAX_PASTE_CHARACTERS = 5_000_000;
@@ -131,6 +137,135 @@ export async function createPasteReimportJob(
   }
 
   logEvent("reimport.job_created", { storyId, chapterCount: draft.stats.chapterCount });
+  redirect(`/import/review/${job.id}`);
+}
+
+/** File-upload counterpart to createPasteReimportJob — mirrors createFileImport's upload/parse/cleanup lifecycle exactly, just targeting an existing story instead of creating a new one. */
+export async function createFileReimportJob(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const storyId = formString(formData, "storyId");
+  const file = formData.get("file");
+  if (!UUID_RE.test(storyId)) {
+    return { error: "Tác phẩm không hợp lệ.", message: null };
+  }
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Hãy chọn file TXT hoặc DOCX trước khi tải lên.", message: null };
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return {
+      error: `File vượt quá giới hạn ${Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))}MB.`,
+      message: null,
+    };
+  }
+  const kind = detectUploadKind(file.name);
+  if (!kind) {
+    return { error: "Chỉ hỗ trợ file .txt hoặc .docx.", message: null };
+  }
+
+  const { supabase, userId } = await requireUser(`/import/reimport/${storyId}/new`);
+
+  const { data: story } = await supabase
+    .from("stories")
+    .select("id, title, status")
+    .eq("id", storyId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  if (!story || story.status !== "active") {
+    return { error: "Không tìm thấy tác phẩm này để cập nhật.", message: null };
+  }
+
+  const quotaError = await assertUnderJobQuota(supabase, userId);
+  if (quotaError) return { error: quotaError, message: null };
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const sourceHash = createHash("sha256").update(buffer).digest("hex");
+  const storagePath = `${userId}/${crypto.randomUUID()}.${kind}`;
+
+  const { data: job, error: insertError } = await supabase
+    .from("import_jobs")
+    .insert({
+      owner_id: userId,
+      story_id: storyId,
+      source_type: kind,
+      source_filename: file.name.slice(0, 255),
+      source_hash: sourceHash,
+      parser_version: kind === "docx" ? DOCX_PARSER_VERSION : TXT_PARSER_VERSION,
+      status: "parsing",
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !job) {
+    logEvent("reimport.job_create_error", { code: insertError?.code ?? "missing_row" });
+    return { error: "Chưa thể tạo bản review. Vui lòng thử lại sau.", message: null };
+  }
+
+  const { error: uploadError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(storagePath, buffer, {
+      contentType:
+        kind === "docx"
+          ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          : "text/plain",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    logEvent("reimport.upload_error", { code: uploadError.name });
+    await supabase
+      .from("import_jobs")
+      .update({ status: "failed", error_message: "upload_failed" })
+      .eq("id", job.id);
+    return { error: "Không thể tải file lên. Vui lòng thử lại.", message: null };
+  }
+
+  let draft: ImportDraft;
+  try {
+    if (kind === "txt") {
+      const text = decodeStrictUtf8Text(buffer);
+      if (text.length > MAX_PASTE_CHARACTERS) {
+        throw new Error("Nội dung vượt quá giới hạn 5 triệu ký tự.");
+      }
+      draft = parseStoryText(text, { title: story.title, sourceType: "txt" });
+    } else {
+      draft = await parseDocxDraft(buffer, { title: story.title });
+    }
+    if (draft.stats.chapterCount === 0) {
+      throw new Error("Không tìm thấy nội dung chương để review.");
+    }
+  } catch (error) {
+    await deleteStorageObjectSafely(supabase, storagePath);
+    const message = error instanceof Error ? error.message : "Không thể xử lý file này.";
+    await supabase
+      .from("import_jobs")
+      .update({ status: "failed", error_message: message })
+      .eq("id", job.id);
+    return { error: message, message: null };
+  }
+
+  const { error: finalizeError } = await supabase
+    .from("import_jobs")
+    .update({ status: "needs_review", draft_json: draft, warnings: draft.warnings })
+    .eq("id", job.id);
+
+  if (finalizeError) {
+    // Same ordering rationale as createFileImport: draft_json never
+    // landed, so the raw upload is the only remaining copy — don't delete
+    // it, leave the job in 'parsing' (recoverable) rather than silently
+    // and permanently losing the content.
+    logEvent("reimport.job_create_error", { code: finalizeError.code });
+    return { error: "Chưa thể lưu bản review. Vui lòng thử lại sau.", message: null };
+  }
+
+  await deleteStorageObjectSafely(supabase, storagePath);
+
+  logEvent("reimport.job_created", {
+    storyId,
+    chapterCount: draft.stats.chapterCount,
+    sourceType: kind,
+  });
   redirect(`/import/review/${job.id}`);
 }
 

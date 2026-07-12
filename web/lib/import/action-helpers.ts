@@ -1,10 +1,18 @@
 import { redirect } from "next/navigation";
 
+import { logEvent } from "@/lib/telemetry";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/database.types";
 import { countActiveImportJobs, MAX_ACTIVE_IMPORT_JOBS } from "./queries";
 import type { DraftSection } from "./text-parser";
+
+// Shared by first-time and re-import file-upload actions — a single
+// source of truth so the two flows can't silently drift (e.g. one
+// forgetting a parser_version bump the other got).
+export const STORAGE_BUCKET = "story-sources";
+export const DOCX_PARSER_VERSION = "docx-heading-v1";
+export const TXT_PARSER_VERSION = "txt-utf8-v1";
 
 // Deliberately NOT a "use server" file: Next.js requires every export of a
 // "use server" module to be an async function (a plain constant like
@@ -53,4 +61,16 @@ export async function assertUnderJobQuota(
     return `Bạn có ${activeCount} bản nháp đang chờ — hãy commit hoặc hủy bớt trước khi tạo bản mới.`;
   }
   return null;
+}
+
+export async function deleteStorageObjectSafely(
+  supabase: SupabaseClient<Database>,
+  path: string,
+): Promise<void> {
+  try {
+    const { error } = await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+    if (error) logEvent("import.storage_cleanup_error", { code: error.name });
+  } catch {
+    logEvent("import.storage_cleanup_error", { code: "exception" });
+  }
 }
