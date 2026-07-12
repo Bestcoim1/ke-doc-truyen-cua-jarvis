@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
+import { LibrarySkeleton } from "@/components/library/library-skeleton";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/utils";
 import { logEvent } from "@/lib/telemetry";
@@ -17,7 +18,7 @@ export default function LibraryPage() {
   }
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<LibrarySkeleton />}>
       <LibraryContent />
     </Suspense>
   );
@@ -32,7 +33,7 @@ async function LibraryContent() {
     redirect("/auth/login?next=/library");
   }
 
-  const { data: stories } = await supabase
+  const { data: stories, error: storiesError } = await supabase
     .from("stories")
     .select("id, title, last_read_at, updated_at")
     .eq("owner_id", user.sub)
@@ -40,7 +41,11 @@ async function LibraryContent() {
     .order("last_read_at", { ascending: false, nullsFirst: false })
     .order("updated_at", { ascending: false });
 
-  logEvent("library.viewed", { storyCount: stories?.length ?? 0 });
+  if (storiesError) {
+    logEvent("library.stories_query_error", { code: storiesError.code });
+  } else {
+    logEvent("library.viewed", { storyCount: stories?.length ?? 0 });
+  }
 
   return (
     <div className="p-6">
@@ -55,7 +60,18 @@ async function LibraryContent() {
           </Button>
         </div>
       </div>
-      {!stories || stories.length === 0 ? (
+      {storiesError ? (
+        <p
+          role="alert"
+          className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700"
+        >
+          Không tải được thư viện. Hãy{" "}
+          <Link href="/library" className="underline">
+            thử lại
+          </Link>
+          .
+        </p>
+      ) : !stories || stories.length === 0 ? (
         <p className="mt-4 text-sm" style={{ color: "var(--kd-text-muted)" }}>
           Chưa có tác phẩm nào. Hãy thêm truyện đầu tiên bằng paste text.
         </p>

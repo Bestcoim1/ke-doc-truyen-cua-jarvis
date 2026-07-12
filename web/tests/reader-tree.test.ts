@@ -19,6 +19,8 @@ describe("buildFlatChapterList", () => {
     const flat = buildFlatChapterList(sections, chapters);
     expect(flat.map((c) => c.chapterId)).toEqual(["c0", "c1", "c2", "c3"]);
     expect(flat.find((c) => c.chapterId === "c1")?.sectionTitle).toBe("Hồi 1");
+    expect(flat.find((c) => c.chapterId === "c1")?.sectionPath).toEqual(["Quyển 1", "Hồi 1"]);
+    expect(flat.find((c) => c.chapterId === "c0")?.sectionPath).toEqual([]);
   });
 });
 

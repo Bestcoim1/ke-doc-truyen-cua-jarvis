@@ -9,6 +9,7 @@ import {
   getSectionsAndChapters,
   getStoryForReader,
 } from "@/lib/reader/queries";
+import { ReaderSkeleton } from "@/components/reader/reader-skeleton";
 
 type ReaderResumePageProps = {
   params: Promise<{ storyId: string }>;
@@ -26,7 +27,7 @@ export default function ReaderResumePage({
   }
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ReaderSkeleton />}>
       <ReaderResumeContent params={params} />
     </Suspense>
   );

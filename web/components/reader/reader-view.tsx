@@ -43,7 +43,7 @@ export function ReaderView({
   chapter: {
     chapterId: string;
     chapterTitle: string;
-    sectionTitle: string | null;
+    sectionPath: string[];
     revisionId: string;
     contentHash: string;
     blocks: Block[];
@@ -260,14 +260,6 @@ export function ReaderView({
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && (showToc || showSettings)) closeOverlays();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showToc, showSettings]);
-
   function openOverlay(which: "toc" | "settings") {
     window.history.pushState({ kdOverlay: which }, "");
     if (which === "toc") setShowToc(true);
@@ -330,8 +322,7 @@ export function ReaderView({
         </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-xs" style={{ color: "var(--kd-text-muted)" }}>
-            {storyTitle}
-            {chapter.sectionTitle ? ` · ${chapter.sectionTitle}` : ""}
+            {[storyTitle, ...chapter.sectionPath].join(" · ")}
           </div>
           <div className="truncate text-sm font-bold">{chapter.chapterTitle}</div>
         </div>
@@ -354,8 +345,9 @@ export function ReaderView({
         />
       </div>
 
-      <div
+      <main
         ref={containerRef}
+        aria-label={chapter.chapterTitle}
         className="flex-1 overflow-y-auto px-5 py-5"
         style={{
           fontSize: `${FONT_SIZE_STEPS[settings.fontSizeStep]}px`,
@@ -384,11 +376,15 @@ export function ReaderView({
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       <footer
         className="flex flex-shrink-0 items-center justify-between border-t px-3 py-3"
-        style={{ borderColor: "var(--kd-border)", background: "var(--kd-surface)" }}
+        style={{
+          borderColor: "var(--kd-border)",
+          background: "var(--kd-surface)",
+          paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+        }}
       >
         <button
           className="flex items-center gap-1 text-sm font-semibold disabled:opacity-30"

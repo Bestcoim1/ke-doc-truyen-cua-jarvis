@@ -13,6 +13,7 @@ import {
   getStoryForReader,
 } from "@/lib/reader/queries";
 import { ReaderView } from "@/components/reader/reader-view";
+import { ReaderSkeleton } from "@/components/reader/reader-skeleton";
 
 type ReaderChapterPageProps = {
   params: Promise<{ storyId: string; chapterId: string }>;
@@ -30,7 +31,7 @@ export default function ReaderChapterPage({
   }
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ReaderSkeleton />}>
       <ReaderChapterContent params={params} />
     </Suspense>
   );
@@ -73,7 +74,7 @@ async function ReaderChapterContent({ params }: ReaderChapterPageProps) {
       chapter={{
         chapterId: entry.chapterId,
         chapterTitle: entry.chapterTitle,
-        sectionTitle: entry.sectionTitle,
+        sectionPath: entry.sectionPath,
         revisionId: content.revisionId,
         contentHash: content.contentHash,
         blocks: content.content.blocks,
