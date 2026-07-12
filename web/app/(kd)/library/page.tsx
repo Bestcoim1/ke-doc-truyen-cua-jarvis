@@ -78,19 +78,26 @@ async function LibraryContent() {
       ) : (
         <ul className="mt-4 flex flex-col gap-3">
           {stories.map((story) => (
-            <li key={story.id}>
-              <Link
-                href={`/read/${story.id}`}
-                className="block rounded-xl p-4"
-                style={{
-                  background: "var(--kd-surface)",
-                  border: "1px solid var(--kd-border)",
-                }}
-              >
-                <div className="font-semibold">{story.title}</div>
+            <li
+              key={story.id}
+              className="flex items-center gap-3 rounded-xl p-4"
+              style={{
+                background: "var(--kd-surface)",
+                border: "1px solid var(--kd-border)",
+              }}
+            >
+              <Link href={`/read/${story.id}`} className="min-w-0 flex-1">
+                <div className="truncate font-semibold">{story.title}</div>
                 <div className="mt-1 text-sm" style={{ color: "var(--kd-text-muted)" }}>
                   {story.last_read_at ? "Đọc tiếp" : "Bắt đầu đọc"}
                 </div>
+              </Link>
+              <Link
+                href={`/import/reimport/${story.id}/new`}
+                className="shrink-0 text-xs underline"
+                style={{ color: "var(--kd-text-muted)" }}
+              >
+                Cập nhật bản thảo
               </Link>
             </li>
           ))}

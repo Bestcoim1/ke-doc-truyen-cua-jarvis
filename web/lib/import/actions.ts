@@ -5,12 +5,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logEvent } from "@/lib/telemetry";
-import { createClient } from "@/lib/supabase/server";
+import { assertUnderJobQuota, countEmptyChapters, formString, requireUser, UUID_RE } from "./action-helpers";
 import { applyReviewSubmission } from "./draft-validation";
 import { parseDocxDraft } from "./docx-parser";
 import { decodeStrictUtf8Text, detectUploadKind, MAX_UPLOAD_BYTES } from "./file-validation";
-import { CANCELLABLE_STATUSES, countActiveImportJobs, MAX_ACTIVE_IMPORT_JOBS } from "./queries";
-import { parseStoryText, type DraftSection, type ImportDraft } from "./text-parser";
+import { CANCELLABLE_STATUSES } from "./queries";
+import { parseStoryText, type ImportDraft } from "./text-parser";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/database.types";
 
@@ -18,7 +18,6 @@ const PARSER_VERSION = "text-paste-v1";
 const DOCX_PARSER_VERSION = "docx-heading-v1";
 const TXT_PARSER_VERSION = "txt-utf8-v1";
 const MAX_PASTE_CHARACTERS = 5_000_000;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const STORAGE_BUCKET = "story-sources";
 
 type ActionState = {
@@ -27,42 +26,6 @@ type ActionState = {
 };
 
 const EMPTY_STATE: ActionState = { error: null, message: null };
-
-async function requireUser(nextPath: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub as string | undefined;
-  if (!userId) {
-    redirect(`/auth/login?next=${encodeURIComponent(nextPath)}`);
-  }
-  return { supabase, userId };
-}
-
-function formString(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
-
-function countEmptyChapters(sections: DraftSection[]): number {
-  return sections.reduce(
-    (total, section) =>
-      total +
-      section.chapters.filter((chapter) => !chapter.contentText.trim()).length +
-      countEmptyChapters(section.children),
-    0,
-  );
-}
-
-async function assertUnderJobQuota(
-  supabase: SupabaseClient<Database>,
-  userId: string,
-): Promise<string | null> {
-  const activeCount = await countActiveImportJobs(supabase, userId);
-  if (activeCount >= MAX_ACTIVE_IMPORT_JOBS) {
-    return `Bạn có ${activeCount} bản nháp đang chờ — hãy commit hoặc hủy bớt trước khi tạo bản mới.`;
-  }
-  return null;
-}
 
 async function deleteStorageObjectSafely(
   supabase: SupabaseClient<Database>,

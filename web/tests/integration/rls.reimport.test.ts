@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database, Json } from "@/database.types";
+import { computeFinalDecisions } from "../../lib/import/reimport-decisions";
+import { matchChapters, matchSections } from "../../lib/import/reimport-match";
+import { getStoryTreeForReimport } from "../../lib/import/reimport-queries";
+import { remapReadingProgressAfterReimport } from "../../lib/import/reimport-progress";
 import { parseStoryText, type DraftSection, type ImportDraft } from "../../lib/import/text-parser";
 import { createTestClient, USER_A_EMAIL, USER_A_PASSWORD, USER_B_EMAIL, USER_B_PASSWORD } from "./env";
 
@@ -564,6 +568,119 @@ Nội dung chương bảy, hoàn toàn mới.`,
       expect(byB.data).toBeNull();
     } finally {
       await clientA.from("stories").delete().eq("id", storyId);
+    }
+  });
+
+  it("end-to-end: getStoryTreeForReimport -> matchChapters/matchSections -> commit -> remapReadingProgressAfterReimport", async () => {
+    const client = createTestClient();
+    const { data: signIn, error: signInError } = await client.auth.signInWithPassword({
+      email: USER_A_EMAIL,
+      password: USER_A_PASSWORD,
+    });
+    expect(signInError).toBeNull();
+    const ownerId = signIn.user!.id;
+
+    const oldDraft = fiveChapterDraft("E2E reimport story");
+    const { storyId } = await commitFreshStory(client, ownerId, "E2E reimport story", oldDraft);
+
+    try {
+      const { data: chapter3 } = await client
+        .from("chapters")
+        .select("id, current_revision_id")
+        .eq("story_id", storyId)
+        .eq("title", "Chương 3")
+        .single();
+      const { data: revision3 } = await client
+        .from("chapter_revisions")
+        .select("content_blocks")
+        .eq("id", chapter3!.current_revision_id!)
+        .single();
+      const blocks3 = (revision3!.content_blocks as { blocks: { anchor_id: string; text: string }[] }).blocks;
+      const anchor = blocks3[0];
+
+      // Seed a real reading_progress row on chapter 3's first (and only) paragraph.
+      const { error: progressError } = await client.rpc("upsert_reading_progress", {
+        p_story_id: storyId,
+        p_chapter_id: chapter3!.id,
+        p_chapter_revision_id: chapter3!.current_revision_id!,
+        p_paragraph_anchor_id: anchor.anchor_id,
+        p_paragraph_fingerprint: anchor.anchor_id.replace(/^p_/, "").split("_")[0],
+        p_paragraph_ordinal: 0,
+        p_paragraph_offset_ratio: null,
+        p_chapter_progress_pct: 100,
+        p_write_id: crypto.randomUUID(),
+        p_observed_at: new Date(2020, 0, 1).toISOString(),
+      });
+      expect(progressError).toBeNull();
+
+      // getStoryTreeForReimport under test — real embed query against Postgres.
+      const tree = await getStoryTreeForReimport(client, storyId, ownerId);
+      expect(tree).not.toBeNull();
+      expect(tree!.oldChapters).toHaveLength(5);
+      expect(tree!.oldChapters.every((c) => c.firstParagraphFingerprint && c.lastParagraphFingerprint)).toBe(true);
+
+      // New draft: chapter 3's content changes (title stays the same, so
+      // tier 1 source_key still matches it — exercising the "matched,
+      // content changed" branch of commit_reimport_job).
+      const newDraft = parseStoryText(
+        `Hồi 1
+Chương 1
+Nội dung chương một.
+
+Chương 2
+Nội dung chương hai.
+
+Chương 3
+Nội dung chương ba đã được viết lại hoàn toàn khác so với bản gốc.
+
+Chương 4
+Nội dung chương bốn.
+
+Chương 5
+Nội dung chương năm.`,
+        { title: "E2E reimport story", sourceType: "paste" },
+      );
+
+      const { matches } = matchChapters(tree!.oldChapters, newDraft);
+      expect(matches).toHaveLength(5);
+      const { matches: sectionMatches } = matchSections(tree!.oldSections, newDraft);
+
+      const currentNewChapterIds = new Set(
+        newDraft.sections.flatMap((s) => s.chapters.map((c) => c.id)),
+      );
+      const { decisions, unresolvedOld } = computeFinalDecisions(tree!.oldChapters, matches, {}, currentNewChapterIds);
+      expect(unresolvedOld).toHaveLength(0);
+
+      const jobId = await createReimportJob(client, ownerId, storyId, newDraft, {
+        version: 1,
+        baseTreeToken: tree!.baseTreeToken,
+        decisions,
+        sections: sectionMatches,
+      });
+
+      const result = await client.rpc("commit_reimport_job", { p_job_id: jobId });
+      expect(result.error).toBeNull();
+      const pairs = result.data![0].chapter_id_pairs;
+
+      // remapReadingProgressAfterReimport under test — real DB round trip.
+      await remapReadingProgressAfterReimport(client, storyId, pairs);
+
+      const { data: progressAfter } = await client
+        .from("reading_progress")
+        .select("chapter_id, chapter_revision_id")
+        .eq("story_id", storyId)
+        .single();
+      expect(progressAfter!.chapter_id).toBe(chapter3!.id);
+      expect(progressAfter!.chapter_revision_id).not.toBe(chapter3!.current_revision_id);
+
+      const { data: chapter3After } = await client
+        .from("chapters")
+        .select("current_revision_id")
+        .eq("id", chapter3!.id)
+        .single();
+      expect(progressAfter!.chapter_revision_id).toBe(chapter3After!.current_revision_id);
+    } finally {
+      await client.from("stories").delete().eq("id", storyId);
     }
   });
 });

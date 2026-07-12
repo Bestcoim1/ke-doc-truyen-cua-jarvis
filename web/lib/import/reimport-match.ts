@@ -231,7 +231,8 @@ export function matchChapters(oldRefs: OldChapterRef[], newDraft: ImportDraft): 
   };
 }
 
-function buildOldSectionPaths(oldSections: OldSectionRef[]): Map<string, string> {
+/** Exported for lib/import/reimport-queries.ts, which needs the same path convention to build OldChapterRef.sectionPath. */
+export function buildOldSectionPaths(oldSections: OldSectionRef[]): Map<string, string> {
   const byId = new Map(oldSections.map((section) => [section.id, section]));
   const cache = new Map<string, string>();
 
