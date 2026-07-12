@@ -92,6 +92,20 @@ type PendingChapter = {
   sourceKey: string;
 };
 
+/**
+ * A unit of input to parseLogicalLines. headingHint lets a caller that
+ * already knows structure (DOCX's Word heading styles: 1 = Heading 1,
+ * 2 = Heading 2) force section/chapter classification instead of relying on
+ * classifyImportedHeading's text patterns — heading levels 3+ are
+ * deliberately not representable here (per spec they become plain content,
+ * not a new TOC tier). Plain text/paste input never sets headingHint, so
+ * classification stays pattern-based exactly as before.
+ */
+export type LogicalLine = {
+  text: string;
+  headingHint?: 1 | 2;
+};
+
 export function classifyImportedHeading(line: unknown): ImportedHeadingType | null {
   const normalized = String(line || "").trim();
   if (!normalized) return null;
@@ -164,7 +178,7 @@ function normalizeSourceSegment(value: string): string {
   return encodeURIComponent(value.normalize("NFC").trim().replace(/\s+/gu, " ").toLowerCase());
 }
 
-function buildTextBlocks(contentText: string): ChapterRevisionContent["blocks"] {
+export function buildTextBlocks(contentText: string): ChapterRevisionContent["blocks"] {
   const blockSeeds: Omit<ChapterRevisionContent["blocks"][number], "anchor_id">[] = [];
   let paragraphLines: string[] = [];
 
@@ -202,7 +216,7 @@ function buildTextBlocks(contentText: string): ChapterRevisionContent["blocks"] 
   }));
 }
 
-function countWords(blocks: ChapterRevisionContent["blocks"]): number {
+export function countWords(blocks: ChapterRevisionContent["blocks"]): number {
   return blocks.reduce((total, block) => {
     if (block.type === "scene_break") return total;
     return total + (block.text.match(/[\p{L}\p{N}]+(?:[’'\-][\p{L}\p{N}]+)*/gu)?.length ?? 0);
@@ -219,6 +233,22 @@ export function buildDraftChapterContent(contentText: string): Pick<
     contentHash: hashContentBlocks(blocks),
     wordCount: countWords(blocks),
   };
+}
+
+/**
+ * Splits contentText into two halves at a block boundary (paragraph or
+ * scene-break index, 1..blocks.length-1). Re-joins each half's blocks with
+ * blank-line separators rather than slicing the raw string — this loses
+ * incidental whitespace but is lossless for the blocks buildDraftChapterContent
+ * derives from it, which is the only thing that's ever actually stored.
+ */
+export function splitChapterContent(contentText: string, blockIndex: number): [string, string] {
+  const blocks = buildTextBlocks(contentText);
+  if (!Number.isInteger(blockIndex) || blockIndex <= 0 || blockIndex >= blocks.length) {
+    throw new Error("Vị trí tách không hợp lệ.");
+  }
+  const toText = (list: typeof blocks) => list.map((block) => block.text).join("\n\n");
+  return [toText(blocks.slice(0, blockIndex)), toText(blocks.slice(blockIndex))];
 }
 
 function countSections(sections: DraftSection[]): number {
@@ -274,14 +304,10 @@ export function buildImportedStory({
 
 export const buildImportDraft = buildImportedStory;
 
-export function parseStoryText(
-  rawText: string,
+export function parseLogicalLines(
+  lines: LogicalLine[],
   options: ParseStoryTextOptions = {},
 ): ImportDraft {
-  const lines = String(rawText || "")
-    .replace(/^\uFEFF/u, "")
-    .replace(/\r\n?/g, "\n")
-    .split("\n");
   const createId = createParseIdFactory();
   const warnings: ImportWarning[] = [];
   const rootSections: DraftSection[] = [];
@@ -382,9 +408,24 @@ export function parseStoryText(
     currentChapter = null;
   };
 
-  for (const line of lines) {
-    const normalizedLine = line.trim();
-    const headingType = classifyImportedHeading(normalizedLine);
+  for (const logicalLine of lines) {
+    const normalizedLine = logicalLine.text.trim();
+    let headingType: ImportedHeadingType | null;
+
+    if (logicalLine.headingHint === 1 || logicalLine.headingHint === 2) {
+      // Trust the source document's own heading style over the text
+      // pattern — but still warn if the text doesn't look like a heading
+      // we'd otherwise recognize, since the title/kind guess below falls
+      // back to defaults ("arc"/"regular") in that case.
+      headingType = logicalLine.headingHint === 1 ? "section" : "chapter";
+      if (classifyImportedHeading(normalizedLine) !== headingType) {
+        addWarning(
+          `Tiêu đề “${normalizedLine}” được nhận dạng theo style Heading của file gốc, không theo mẫu Chương/Hồi quen thuộc — hãy kiểm tra lại.`,
+        );
+      }
+    } else {
+      headingType = classifyImportedHeading(normalizedLine);
+    }
 
     if (headingType === "section") {
       finishCurrentChapter();
@@ -414,8 +455,8 @@ export function parseStoryText(
       continue;
     }
 
-    if (currentChapter) currentChapter.lines.push(line);
-    else pendingLines.push(line);
+    if (currentChapter) currentChapter.lines.push(logicalLine.text);
+    else pendingLines.push(logicalLine.text);
   }
 
   finishCurrentChapter();
@@ -454,6 +495,18 @@ export function parseStoryText(
     sections: populatedSections,
     warnings,
   });
+}
+
+export function parseStoryText(
+  rawText: string,
+  options: ParseStoryTextOptions = {},
+): ImportDraft {
+  const lines: LogicalLine[] = String(rawText || "")
+    .replace(/^﻿/u, "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((text) => ({ text }));
+  return parseLogicalLines(lines, options);
 }
 
 export const parseImportedText = parseStoryText;

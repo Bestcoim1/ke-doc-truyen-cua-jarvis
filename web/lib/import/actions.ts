@@ -6,11 +6,20 @@ import { redirect } from "next/navigation";
 
 import { logEvent } from "@/lib/telemetry";
 import { createClient } from "@/lib/supabase/server";
-import { normalizeImportDraft } from "./draft-validation";
-import { parseStoryText, type ImportWarning } from "./text-parser";
+import { applyReviewSubmission } from "./draft-validation";
+import { parseDocxDraft } from "./docx-parser";
+import { decodeStrictUtf8Text, detectUploadKind, MAX_UPLOAD_BYTES } from "./file-validation";
+import { CANCELLABLE_STATUSES, countActiveImportJobs, MAX_ACTIVE_IMPORT_JOBS } from "./queries";
+import { parseStoryText, type DraftSection, type ImportDraft } from "./text-parser";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/database.types";
 
 const PARSER_VERSION = "text-paste-v1";
+const DOCX_PARSER_VERSION = "docx-heading-v1";
+const TXT_PARSER_VERSION = "txt-utf8-v1";
 const MAX_PASTE_CHARACTERS = 5_000_000;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const STORAGE_BUCKET = "story-sources";
 
 type ActionState = {
   error: string | null;
@@ -32,6 +41,39 @@ async function requireUser(nextPath: string) {
 function formString(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+function countEmptyChapters(sections: DraftSection[]): number {
+  return sections.reduce(
+    (total, section) =>
+      total +
+      section.chapters.filter((chapter) => !chapter.contentText.trim()).length +
+      countEmptyChapters(section.children),
+    0,
+  );
+}
+
+async function assertUnderJobQuota(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<string | null> {
+  const activeCount = await countActiveImportJobs(supabase, userId);
+  if (activeCount >= MAX_ACTIVE_IMPORT_JOBS) {
+    return `Bạn có ${activeCount} bản nháp đang chờ — hãy commit hoặc hủy bớt trước khi tạo bản mới.`;
+  }
+  return null;
+}
+
+async function deleteStorageObjectSafely(
+  supabase: SupabaseClient<Database>,
+  path: string,
+): Promise<void> {
+  try {
+    const { error } = await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+    if (error) logEvent("import.storage_cleanup_error", { code: error.name });
+  } catch {
+    logEvent("import.storage_cleanup_error", { code: "exception" });
+  }
 }
 
 export async function createPasteImport(
@@ -56,6 +98,9 @@ export async function createPasteImport(
   }
 
   const { supabase, userId } = await requireUser("/import/new");
+  const quotaError = await assertUnderJobQuota(supabase, userId);
+  if (quotaError) return { error: quotaError, message: null };
+
   let draft;
   try {
     draft = parseStoryText(content, {
@@ -107,14 +152,142 @@ export async function createPasteImport(
   redirect(`/import/review/${job.id}`);
 }
 
+export async function createFileImport(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const title = formString(formData, "title").trim();
+  const description = formString(formData, "description").trim();
+  const file = formData.get("file");
+
+  if (!title || title.length > 200) {
+    return { error: "Tên tác phẩm phải có từ 1 đến 200 ký tự.", message: null };
+  }
+  if (description.length > 5_000) {
+    return { error: "Mô tả quá dài.", message: null };
+  }
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Hãy chọn file TXT hoặc DOCX trước khi tải lên.", message: null };
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return {
+      error: `File vượt quá giới hạn ${Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))}MB.`,
+      message: null,
+    };
+  }
+  const kind = detectUploadKind(file.name);
+  if (!kind) {
+    return { error: "Chỉ hỗ trợ file .txt hoặc .docx.", message: null };
+  }
+
+  const { supabase, userId } = await requireUser("/import/new");
+  const quotaError = await assertUnderJobQuota(supabase, userId);
+  if (quotaError) return { error: quotaError, message: null };
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const sourceHash = createHash("sha256").update(buffer).digest("hex");
+  const storagePath = `${userId}/${crypto.randomUUID()}.${kind}`;
+
+  // Job row + storage upload happen before parsing so a crash mid-parse
+  // leaves a recoverable trace (status stays 'parsing') instead of losing
+  // the upload silently — see queries.ts's countActiveImportJobs, which
+  // this job counts against until it's committed or cancelled.
+  const { data: job, error: insertError } = await supabase
+    .from("import_jobs")
+    .insert({
+      owner_id: userId,
+      source_type: kind,
+      source_filename: file.name.slice(0, 255),
+      source_hash: sourceHash,
+      parser_version: kind === "docx" ? DOCX_PARSER_VERSION : TXT_PARSER_VERSION,
+      status: "parsing",
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !job) {
+    logEvent("import.job_create_error", { code: insertError?.code ?? "missing_row" });
+    return { error: "Chưa thể tạo bản review. Vui lòng thử lại sau.", message: null };
+  }
+
+  const { error: uploadError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(storagePath, buffer, {
+      contentType: kind === "docx"
+        ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        : "text/plain",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    logEvent("import.upload_error", { code: uploadError.name });
+    await supabase
+      .from("import_jobs")
+      .update({ status: "failed", error_message: "upload_failed" })
+      .eq("id", job.id);
+    return { error: "Không thể tải file lên. Vui lòng thử lại.", message: null };
+  }
+
+  let draft: ImportDraft;
+  try {
+    if (kind === "txt") {
+      const text = decodeStrictUtf8Text(buffer);
+      if (text.length > MAX_PASTE_CHARACTERS) {
+        throw new Error("Nội dung vượt quá giới hạn 5 triệu ký tự.");
+      }
+      draft = parseStoryText(text, { title, description: description || undefined, sourceType: "txt" });
+    } else {
+      draft = await parseDocxDraft(buffer, { title, description: description || undefined });
+    }
+    if (draft.stats.chapterCount === 0) {
+      throw new Error("Không tìm thấy nội dung chapter để review.");
+    }
+  } catch (error) {
+    await deleteStorageObjectSafely(supabase, storagePath);
+    const message = error instanceof Error ? error.message : "Không thể xử lý file này.";
+    await supabase
+      .from("import_jobs")
+      .update({ status: "failed", error_message: message })
+      .eq("id", job.id);
+    return { error: message, message: null };
+  }
+
+  const { error: finalizeError } = await supabase
+    .from("import_jobs")
+    .update({ status: "needs_review", draft_json: draft, warnings: draft.warnings })
+    .eq("id", job.id);
+
+  if (finalizeError) {
+    // Don't delete the upload here: draft_json never landed, so the raw
+    // file in storage is the only remaining copy of what the user
+    // submitted. The job stays in 'parsing' — recoverable manually — rather
+    // than being silently and permanently lost.
+    logEvent("import.job_create_error", { code: finalizeError.code });
+    return { error: "Chưa thể lưu bản review. Vui lòng thử lại sau.", message: null };
+  }
+
+  // The raw upload has nothing left to offer once draft_json holds the
+  // parsed content — delete it now rather than leaving it to a cron job
+  // that doesn't exist yet.
+  await deleteStorageObjectSafely(supabase, storagePath);
+
+  logEvent("import.job_created", {
+    chapterCount: draft.stats.chapterCount,
+    sectionCount: draft.stats.sectionCount,
+    sourceType: kind,
+  });
+  redirect(`/import/review/${job.id}`);
+}
+
 export async function reviewImportDraft(
   _previousState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const jobId = formString(formData, "jobId");
   const intent = formString(formData, "intent");
-  const serializedDraft = formString(formData, "draft");
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(jobId)) {
+  const structureRaw = formString(formData, "structure");
+  const contentOpsRaw = formString(formData, "contentOps");
+  if (!UUID_RE.test(jobId)) {
     return { error: "Import job không hợp lệ.", message: null };
   }
 
@@ -122,7 +295,7 @@ export async function reviewImportDraft(
   const { supabase, userId } = await requireUser(reviewPath);
   const { data: job, error: jobError } = await supabase
     .from("import_jobs")
-    .select("id, owner_id, status, draft_json, warnings")
+    .select("id, owner_id, status, draft_json")
     .eq("id", jobId)
     .eq("owner_id", userId)
     .maybeSingle();
@@ -133,17 +306,9 @@ export async function reviewImportDraft(
 
   let draft;
   try {
-    const currentDraft = normalizeImportDraft(job.draft_json);
-    const submitted = JSON.parse(serializedDraft) as Record<string, unknown>;
-    submitted.title = currentDraft.title;
-    submitted.description = currentDraft.description;
-    submitted.sourceType = currentDraft.sourceType;
-    draft = normalizeImportDraft(
-      submitted,
-      Array.isArray(job.warnings)
-        ? job.warnings.filter((warning): warning is ImportWarning => typeof warning === "string")
-        : currentDraft.warnings,
-    );
+    const structure = JSON.parse(structureRaw) as unknown;
+    const contentOps = contentOpsRaw ? (JSON.parse(contentOpsRaw) as unknown) : [];
+    draft = applyReviewSubmission(job.draft_json, structure, contentOps);
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Bản review không hợp lệ.",
@@ -153,6 +318,16 @@ export async function reviewImportDraft(
 
   if (draft.stats.chapterCount === 0) {
     return { error: "Cần giữ lại ít nhất một chapter trước khi commit.", message: null };
+  }
+
+  if (intent === "commit") {
+    const emptyChapterCount = countEmptyChapters(draft.sections);
+    if (emptyChapterCount > 0) {
+      return {
+        error: `Còn ${emptyChapterCount} chapter rỗng — hãy xóa hoặc gộp trước khi commit.`,
+        message: null,
+      };
+    }
   }
 
   if (intent === "save") {
@@ -234,4 +409,35 @@ export async function reviewImportDraft(
   revalidatePath(reviewPath);
   logEvent("import.commit_success", { chapterCount: draft.stats.chapterCount });
   redirect(`/read/${storyId}`);
+}
+
+export async function cancelImportJob(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const jobId = formString(formData, "jobId");
+  if (!UUID_RE.test(jobId)) {
+    return { error: "Import job không hợp lệ.", message: null };
+  }
+
+  const { supabase, userId } = await requireUser("/import");
+  const { data: updated, error } = await supabase
+    .from("import_jobs")
+    .update({ status: "cancelled", draft_json: null, warnings: [], error_message: null })
+    .eq("id", jobId)
+    .eq("owner_id", userId)
+    .in("status", CANCELLABLE_STATUSES)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !updated) {
+    return {
+      error: "Không thể hủy bản nháp này — có thể đã được commit hoặc hủy ở nơi khác.",
+      message: null,
+    };
+  }
+
+  logEvent("import.job_cancelled");
+  revalidatePath("/import");
+  redirect("/import");
 }

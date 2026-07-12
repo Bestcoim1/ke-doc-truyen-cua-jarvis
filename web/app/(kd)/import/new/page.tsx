@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { ImportNewForm } from "@/components/import/import-new-form";
+import { ImportMethodPicker } from "@/components/import/import-method-picker";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ async function NewImportContent() {
         className="rounded-xl border p-4 sm:p-6"
         style={{ background: "var(--kd-surface)", borderColor: "var(--kd-border)" }}
       >
-        <ImportNewForm />
+        <ImportMethodPicker />
       </div>
     </div>
   );

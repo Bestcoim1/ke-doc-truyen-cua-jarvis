@@ -46,9 +46,14 @@ async function LibraryContent() {
     <div className="p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-extrabold">Thư viện</h1>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href="/import/new">Thêm tác phẩm</Link>
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/import">Bản nháp đang chờ</Link>
+          </Button>
+          <Button asChild className="w-full sm:w-auto">
+            <Link href="/import/new">Thêm tác phẩm</Link>
+          </Button>
+        </div>
       </div>
       {!stories || stories.length === 0 ? (
         <p className="mt-4 text-sm" style={{ color: "var(--kd-text-muted)" }}>
