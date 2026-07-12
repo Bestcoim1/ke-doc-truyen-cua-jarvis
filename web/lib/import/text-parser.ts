@@ -174,7 +174,7 @@ function createParseIdFactory(): (type: EntityType) => string {
   };
 }
 
-function normalizeSourceSegment(value: string): string {
+export function normalizeSourceSegment(value: string): string {
   return encodeURIComponent(value.normalize("NFC").trim().replace(/\s+/gu, " ").toLowerCase());
 }
 
