@@ -481,12 +481,21 @@ export function ImportReimportEditor({
     });
   }
 
+  // The form only wraps its hidden inputs — CancelJobButton (its own
+  // <form>) sits among the visible content below, and nested <form>s are
+  // invalid HTML (browsers silently mis-parse it, which showed up as a
+  // React hydration error). Save/Commit reference this form by id via the
+  // `form` attribute instead of physically nesting inside it.
+  const formId = `reimport-review-form-${jobId}`;
+
   return (
-    <form action={formAction} className="flex flex-col gap-6">
-      <input type="hidden" name="jobId" value={jobId} />
-      <input type="hidden" name="structure" value={structureJson} />
-      <input type="hidden" name="contentOps" value={contentOpsJson} />
-      <input type="hidden" name="mapping" value={mappingJson} />
+    <div className="flex flex-col gap-6">
+      <form id={formId} action={formAction}>
+        <input type="hidden" name="jobId" value={jobId} />
+        <input type="hidden" name="structure" value={structureJson} />
+        <input type="hidden" name="contentOps" value={contentOpsJson} />
+        <input type="hidden" name="mapping" value={mappingJson} />
+      </form>
 
       <div>
         <p className="text-sm" style={{ color: "var(--kd-text-muted)" }}>
@@ -667,11 +676,12 @@ export function ImportReimportEditor({
         <Button asChild type="button" variant="ghost">
           <Link href="/library">Về thư viện</Link>
         </Button>
-        <Button type="submit" name="intent" value="save" variant="outline" disabled={isPending}>
+        <Button type="submit" form={formId} name="intent" value="save" variant="outline" disabled={isPending}>
           {isPending ? "Đang xử lý…" : "Lưu bản nháp"}
         </Button>
         <Button
           type="submit"
+          form={formId}
           name="intent"
           value="commit"
           disabled={
@@ -684,6 +694,6 @@ export function ImportReimportEditor({
           {isPending ? "Đang xử lý…" : "Commit vào kệ đọc"}
         </Button>
       </div>
-    </form>
+    </div>
   );
 }
