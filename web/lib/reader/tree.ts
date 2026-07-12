@@ -89,22 +89,23 @@ export function buildFlatChapterList(
   const { childSections, chaptersBySection } = groupByParent(sections, chapters);
   const result: FlatChapterEntry[] = [];
 
-  function walk(parentId: string | null, sectionTitle: string | null) {
+  function walk(parentId: string | null, sectionPath: string[]) {
     for (const node of siblingsOf(parentId, childSections, chaptersBySection)) {
       if (node.kind === "section") {
-        walk(node.section.id, node.section.title);
+        walk(node.section.id, [...sectionPath, node.section.title]);
       } else {
         result.push({
           chapterId: node.chapter.id,
           chapterTitle: node.chapter.title,
           sectionId: parentId,
-          sectionTitle,
+          sectionTitle: sectionPath.at(-1) ?? null,
+          sectionPath,
           sortKey: result.length,
         });
       }
     }
   }
 
-  walk(null, null);
+  walk(null, []);
   return result;
 }

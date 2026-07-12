@@ -15,6 +15,8 @@ export type FlatChapterEntry = {
   chapterTitle: string;
   sectionId: string | null;
   sectionTitle: string | null;
+  /** Full ancestor chain (root first, immediate parent last) — sectionTitle is sectionPath.at(-1). */
+  sectionPath: string[];
   sortKey: number;
 };
 

@@ -8,7 +8,9 @@ import { useDraftHistory } from "@/components/import/use-draft-history";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { reviewImportDraft } from "@/lib/import/actions";
+import { reviewReimportDraft } from "@/lib/import/reimport-actions";
+import { computeFinalDecisions, type ManualOverride } from "@/lib/import/reimport-decisions";
+import type { ChapterMatch, OldChapterRef, SectionMatch } from "@/lib/import/reimport-match";
 import {
   changeSectionType,
   deleteChapter,
@@ -37,6 +39,8 @@ const SECTION_TYPE_OPTIONS: { value: DraftSectionType; label: string; rootOnly?:
   { value: "part", label: "Phần / Part" },
 ];
 
+type MatchBadge = { reason: string; isManual: boolean };
+
 type ChapterEditorProps = {
   chapter: ReviewChapter;
   sectionOptions: SectionOption[];
@@ -44,6 +48,7 @@ type ChapterEditorProps = {
   isFirst: boolean;
   isLast: boolean;
   canMerge: boolean;
+  matchBadge: MatchBadge | undefined;
   onRename: (title: string) => void;
   onMove: (targetSectionId: string) => void;
   onMerge: () => void;
@@ -59,6 +64,7 @@ function ChapterEditor({
   isFirst,
   isLast,
   canMerge,
+  matchBadge,
   onRename,
   onMove,
   onMerge,
@@ -92,7 +98,17 @@ function ChapterEditor({
         </span>
         {chapter.kind === "extra" ? <Badge variant="secondary">Ngoại truyện</Badge> : null}
         {isEmpty ? <Badge variant="destructive">Chapter rỗng</Badge> : null}
+        {matchBadge ? (
+          <Badge variant="outline">{matchBadge.isManual ? "Ánh xạ thủ công" : "Đã khớp"}</Badge>
+        ) : (
+          <Badge variant="secondary">Mới</Badge>
+        )}
       </div>
+      {matchBadge ? (
+        <p className="mt-1 text-xs" style={{ color: "var(--kd-text-muted)" }}>
+          {matchBadge.reason}
+        </p>
+      ) : null}
 
       <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
         <label className="grid gap-1 text-xs">
@@ -197,6 +213,7 @@ type SectionEditorProps = {
   section: ReviewSection;
   sectionOptions: SectionOption[];
   mergeableChapterIds: Set<string>;
+  matchBadges: Map<string, MatchBadge>;
   depth: number;
   isFirst: boolean;
   isLast: boolean;
@@ -215,6 +232,7 @@ function SectionEditor({
   section,
   sectionOptions,
   mergeableChapterIds,
+  matchBadges,
   depth,
   isFirst,
   isLast,
@@ -293,6 +311,7 @@ function SectionEditor({
             isFirst={index === 0}
             isLast={index === section.chapters.length - 1}
             canMerge={mergeableChapterIds.has(chapter.id)}
+            matchBadge={matchBadges.get(chapter.id)}
             onRename={(title) => onRenameChapter(chapter.id, title)}
             onMove={(targetSectionId) => onMoveChapter(chapter.id, targetSectionId)}
             onMerge={() => onMergeChapter(chapter.id)}
@@ -311,6 +330,7 @@ function SectionEditor({
               section={child}
               sectionOptions={sectionOptions}
               mergeableChapterIds={mergeableChapterIds}
+              matchBadges={matchBadges}
               depth={depth + 1}
               isFirst={index === 0}
               isLast={index === section.children.length - 1}
@@ -331,21 +351,29 @@ function SectionEditor({
   );
 }
 
-export function ImportReviewEditor({
+export function ImportReimportEditor({
   jobId,
   initialDraft,
+  autoMatches,
+  oldChapters,
+  sectionMatches,
+  baseTreeToken,
+  initialManualOverrides,
 }: {
   jobId: string;
   initialDraft: ReviewDraft;
+  autoMatches: ChapterMatch[];
+  oldChapters: OldChapterRef[];
+  sectionMatches: SectionMatch[];
+  baseTreeToken: string;
+  initialManualOverrides: Record<string, ManualOverride>;
 }) {
   const { draft, pendingOps, canUndo, canRedo, apply, undo, redo, reset } =
     useDraftHistory(initialDraft);
-  const [state, formAction, isPending] = useActionState(reviewImportDraft, INITIAL_STATE);
+  const [manualOverrides, setManualOverrides] =
+    useState<Record<string, ManualOverride>>(initialManualOverrides);
+  const [state, formAction, isPending] = useActionState(reviewReimportDraft, INITIAL_STATE);
 
-  // Ref mirror so the effect below can read the latest draft on a
-  // successful save without needing `draft` (which changes on every
-  // keystroke) in its dependency array. Updated in an effect, not during
-  // render — refs must never be written while rendering.
   const draftRef = useRef(draft);
   useEffect(() => {
     draftRef.current = draft;
@@ -358,23 +386,64 @@ export function ImportReviewEditor({
   }, [state.message, reset]);
 
   const sectionOptions = useMemo(() => flattenSectionOptions(draft.sections), [draft.sections]);
+  const flatChapters = useMemo(() => flattenReviewChapters(draft.sections), [draft.sections]);
   const mergeableChapterIds = useMemo(
-    () =>
-      new Set(
-        flattenReviewChapters(draft.sections)
-          .slice(1)
-          .map((entry) => entry.chapter.id),
-      ),
-    [draft.sections],
+    () => new Set(flatChapters.slice(1).map((entry) => entry.chapter.id)),
+    [flatChapters],
   );
   const emptyChapters = useMemo(
-    () =>
-      flattenReviewChapters(draft.sections).filter(({ chapter }) => !chapter.contentText.trim()),
-    [draft.sections],
+    () => flatChapters.filter(({ chapter }) => !chapter.contentText.trim()),
+    [flatChapters],
   );
+  const currentNewChapterIds = useMemo(
+    () => new Set(flatChapters.map((entry) => entry.chapter.id)),
+    [flatChapters],
+  );
+
+  const { decisions, unresolvedOld } = useMemo(
+    () => computeFinalDecisions(oldChapters, autoMatches, manualOverrides, currentNewChapterIds),
+    [oldChapters, autoMatches, manualOverrides, currentNewChapterIds],
+  );
+
+  const matchBadges = useMemo(() => {
+    const map = new Map<string, MatchBadge>();
+    for (const decision of decisions) {
+      if (decision.kind === "archived") continue;
+      const auto = autoMatches.find(
+        (match) => match.oldChapterId === decision.oldChapterId && match.newChapterId === decision.newChapterId,
+      );
+      // A later decision targeting the same chapter (a merge) doesn't
+      // overwrite an already-set badge — the first (primary) claim wins,
+      // which is fine since the badge only needs to say "this is matched".
+      if (!map.has(decision.newChapterId)) {
+        map.set(decision.newChapterId, auto ? { reason: auto.reason, isManual: false } : { reason: "Ánh xạ thủ công", isManual: true });
+      }
+    }
+    return map;
+  }, [decisions, autoMatches]);
+
+  const manuallyDecidedOld = useMemo(
+    () => oldChapters.filter((old) => manualOverrides[old.id] !== undefined),
+    [oldChapters, manualOverrides],
+  );
+
+  const summary = useMemo(() => {
+    const primaryCount = decisions.filter((d) => d.kind === "primary").length;
+    const mergedCount = decisions.filter((d) => d.kind === "merged").length;
+    const archivedCount = decisions.filter((d) => d.kind === "archived").length;
+    const claimedNewChapterIds = new Set(
+      decisions.filter((d) => d.kind === "primary").map((d) => d.newChapterId),
+    );
+    const newCount = currentNewChapterIds.size - claimedNewChapterIds.size;
+    return { primaryCount, mergedCount, archivedCount, newCount };
+  }, [decisions, currentNewChapterIds]);
 
   const structureJson = useMemo(() => JSON.stringify(toStructure(draft)), [draft]);
   const contentOpsJson = useMemo(() => JSON.stringify(pendingOps), [pendingOps]);
+  const mappingJson = useMemo(
+    () => JSON.stringify({ version: 1, baseTreeToken, decisions, sections: sectionMatches }),
+    [baseTreeToken, decisions, sectionMatches],
+  );
 
   const applyMerge = useCallback(
     (chapterId: string) => {
@@ -401,12 +470,23 @@ export function ImportReviewEditor({
     [apply],
   );
 
+  function setOverride(oldChapterId: string, override: ManualOverride) {
+    setManualOverrides((prev) => ({ ...prev, [oldChapterId]: override }));
+  }
+  function clearOverride(oldChapterId: string) {
+    setManualOverrides((prev) => {
+      const next = { ...prev };
+      delete next[oldChapterId];
+      return next;
+    });
+  }
+
   // The form only wraps its hidden inputs — CancelJobButton (its own
   // <form>) sits among the visible content below, and nested <form>s are
-  // invalid HTML (browsers silently mis-parse it, which surfaces as a
+  // invalid HTML (browsers silently mis-parse it, which showed up as a
   // React hydration error). Save/Commit reference this form by id via the
   // `form` attribute instead of physically nesting inside it.
-  const formId = `review-form-${jobId}`;
+  const formId = `reimport-review-form-${jobId}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -414,47 +494,31 @@ export function ImportReviewEditor({
         <input type="hidden" name="jobId" value={jobId} />
         <input type="hidden" name="structure" value={structureJson} />
         <input type="hidden" name="contentOps" value={contentOpsJson} />
+        <input type="hidden" name="mapping" value={mappingJson} />
       </form>
 
       <div>
         <p className="text-sm" style={{ color: "var(--kd-text-muted)" }}>
-          Bản review
+          So sánh bản cập nhật
         </p>
         <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">{draft.title}</h1>
-        {draft.description ? (
-          <p className="mt-2 max-w-2xl text-sm" style={{ color: "var(--kd-text-muted)" }}>
-            {draft.description}
-          </p>
-        ) : null}
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!canUndo}
-          onClick={undo}
-        >
+        <Button type="button" variant="outline" size="sm" disabled={!canUndo} onClick={undo}>
           Hoàn tác
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!canRedo}
-          onClick={redo}
-        >
+        <Button type="button" variant="outline" size="sm" disabled={!canRedo} onClick={redo}>
           Làm lại
         </Button>
       </div>
 
       <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
-          ["Section", draft.stats.sectionCount],
-          ["Chapter", draft.stats.chapterCount],
-          ["Từ", draft.stats.wordCount.toLocaleString("vi-VN")],
-          ["Cảnh báo", draft.warnings.length],
+          ["Giữ nguyên ID", summary.primaryCount],
+          ["Gộp vào chương khác", summary.mergedCount],
+          ["Chương mới", summary.newCount],
+          ["Lưu trữ", summary.archivedCount],
         ].map(([label, value]) => (
           <div
             key={label}
@@ -469,13 +533,78 @@ export function ImportReviewEditor({
         ))}
       </dl>
 
-      {draft.warnings.length > 0 ? (
+      {unresolvedOld.length > 0 ? (
         <aside className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
-          <h2 className="font-semibold">Cần kiểm tra</h2>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-            {draft.warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
+          <h2 className="font-semibold">
+            {unresolvedOld.length} chương cũ cần xác nhận trước khi commit
+          </h2>
+          <p className="mt-1 text-sm">
+            Các chương này không có trong bản thảo mới. Xác nhận lưu trữ (archive), hoặc ánh xạ
+            vào một chương trong bản thảo mới nếu nó chỉ đổi tên/tách/gộp.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {unresolvedOld.map((old) => (
+              <li
+                key={old.id}
+                className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-white p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span className="font-medium text-amber-950">{old.title}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    defaultValue=""
+                    onChange={(event) => {
+                      if (event.target.value) setOverride(old.id, { newChapterId: event.target.value });
+                    }}
+                    className="h-9 rounded-md border bg-white px-2 text-sm text-amber-950"
+                  >
+                    <option value="">Ánh xạ vào chương…</option>
+                    {flatChapters.map(({ chapter }) => (
+                      <option key={chapter.id} value={chapter.id}>
+                        {chapter.title}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setOverride(old.id, { archived: true })}
+                  >
+                    Xác nhận đã bỏ
+                  </Button>
+                </div>
+              </li>
             ))}
+          </ul>
+        </aside>
+      ) : null}
+
+      {manuallyDecidedOld.length > 0 ? (
+        <aside className="rounded-xl border p-4" style={{ borderColor: "var(--kd-border)" }}>
+          <h2 className="text-sm font-semibold">Bạn đã chỉnh sửa thủ công</h2>
+          <ul className="mt-2 flex flex-col gap-2 text-sm">
+            {manuallyDecidedOld.map((old) => {
+              const override = manualOverrides[old.id];
+              const target =
+                override && "newChapterId" in override
+                  ? flatChapters.find((entry) => entry.chapter.id === override.newChapterId)?.chapter.title
+                  : null;
+              return (
+                <li key={old.id} className="flex items-center justify-between gap-2">
+                  <span>
+                    {old.title} → {target ?? "Lưu trữ (archive)"}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-xs underline"
+                    style={{ color: "var(--kd-text-muted)" }}
+                    onClick={() => clearOverride(old.id)}
+                  >
+                    Bỏ chọn
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </aside>
       ) : null}
@@ -487,6 +616,7 @@ export function ImportReviewEditor({
             section={section}
             sectionOptions={sectionOptions}
             mergeableChapterIds={mergeableChapterIds}
+            matchBadges={matchBadges}
             depth={0}
             isFirst={index === 0}
             isLast={index === draft.sections.length - 1}
@@ -506,9 +636,7 @@ export function ImportReviewEditor({
               apply((current) => moveChapter(current, chapterId, targetSectionId))
             }
             onMergeChapter={applyMerge}
-            onDeleteChapter={(chapterId) =>
-              apply((current) => deleteChapter(current, chapterId))
-            }
+            onDeleteChapter={(chapterId) => apply((current) => deleteChapter(current, chapterId))}
             onReorderChapter={(chapterId, direction) =>
               apply((current) => reorderChapter(current, chapterId, direction))
             }
@@ -556,7 +684,12 @@ export function ImportReviewEditor({
           form={formId}
           name="intent"
           value="commit"
-          disabled={isPending || draft.stats.chapterCount === 0 || emptyChapters.length > 0}
+          disabled={
+            isPending ||
+            draft.stats.chapterCount === 0 ||
+            emptyChapters.length > 0 ||
+            unresolvedOld.length > 0
+          }
         >
           {isPending ? "Đang xử lý…" : "Commit vào kệ đọc"}
         </Button>

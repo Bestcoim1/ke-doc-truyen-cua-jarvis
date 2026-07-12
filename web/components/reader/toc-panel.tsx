@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { X, ChevronRight, ChevronDown } from "lucide-react";
 
 import { buildTocTree, type ChapterRow, type SectionRow, type TocNode } from "@/lib/reader/tree";
@@ -102,10 +103,10 @@ export function TocPanel({
 }) {
   const [filter, setFilter] = useState("");
   const tree = useMemo(() => buildTocTree(sections, chapters), [sections, chapters]);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const current = panelRef.current?.querySelector('[aria-current="true"]');
+    const current = contentRef.current?.querySelector('[aria-current="true"]');
     current?.scrollIntoView({ block: "center" });
   }, []);
 
@@ -118,46 +119,53 @@ export function TocPanel({
   }
 
   return (
-    <>
-      <div className="absolute inset-0 z-20 bg-black/40" onClick={onClose} />
-      <div
-        ref={panelRef}
-        className="absolute right-0 top-0 bottom-0 z-30 flex w-[85%] max-w-sm flex-col shadow-xl"
-        style={{ background: "var(--kd-surface)", color: "var(--kd-text)" }}
-        role="dialog"
-        aria-label="Mục lục"
-      >
-        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--kd-border)" }}>
-          <span className="text-base font-bold">Mục lục</span>
-          <button onClick={onClose} aria-label="Đóng" className="rounded-md p-1.5">
-            <X size={18} />
-          </button>
-        </div>
-        {chapters.length >= 100 && (
-          <div className="px-4 pt-3">
-            <input
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="Tìm chương..."
-              className="w-full rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: "var(--kd-border)", background: "var(--kd-bg)" }}
-            />
+    <Dialog.Root open onOpenChange={(open: boolean) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-20 bg-black/40" />
+        <Dialog.Content
+          ref={contentRef}
+          className="fixed right-0 top-0 bottom-0 z-30 flex w-[85%] max-w-sm flex-col shadow-xl outline-none"
+          style={{ background: "var(--kd-surface)", color: "var(--kd-text)" }}
+        >
+          <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--kd-border)" }}>
+            <Dialog.Title asChild>
+              <span className="text-base font-bold">Mục lục</span>
+            </Dialog.Title>
+            <Dialog.Close asChild>
+              <button aria-label="Đóng" className="rounded-md p-1.5">
+                <X size={18} />
+              </button>
+            </Dialog.Close>
           </div>
-        )}
-        <div className="flex-1 overflow-y-auto p-2">
-          {tree.map((node) => (
-            <SectionBranch
-              key={node.id}
-              node={node}
-              depth={0}
-              currentChapterId={currentChapterId}
-              readStates={readStates}
-              filter={filter}
-              onNavigate={handleNavigate}
-            />
-          ))}
-        </div>
-      </div>
-    </>
+          {chapters.length >= 100 && (
+            <div className="px-4 pt-3">
+              <input
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Tìm chương..."
+                className="w-full rounded-lg border px-3 py-2 text-sm"
+                style={{ borderColor: "var(--kd-border)", background: "var(--kd-bg)" }}
+              />
+            </div>
+          )}
+          <div
+            className="flex-1 overflow-y-auto p-2"
+            style={{ paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))" }}
+          >
+            {tree.map((node) => (
+              <SectionBranch
+                key={node.id}
+                node={node}
+                depth={0}
+                currentChapterId={currentChapterId}
+                readStates={readStates}
+                filter={filter}
+                onNavigate={handleNavigate}
+              />
+            ))}
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

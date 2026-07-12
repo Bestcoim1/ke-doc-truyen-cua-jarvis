@@ -21,6 +21,9 @@ export async function updateReadingSettings(patch: Partial<ReadingSettings>) {
     .select("font_size_step, line_height, theme")
     .eq("user_id", userId)
     .maybeSingle();
+  if (current.error) {
+    logEvent("reader.settings_current_query_error", { code: current.error.code });
+  }
 
   const next = {
     user_id: userId,
