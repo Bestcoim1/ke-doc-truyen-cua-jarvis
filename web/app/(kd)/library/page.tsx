@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
+import { DeleteStoryButton } from "@/components/library/delete-story-button";
 import { LibrarySkeleton } from "@/components/library/library-skeleton";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/utils";
@@ -99,6 +100,7 @@ async function LibraryContent() {
               >
                 Cập nhật bản thảo
               </Link>
+              <DeleteStoryButton storyId={story.id} storyTitle={story.title} />
             </li>
           ))}
         </ul>
