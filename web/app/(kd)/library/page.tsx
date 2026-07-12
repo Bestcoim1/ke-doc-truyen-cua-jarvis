@@ -3,13 +3,20 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ArchiveStoryButton } from "@/components/library/archive-story-button";
 import { DeleteStoryButton } from "@/components/library/delete-story-button";
 import { LibrarySkeleton } from "@/components/library/library-skeleton";
+import { RestoreStoryButton } from "@/components/library/restore-story-button";
 import { createClient } from "@/lib/supabase/server";
+import { getLibraryStories } from "@/lib/library/queries";
 import { isSupabaseConfigured } from "@/lib/utils";
 import { logEvent } from "@/lib/telemetry";
 
-export default function LibraryPage() {
+type LibraryPageProps = {
+  searchParams: Promise<{ status?: string }>;
+};
+
+export default function LibraryPage({ searchParams }: LibraryPageProps) {
   if (!isSupabaseConfigured) {
     return (
       <p className="max-w-sm p-6 text-sm" style={{ color: "var(--kd-text-muted)" }}>
@@ -20,12 +27,15 @@ export default function LibraryPage() {
 
   return (
     <Suspense fallback={<LibrarySkeleton />}>
-      <LibraryContent />
+      <LibraryContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function LibraryContent() {
+async function LibraryContent({ searchParams }: LibraryPageProps) {
+  const { status: statusParam } = await searchParams;
+  const status: "active" | "archived" = statusParam === "archived" ? "archived" : "active";
+
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
@@ -34,18 +44,10 @@ async function LibraryContent() {
     redirect("/auth/login?next=/library");
   }
 
-  const { data: stories, error: storiesError } = await supabase
-    .from("stories")
-    .select("id, title, last_read_at, updated_at")
-    .eq("owner_id", user.sub)
-    .eq("status", "active")
-    .order("last_read_at", { ascending: false, nullsFirst: false })
-    .order("updated_at", { ascending: false });
+  const { stories, error: storiesError } = await getLibraryStories(supabase, user.sub, status);
 
-  if (storiesError) {
-    logEvent("library.stories_query_error", { code: storiesError.code });
-  } else {
-    logEvent("library.viewed", { storyCount: stories?.length ?? 0 });
+  if (!storiesError) {
+    logEvent("library.viewed", { storyCount: stories?.length ?? 0, status });
   }
 
   return (
@@ -61,6 +63,16 @@ async function LibraryContent() {
           </Button>
         </div>
       </div>
+
+      <div className="mt-4 flex w-fit gap-1 rounded-lg border p-1" style={{ borderColor: "var(--kd-border)" }}>
+        <Button asChild size="sm" variant={status === "active" ? "default" : "ghost"}>
+          <Link href="/library">Đang đọc</Link>
+        </Button>
+        <Button asChild size="sm" variant={status === "archived" ? "default" : "ghost"}>
+          <Link href="/library?status=archived">Đã lưu trữ</Link>
+        </Button>
+      </div>
+
       {storiesError ? (
         <p
           role="alert"
@@ -74,7 +86,9 @@ async function LibraryContent() {
         </p>
       ) : !stories || stories.length === 0 ? (
         <p className="mt-4 text-sm" style={{ color: "var(--kd-text-muted)" }}>
-          Chưa có tác phẩm nào. Hãy thêm truyện đầu tiên bằng paste text.
+          {status === "archived"
+            ? "Chưa lưu trữ tác phẩm nào."
+            : "Chưa có tác phẩm nào. Hãy thêm truyện đầu tiên bằng paste text."}
         </p>
       ) : (
         <ul className="mt-4 flex flex-col gap-3">
@@ -87,19 +101,40 @@ async function LibraryContent() {
                 border: "1px solid var(--kd-border)",
               }}
             >
-              <Link href={`/read/${story.id}`} className="min-w-0 flex-1">
-                <div className="truncate font-semibold">{story.title}</div>
-                <div className="mt-1 text-sm" style={{ color: "var(--kd-text-muted)" }}>
-                  {story.last_read_at ? "Đọc tiếp" : "Bắt đầu đọc"}
+              {status === "active" ? (
+                <Link href={`/read/${story.id}`} className="min-w-0 flex-1">
+                  <div className="truncate font-semibold">{story.title}</div>
+                  <div className="mt-1 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+                    {story.chapterCount} chương
+                    {story.progress
+                      ? ` · Đang đọc chương ${story.progress.currentOrdinal}/${story.progress.totalChapters} (${story.progress.pct}%)`
+                      : story.lastReadAt
+                        ? " · Đã đọc"
+                        : " · Chưa đọc"}
+                  </div>
+                </Link>
+              ) : (
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-semibold">{story.title}</div>
+                  <div className="mt-1 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+                    {story.chapterCount} chương · Đã lưu trữ
+                  </div>
                 </div>
-              </Link>
-              <Link
-                href={`/import/reimport/${story.id}/new`}
-                className="shrink-0 text-xs underline"
-                style={{ color: "var(--kd-text-muted)" }}
-              >
-                Cập nhật bản thảo
-              </Link>
+              )}
+              {status === "active" ? (
+                <>
+                  <Link
+                    href={`/import/reimport/${story.id}/new`}
+                    className="shrink-0 text-xs underline"
+                    style={{ color: "var(--kd-text-muted)" }}
+                  >
+                    Cập nhật bản thảo
+                  </Link>
+                  <ArchiveStoryButton storyId={story.id} />
+                </>
+              ) : (
+                <RestoreStoryButton storyId={story.id} />
+              )}
               <DeleteStoryButton storyId={story.id} storyTitle={story.title} />
             </li>
           ))}
