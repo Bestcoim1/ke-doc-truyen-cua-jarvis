@@ -22,6 +22,13 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
           },
+          // CSP is per-request (needs a fresh nonce) so it's set in
+          // middleware.ts instead of here. HSTS is unconditional here since
+          // browsers ignore it on plain-http responses (local dev is fine).
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains",
+          },
         ],
       },
     ];
