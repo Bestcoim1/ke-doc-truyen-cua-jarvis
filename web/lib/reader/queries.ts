@@ -68,7 +68,7 @@ export async function getReadingProgress(
 ) {
   const { data, error } = await supabase
     .from("reading_progress")
-    .select("chapter_id, paragraph_anchor_id")
+    .select("chapter_id, chapter_revision_id, paragraph_anchor_id, paragraph_fingerprint, paragraph_ordinal")
     .eq("user_id", userId)
     .eq("story_id", storyId)
     .maybeSingle();

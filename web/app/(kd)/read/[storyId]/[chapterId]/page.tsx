@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { logEvent } from "@/lib/telemetry";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/utils";
 import {
@@ -12,8 +13,54 @@ import {
   getSectionsAndChapters,
   getStoryForReader,
 } from "@/lib/reader/queries";
+import { resolveResumeAnchor, type ResumeFallbackMethod } from "@/lib/reader/resume-fallback";
+import type { Block } from "@/lib/reader/types";
 import { ReaderView } from "@/components/reader/reader-view";
 import { ReaderSkeleton } from "@/components/reader/reader-skeleton";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/database.types";
+
+/**
+ * Resolves the reader's resume position for this chapter to something that
+ * actually exists in `newBlocks`. Only ever a mismatch when the chapter's
+ * current revision changed since the progress row was last observed (the
+ * common case — re-import's own remap step, lib/import/reimport-progress.ts
+ * — already keeps this in sync proactively; this is the safety net for
+ * when that didn't run, failed, or predates it). PRD §10.2/FR-10 fallback
+ * chain, shared with the remap step via lib/reader/resume-fallback.ts.
+ */
+async function resolveResumeState(
+  supabase: SupabaseClient<Database>,
+  progress: {
+    chapter_id: string;
+    chapter_revision_id: string;
+    paragraph_anchor_id: string;
+    paragraph_fingerprint: string;
+    paragraph_ordinal: number;
+  } | null,
+  chapterId: string,
+  currentRevisionId: string,
+  newBlocks: Block[],
+): Promise<{ anchorId: string | null; method: ResumeFallbackMethod | null }> {
+  if (!progress || progress.chapter_id !== chapterId) return { anchorId: null, method: null };
+  if (progress.chapter_revision_id === currentRevisionId) {
+    return { anchorId: progress.paragraph_anchor_id, method: "exact" };
+  }
+
+  const oldContent = await getChapterRevisionContent(supabase, progress.chapter_revision_id);
+  const resolved = resolveResumeAnchor(
+    progress.paragraph_anchor_id,
+    progress.paragraph_fingerprint,
+    progress.paragraph_ordinal,
+    oldContent?.content.blocks.length ?? 0,
+    newBlocks,
+  );
+  if (!resolved) return { anchorId: null, method: null };
+  if (resolved.method !== "exact") {
+    logEvent("reader.resume_fallback", { chapterId, method: resolved.method });
+  }
+  return { anchorId: resolved.anchorId, method: resolved.method };
+}
 
 type ReaderChapterPageProps = {
   params: Promise<{ storyId: string; chapterId: string }>;
@@ -67,6 +114,14 @@ async function ReaderChapterContent({ params }: ReaderChapterPageProps) {
   ]);
   if (!content) notFound();
 
+  const resume = await resolveResumeState(
+    supabase,
+    progress,
+    chapterId,
+    chapterRow.current_revision_id,
+    content.content.blocks,
+  );
+
   return (
     <ReaderView
       storyId={storyId}
@@ -81,9 +136,8 @@ async function ReaderChapterContent({ params }: ReaderChapterPageProps) {
       }}
       prevChapterId={index > 0 ? flat[index - 1].chapterId : null}
       nextChapterEntry={index < flat.length - 1 ? flat[index + 1] : null}
-      resumeAnchorId={
-        progress?.chapter_id === chapterId ? progress.paragraph_anchor_id : null
-      }
+      resumeAnchorId={resume.anchorId}
+      resumeFallbackMethod={resume.method}
       chapterReadState={readStates.get(chapterId) ?? null}
       initialSettings={settings}
       tocSections={sections}

@@ -8,6 +8,7 @@ import type { Block, ReadingSettings } from "@/lib/reader/types";
 import { FONT_SIZE_STEPS } from "@/lib/reader/types";
 import { extractFingerprintFromAnchorId } from "@/lib/reader/anchors";
 import { updateReadingSettings } from "@/lib/reader/actions";
+import type { ResumeFallbackMethod } from "@/lib/reader/resume-fallback";
 import type { ChapterRow, SectionRow } from "@/lib/reader/tree";
 import { BlockRenderer } from "./block-renderer";
 import { TocPanel } from "./toc-panel";
@@ -32,6 +33,7 @@ export function ReaderView({
   prevChapterId,
   nextChapterEntry,
   resumeAnchorId,
+  resumeFallbackMethod,
   chapterReadState,
   initialSettings,
   tocSections,
@@ -51,6 +53,7 @@ export function ReaderView({
   prevChapterId: string | null;
   nextChapterEntry: { chapterId: string; chapterTitle: string } | null;
   resumeAnchorId: string | null;
+  resumeFallbackMethod: ResumeFallbackMethod | null;
   chapterReadState: ReadState | null;
   initialSettings: ReadingSettings;
   tocSections: SectionRow[];
@@ -62,6 +65,12 @@ export function ReaderView({
   const [showToc, setShowToc] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [progressPct, setProgressPct] = useState(chapterReadState?.maxProgressPct ?? 0);
+  // One-time, dismissible: PRD §10.2/FR-10 — only surfaced when resume had
+  // to fall back beyond an exact anchor match (nearby paragraph or ordinal
+  // ratio), never for the common exact-match case.
+  const [showResumeNotice, setShowResumeNotice] = useState(
+    resumeFallbackMethod !== null && resumeFallbackMethod !== "exact",
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const endSentinelRef = useRef<HTMLDivElement>(null);
@@ -344,6 +353,23 @@ export function ReaderView({
           style={{ width: `${progressPct}%`, background: "var(--kd-accent)" }}
         />
       </div>
+
+      {showResumeNotice ? (
+        <div
+          role="status"
+          className="flex flex-shrink-0 items-center justify-between gap-2 px-3 py-2 text-xs"
+          style={{ background: "var(--kd-surface)", color: "var(--kd-text-muted)" }}
+        >
+          <span>Nội dung chương đã thay đổi — đã mở gần đúng vị trí bạn đọc lần trước.</span>
+          <button
+            onClick={() => setShowResumeNotice(false)}
+            aria-label="Đóng thông báo"
+            className="shrink-0 underline"
+          >
+            Đã hiểu
+          </button>
+        </div>
+      ) : null}
 
       <main
         ref={containerRef}
