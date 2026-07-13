@@ -16,15 +16,13 @@ type ActionState = {
 const EMPTY_STATE: ActionState = { error: null, message: null };
 
 /**
- * Hard delete — stories_delete_own RLS + the FK cascades already in place
- * (sections/chapters/chapter_revisions/reading_progress/chapter_read_states/
- * story_versions all `on delete cascade` from stories) make this safe and
- * complete; only import_jobs.story_id gets set to null (its FK is `on
- * delete set null`), which intentionally preserves import history/audit
- * trail rather than cascading. No soft-delete state machine exists to use
- * instead (story_status has unused 'archived'/'deleting' values, but
- * nothing implements a lifecycle around them — building that isn't what
- * was asked for here).
+ * Hard, permanent delete — stories_delete_own RLS + the FK cascades already
+ * in place (sections/chapters/chapter_revisions/reading_progress/
+ * chapter_read_states/story_versions all `on delete cascade` from stories)
+ * make this safe and complete; only import_jobs.story_id gets set to null
+ * (its FK is `on delete set null`), which intentionally preserves import
+ * history/audit trail rather than cascading. For anything reversible, see
+ * archiveStory below instead.
  */
 export async function deleteStory(
   _previousState: ActionState,
@@ -56,4 +54,53 @@ export async function deleteStory(
   logEvent("library.story_deleted", { storyId });
   revalidatePath("/library");
   return EMPTY_STATE;
+}
+
+async function setStoryStatus(
+  formData: FormData,
+  status: "active" | "archived",
+  eventName: string,
+): Promise<ActionState> {
+  const storyId = formData.get("storyId");
+  if (typeof storyId !== "string" || !UUID_RE.test(storyId)) {
+    return { error: "Tác phẩm không hợp lệ.", message: null };
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub as string | undefined;
+  if (!userId) {
+    redirect(`/auth/login?next=/library`);
+  }
+
+  const { error, count } = await supabase
+    .from("stories")
+    .update({ status }, { count: "exact" })
+    .eq("id", storyId)
+    .eq("owner_id", userId);
+
+  if (error || !count) {
+    logEvent(`${eventName}_error`, { code: error?.code ?? "not_found" });
+    return { error: "Không thể cập nhật tác phẩm này. Vui lòng thử lại.", message: null };
+  }
+
+  logEvent(eventName, { storyId });
+  revalidatePath("/library");
+  return EMPTY_STATE;
+}
+
+/** Reversible alternative to deleteStory — hides the story from the active
+ * library list without touching any of its chapters/progress/history. */
+export async function archiveStory(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return setStoryStatus(formData, "archived", "library.story_archived");
+}
+
+export async function restoreStory(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return setStoryStatus(formData, "active", "library.story_restored");
 }
