@@ -65,6 +65,17 @@
   body {
     @apply bg-background text-foreground;
   }
+  /*
+   * Visible keyboard focus for every focusable control (AC-A11Y-01). shadcn
+   * Buttons/Inputs opt out with focus-visible:outline-none and draw their own
+   * ring (a utility-layer rule that wins over this base rule), so this only
+   * lands on the raw <button>/<a>/<input> controls the Reader uses. The
+   * Reader swaps in its own accent color inside [data-kd-theme] below.
+   */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
 }
 
 /*
@@ -128,4 +139,13 @@
   --kd-accent: #a23b2e;
   --kd-accent-foreground: #fdf8ed;
   --kd-border: rgba(0, 0, 0, 0.1);
+}
+
+/*
+ * Inside the Reader, draw the focus ring in the theme accent (higher-contrast
+ * against the sepia/dark reading surfaces than the shell's --ring). Non-layered
+ * so it wins over the @layer base rule above.
+ */
+[data-kd-theme] :focus-visible {
+  outline-color: var(--kd-accent);
 }

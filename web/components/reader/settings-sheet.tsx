@@ -19,6 +19,7 @@ export function SettingsSheet({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-20 bg-black/40" />
         <Dialog.Content
+          aria-describedby={undefined}
           className="fixed inset-x-0 bottom-0 z-30 rounded-t-2xl p-5 shadow-xl outline-none"
           style={{
             background: "var(--kd-surface)",
@@ -31,7 +32,10 @@ export function SettingsSheet({
               <span className="text-base font-bold">Tuỳ chỉnh đọc</span>
             </Dialog.Title>
             <Dialog.Close asChild>
-              <button aria-label="Đóng" className="rounded-md p-1.5">
+              <button
+                aria-label="Đóng"
+                className="flex h-11 w-11 items-center justify-center rounded-md"
+              >
                 <X size={18} />
               </button>
             </Dialog.Close>
@@ -47,7 +51,7 @@ export function SettingsSheet({
                   key={size}
                   role="radio"
                   aria-checked={settings.fontSizeStep === step}
-                  className="rounded-full px-4 py-2 text-sm font-semibold"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold"
                   style={
                     settings.fontSizeStep === step
                       ? { background: "var(--kd-accent)", color: "var(--kd-accent-foreground)" }
@@ -71,7 +75,7 @@ export function SettingsSheet({
                   key={lh}
                   role="radio"
                   aria-checked={settings.lineHeight === lh}
-                  className="rounded-full px-4 py-2 text-sm font-semibold"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold"
                   style={
                     settings.lineHeight === lh
                       ? { background: "var(--kd-accent)", color: "var(--kd-accent-foreground)" }
@@ -101,7 +105,7 @@ export function SettingsSheet({
                   key={key}
                   role="radio"
                   aria-checked={settings.theme === key}
-                  className="rounded-full px-4 py-2 text-sm font-semibold"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold"
                   style={
                     settings.theme === key
                       ? { background: "var(--kd-accent)", color: "var(--kd-accent-foreground)" }
