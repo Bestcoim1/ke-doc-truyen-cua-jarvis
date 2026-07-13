@@ -16,6 +16,9 @@
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test smoke",
+    "test:e2e:install": "playwright install --with-deps chromium",
     "seed:fixtures": "tsx scripts/seed-fixtures.mts",
     "types:generate": "supabase gen types typescript --local > database.types.ts"
   },
@@ -40,6 +43,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

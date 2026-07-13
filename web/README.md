@@ -86,10 +86,41 @@ Sau khi đổi migration, chạy `npm run types:generate` (cần `supabase start
 Supabase client/server nên thay đổi schema/RPC không khớp code sẽ bị
 `typecheck` bắt được, thay vì chỉ lộ ra lúc chạy thật.
 
+## E2E test (Playwright)
+
+`e2e/` lái app Next.js thật (SSR shell, middleware, routing) — lớp mà vitest
+không chạm tới. Hai tầng, chia theo thứ cần:
+
+- `e2e/*.smoke.spec.ts` — chỉ luồng **chưa đăng nhập** (login render, route
+  được bảo vệ thì redirect). Không ghi DB, chạy được với Supabase thật trong
+  `.env.local`:
+
+  ```powershell
+  npm run test:e2e:smoke
+  ```
+
+- `e2e/*.journey.spec.ts` — luồng **đã đăng nhập** (mở truyện → đọc →
+  chuyển chương → reload resume). Cần một account đã seed sẵn truyện
+  (`npm run seed:fixtures`) và tự `skip` nếu chưa đặt `KEDOC_E2E_AUTH=1`:
+
+  ```powershell
+  $env:KEDOC_E2E_AUTH = "1"
+  $env:KEDOC_E2E_EMAIL = "..."
+  $env:KEDOC_E2E_PASSWORD = "..."
+  npm run test:e2e
+  ```
+
+Lần đầu cần cài browser: `npm run test:e2e:install`. Playwright tự khởi động
+`next dev`; đặt `PLAYWRIGHT_BASE_URL` nếu muốn trỏ vào server đang chạy sẵn.
+
 ## CI
 
-`.github/workflows/ci.yml` chạy `lint` + `typecheck` + `test:unit` + `build`
-trên mỗi push/PR vào `main`, dùng Node 22 (khớp toolchain dev thực tế; sàn
-tối thiểu trong `package.json` vẫn là `>=20.9.0` vì Next.js không đòi hỏi
-cao hơn). `test:integration` **chưa** nằm trong CI — cần một Supabase
-instance thật trong pipeline, để lại như một việc riêng.
+`.github/workflows/ci.yml` là **gate nhanh** — `lint` + `typecheck` +
+`test:unit` + `build` trên mỗi push/PR, Node 22 (sàn tối thiểu trong
+`package.json` vẫn `>=20.9.0`). Không đụng service ngoài nên không flake.
+
+`.github/workflows/e2e.yml` là **tầng Supabase**: khởi động Postgres thật
+bằng Supabase CLI, seed 3 account test + fixture, rồi chạy `test:integration`
+(RLS/RPC) và `test:e2e` (smoke + journey). Tách riêng để một flake ở đây
+không chặn gate nhanh. DB cục bộ dùng xong huỷ nên credential test trong
+workflow không phải secret.

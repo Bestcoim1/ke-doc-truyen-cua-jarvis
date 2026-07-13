@@ -1,10 +1,10 @@
 name: CI
 
-# Scope, deliberately: lint/typecheck/unit/build only. The RLS/RPC suite in
-# web/tests/integration/ needs a real Supabase instance (see
-# web/supabase/config.toml) and seeded test users — wiring that into CI is a
-# separate follow-up, not done here. Until then, `npm run test:integration`
-# stays a local/manual gate (see web/README.md).
+# Scope, deliberately: the fast gate — lint/typecheck/unit/build only, no
+# external services, so it stays quick and never flakes. The Supabase-backed
+# RLS/RPC integration suite and the Playwright E2E suite run separately in
+# e2e.yml (they start a real Postgres via the Supabase CLI); a flake there
+# must not block this gate.
 
 on:
   push:
