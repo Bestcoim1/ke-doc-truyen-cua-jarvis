@@ -324,7 +324,13 @@ export function ReaderView({
     >
       <header
         className="flex flex-shrink-0 items-center gap-2 border-b px-3 py-3"
-        style={{ borderColor: "var(--kd-border)", background: "var(--kd-surface)" }}
+        style={{
+          borderColor: "var(--kd-border)",
+          background: "var(--kd-surface)",
+          paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        }}
       >
         <button onClick={() => router.push("/library")} aria-label="Về thư viện" className="rounded-md p-2">
           <ArrowLeft size={18} />
@@ -378,6 +384,9 @@ export function ReaderView({
         style={{
           fontSize: `${FONT_SIZE_STEPS[settings.fontSizeStep]}px`,
           lineHeight: settings.lineHeight,
+          // Landscape on a notched device: keep prose clear of the side notch.
+          paddingLeft: "max(1.25rem, env(safe-area-inset-left))",
+          paddingRight: "max(1.25rem, env(safe-area-inset-right))",
         }}
       >
         <BlockRenderer blocks={chapter.blocks} />
@@ -410,6 +419,8 @@ export function ReaderView({
           borderColor: "var(--kd-border)",
           background: "var(--kd-surface)",
           paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
         }}
       >
         <button
