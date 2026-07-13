@@ -1,0 +1,105 @@
+name: E2E + Integration
+
+# The Supabase-backed tier the fast `ci.yml` job deliberately left out: the
+# RLS/RPC integration suite (web/tests/integration) and the Playwright E2E
+# suite (web/e2e), both against a real Postgres started by the Supabase CLI.
+# Kept in its own workflow so a flake here never blocks the lint/typecheck/
+# unit/build gate that every PR relies on.
+#
+# The local DB is ephemeral and thrown away with the runner, so the test
+# credentials below are not secrets — they only ever exist for one job.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  # Test-only accounts seeded into the throwaway local Supabase instance.
+  KEDOC_TEST_USER_A_EMAIL: user-a@kedoc.test
+  KEDOC_TEST_USER_A_PASSWORD: kedoc-test-a-pw
+  KEDOC_TEST_USER_B_EMAIL: user-b@kedoc.test
+  KEDOC_TEST_USER_B_PASSWORD: kedoc-test-b-pw
+  KEDOC_E2E_EMAIL: owner@kedoc.test
+  KEDOC_E2E_PASSWORD: kedoc-e2e-owner-pw
+  KEDOC_SEED_OWNER_EMAIL: owner@kedoc.test
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Applies every migration in web/supabase/migrations to a fresh local DB.
+      - name: Start Supabase (local)
+        run: supabase start
+
+      # Map the CLI's reported keys onto the names the app + suites read.
+      - name: Export Supabase env
+        run: |
+          supabase status -o env > supabase.env
+          . ./supabase.env
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+          rm -f supabase.env
+
+      # Create the three confirmed accounts the suites expect. Idempotent
+      # enough for a fresh DB; a duplicate just returns 422 and is ignored.
+      - name: Seed auth users
+        run: |
+          create_user() {
+            curl -sf -X POST "$NEXT_PUBLIC_SUPABASE_URL/auth/v1/admin/users" \
+              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"email\":\"$1\",\"password\":\"$2\",\"email_confirm\":true}" \
+              > /dev/null || echo "user $1 may already exist, continuing"
+          }
+          create_user "$KEDOC_TEST_USER_A_EMAIL" "$KEDOC_TEST_USER_A_PASSWORD"
+          create_user "$KEDOC_TEST_USER_B_EMAIL" "$KEDOC_TEST_USER_B_PASSWORD"
+          create_user "$KEDOC_E2E_EMAIL" "$KEDOC_E2E_PASSWORD"
+
+      - run: npm ci
+
+      # Data-layer truth: RLS + the reader/import/re-import RPCs.
+      - run: npm run test:integration
+
+      # Give the E2E owner a large, realistic library to read.
+      - run: npm run seed:fixtures
+
+      - run: npx playwright install --with-deps chromium
+
+      # Smoke tier + the authenticated journey (gated on KEDOC_E2E_AUTH).
+      # Playwright's webServer boots `next dev` with the env exported above.
+      - name: Run E2E
+        env:
+          KEDOC_E2E_AUTH: "1"
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: web/playwright-report/
+          retention-days: 7
