@@ -332,7 +332,11 @@ export function ReaderView({
           paddingRight: "max(0.75rem, env(safe-area-inset-right))",
         }}
       >
-        <button onClick={() => router.push("/library")} aria-label="Về thư viện" className="rounded-md p-2">
+        <button
+          onClick={() => router.push("/library")}
+          aria-label="Về thư viện"
+          className="flex h-11 w-11 items-center justify-center rounded-md"
+        >
           <ArrowLeft size={18} />
         </button>
         <div className="min-w-0 flex-1">
@@ -341,13 +345,17 @@ export function ReaderView({
           </div>
           <div className="truncate text-sm font-bold">{chapter.chapterTitle}</div>
         </div>
-        <button onClick={() => openOverlay("toc")} aria-label="Mục lục" className="rounded-md p-2">
+        <button
+          onClick={() => openOverlay("toc")}
+          aria-label="Mục lục"
+          className="flex h-11 w-11 items-center justify-center rounded-md"
+        >
           <List size={18} />
         </button>
         <button
           onClick={() => openOverlay("settings")}
           aria-label="Tuỳ chỉnh đọc"
-          className="rounded-md p-2 text-sm font-extrabold"
+          className="flex h-11 w-11 items-center justify-center rounded-md text-sm font-extrabold"
         >
           Aa
         </button>
@@ -424,7 +432,7 @@ export function ReaderView({
         }}
       >
         <button
-          className="flex items-center gap-1 text-sm font-semibold disabled:opacity-30"
+          className="flex min-h-11 items-center gap-1 text-sm font-semibold disabled:opacity-30"
           disabled={!prevChapterId}
           onClick={() => prevChapterId && goToChapter(prevChapterId)}
         >
@@ -434,7 +442,7 @@ export function ReaderView({
           {progressPct}% chương này
         </span>
         <button
-          className="flex items-center gap-1 text-sm font-semibold disabled:opacity-30"
+          className="flex min-h-11 items-center gap-1 text-sm font-semibold disabled:opacity-30"
           disabled={!nextChapterEntry}
           onClick={handleNext}
         >

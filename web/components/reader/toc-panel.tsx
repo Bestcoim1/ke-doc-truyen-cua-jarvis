@@ -38,7 +38,7 @@ function SectionBranch({
 
     return (
       <button
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm"
+        className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm"
         style={isCurrent ? { background: "var(--kd-accent)", color: "var(--kd-accent-foreground)" } : undefined}
         aria-current={isCurrent ? "true" : undefined}
         onClick={() => onNavigate(node.id)}
@@ -124,6 +124,7 @@ export function TocPanel({
         <Dialog.Overlay className="fixed inset-0 z-20 bg-black/40" />
         <Dialog.Content
           ref={contentRef}
+          aria-describedby={undefined}
           className="fixed right-0 top-0 bottom-0 z-30 flex w-[85%] max-w-sm flex-col shadow-xl outline-none"
           style={{ background: "var(--kd-surface)", color: "var(--kd-text)" }}
         >
@@ -132,7 +133,10 @@ export function TocPanel({
               <span className="text-base font-bold">Mục lục</span>
             </Dialog.Title>
             <Dialog.Close asChild>
-              <button aria-label="Đóng" className="rounded-md p-1.5">
+              <button
+                aria-label="Đóng"
+                className="flex h-11 w-11 items-center justify-center rounded-md"
+              >
                 <X size={18} />
               </button>
             </Dialog.Close>
@@ -143,6 +147,7 @@ export function TocPanel({
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 placeholder="Tìm chương..."
+                aria-label="Tìm chương"
                 className="w-full rounded-lg border px-3 py-2 text-sm"
                 style={{ borderColor: "var(--kd-border)", background: "var(--kd-bg)" }}
               />
