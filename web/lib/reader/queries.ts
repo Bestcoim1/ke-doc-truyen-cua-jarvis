@@ -2,7 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/database.types";
 import { logEvent } from "@/lib/telemetry";
-import type { Block, ChapterRevisionContent, ReadingSettings } from "./types";
+import { parseChapterContent } from "./content";
+import type { Block, ReadingSettings } from "./types";
 
 export { buildFlatChapterList, buildTocTree } from "./tree";
 export type { ChapterRow, SectionRow, TocNode } from "./tree";
@@ -54,10 +55,14 @@ export async function getChapterRevisionContent(
 
   if (!data) return null;
 
+  // content is null when the row exists but its blob fails validation — the
+  // caller distinguishes "revision missing" (data null) from "revision
+  // present but unrenderable" (content null) to show a recovery state
+  // instead of crashing (FR-12 §5).
   return {
     revisionId: data.id as string,
     contentHash: data.content_hash as string,
-    content: data.content_blocks as ChapterRevisionContent,
+    content: parseChapterContent(data.content_blocks),
   };
 }
 

@@ -84,13 +84,15 @@ export async function remapReadingProgressAfterReimport(
       target.oldRevisionId ? getChapterRevisionContent(supabase, target.oldRevisionId) : null,
       getChapterRevisionContent(supabase, target.targetRevisionId),
     ]);
-    if (!newContent) return;
+    // content is null when the revision's blob failed validation — can't
+    // remap into a chapter we can't read; leave progress on the old revision.
+    if (!newContent?.content) return;
 
     const resolved = resolveResumeAnchor(
       progress.paragraph_anchor_id,
       progress.paragraph_fingerprint,
       progress.paragraph_ordinal,
-      oldContent?.content.blocks.length ?? 0,
+      oldContent?.content?.blocks.length ?? 0,
       newContent.content.blocks,
     );
     if (!resolved) return;

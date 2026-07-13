@@ -17,6 +17,7 @@ import { resolveResumeAnchor, type ResumeFallbackMethod } from "@/lib/reader/res
 import type { Block } from "@/lib/reader/types";
 import { ReaderView } from "@/components/reader/reader-view";
 import { ReaderSkeleton } from "@/components/reader/reader-skeleton";
+import { ChapterRecoveryNotice } from "@/components/reader/chapter-recovery-notice";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/database.types";
 
@@ -52,7 +53,7 @@ async function resolveResumeState(
     progress.paragraph_anchor_id,
     progress.paragraph_fingerprint,
     progress.paragraph_ordinal,
-    oldContent?.content.blocks.length ?? 0,
+    oldContent?.content?.blocks.length ?? 0,
     newBlocks,
   );
   if (!resolved) return { anchorId: null, method: null };
@@ -113,6 +114,20 @@ async function ReaderChapterContent({ params }: ReaderChapterPageProps) {
     getReadingSettings(supabase, userId),
   ]);
   if (!content) notFound();
+
+  // Revision row exists but its content_blocks blob failed validation (a
+  // legacy/corrupt shape). Degrade to a recovery card instead of crashing
+  // the reader on undefined blocks (FR-12 §5).
+  if (!content.content) {
+    logEvent("reader.chapter_content_invalid", { chapterId });
+    return (
+      <ChapterRecoveryNotice
+        storyId={storyId}
+        storyTitle={story.title}
+        chapterTitle={entry.chapterTitle}
+      />
+    );
+  }
 
   const resume = await resolveResumeState(
     supabase,
