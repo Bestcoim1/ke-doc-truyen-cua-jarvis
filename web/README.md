@@ -10,9 +10,6 @@ npm ci
 npm run dev
 ```
 
-`.env.local` đang bật `NEXT_PUBLIC_KEDOC_DEMO_MODE=true`, chỉ để kiểm thử UI
-không cần tài khoản Supabase. Demo mode không được bật khi deploy.
-
 ## Kết nối Supabase
 
 1. Tạo Supabase project.
@@ -124,3 +121,40 @@ bằng Supabase CLI, seed 3 account test + fixture, rồi chạy `test:integrati
 (RLS/RPC) và `test:e2e` (smoke + journey). Tách riêng để một flake ở đây
 không chặn gate nhanh. DB cục bộ dùng xong huỷ nên credential test trong
 workflow không phải secret.
+
+## Deploy production (Vercel)
+
+Chuẩn bị cho Slice 5 (pilot thật) — cần một domain thật để dùng trên điện
+thoại, không chỉ `npm run dev` trên máy.
+
+1. **Supabase project**: dùng project đã cấu hình trong `.env.local` (hoặc
+   tạo project riêng cho production nếu muốn tách biệt dev/prod dữ liệu).
+   Đảm bảo đã chạy hết migration (`supabase db push` hoặc SQL Editor).
+2. **Import project vào Vercel** từ repo GitHub này. Vì app nằm trong
+   `/web`, đặt **Root Directory = `web`** trong Vercel project settings —
+   bước hay bị bỏ sót vì repo có `/src` (prototype cũ) ở gốc.
+3. **Environment Variables** trên Vercel (Project Settings > Environment
+   Variables), áp cho Production (và Preview nếu muốn):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+   **Không** đặt `SUPABASE_SERVICE_ROLE_KEY` trên Vercel — key này chỉ dùng
+   cho `scripts/seed-fixtures.mts` chạy cục bộ, ứng dụng deploy không cần và
+   không nên có quyền service-role.
+4. **Supabase Auth > URL Configuration**: thêm redirect URL production —
+   `https://<domain-that-vercel-gives-you>/auth/confirm` (route xác nhận
+   email/PKCE thật sự dùng, không phải `/auth/callback`). Thiếu bước này thì
+   link xác nhận email sẽ đưa người dùng về `localhost`.
+5. **Deploy.** Next.js build tự chạy `next build`; các security header
+   (CSP/HSTS, `next.config.ts` + `proxy.ts`) và `viewport-fit=cover`
+   (`app/layout.tsx`) đã có sẵn trong code, không cần cấu hình thêm trên
+   Vercel.
+6. **Xác minh sau deploy** — đối chiếu với DoD ở §18 spec:
+   - Đăng nhập được, Library trống/riêng tư đúng tài khoản.
+   - Import một bản thảo thật (paste hoặc DOCX) → review → mở Reader trong
+     dưới 2 phút.
+   - Mở trên điện thoại thật: thấy hierarchy, mở TOC, an toàn vùng viền nếu
+     máy có notch.
+   - Đổi font/line-height/theme, đóng mở lại app → về đúng đoạn.
+   - (Tuỳ chọn) Trỏ smoke E2E vào domain thật để xác nhận nhanh:
+     `PLAYWRIGHT_BASE_URL=https://<domain> npm run test:e2e:smoke`.
