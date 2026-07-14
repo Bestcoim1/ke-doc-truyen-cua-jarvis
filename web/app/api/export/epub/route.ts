@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
 
     const safeTitle = story.title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 
-    return new Response(epubBuffer as Blob, {
+    return new Response(epubBuffer as unknown as BodyInit, {
       headers: {
         "Content-Type": "application/epub+zip",
         "Content-Disposition": `attachment; filename="${safeTitle}.epub"`,
