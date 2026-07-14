@@ -408,7 +408,7 @@ export function ImportReimportEditor({
   const matchBadges = useMemo(() => {
     const map = new Map<string, MatchBadge>();
     for (const decision of decisions) {
-      if (decision.kind === "archived") continue;
+      if (decision.kind === "archived" || decision.kind === "unrelated") continue;
       const auto = autoMatches.find(
         (match) => match.oldChapterId === decision.oldChapterId && match.newChapterId === decision.newChapterId,
       );
@@ -431,11 +431,12 @@ export function ImportReimportEditor({
     const primaryCount = decisions.filter((d) => d.kind === "primary").length;
     const mergedCount = decisions.filter((d) => d.kind === "merged").length;
     const archivedCount = decisions.filter((d) => d.kind === "archived").length;
+    const unrelatedCount = decisions.filter((d) => d.kind === "unrelated").length;
     const claimedNewChapterIds = new Set(
       decisions.filter((d) => d.kind === "primary").map((d) => d.newChapterId),
     );
     const newCount = currentNewChapterIds.size - claimedNewChapterIds.size;
-    return { primaryCount, mergedCount, archivedCount, newCount };
+    return { primaryCount, mergedCount, archivedCount, unrelatedCount, newCount };
   }, [decisions, currentNewChapterIds]);
 
   const structureJson = useMemo(() => JSON.stringify(toStructure(draft)), [draft]);
@@ -513,12 +514,13 @@ export function ImportReimportEditor({
         </Button>
       </div>
 
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {[
           ["Giữ nguyên ID", summary.primaryCount],
           ["Gộp vào chương khác", summary.mergedCount],
           ["Chương mới", summary.newCount],
           ["Lưu trữ", summary.archivedCount],
+          ["Không liên quan", summary.unrelatedCount],
         ].map(([label, value]) => (
           <div
             key={label}
@@ -539,8 +541,11 @@ export function ImportReimportEditor({
             {unresolvedOld.length} chương cũ cần xác nhận trước khi commit
           </h2>
           <p className="mt-1 text-sm">
-            Các chương này không có trong bản thảo mới. Xác nhận lưu trữ (archive), hoặc ánh xạ
-            vào một chương trong bản thảo mới nếu nó chỉ đổi tên/tách/gộp.
+            Các chương này không có trong bản thảo mới. Xác nhận lưu trữ (archive) nếu bạn đã
+            xoá chúng khỏi tác phẩm, ánh xạ vào một chương trong bản thảo mới nếu nó chỉ đổi
+            tên/tách/gộp, hoặc chọn “Không liên quan” nếu bản thảo mới này chỉ bổ sung thêm nội
+            dung (ví dụ một Arc mới) và không nhắc gì tới chương này — nó sẽ được giữ nguyên,
+            không bị đổi hay xoá.
           </p>
           <ul className="mt-3 flex flex-col gap-2">
             {unresolvedOld.map((old) => (
@@ -566,6 +571,14 @@ export function ImportReimportEditor({
                   </select>
                   <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOverride(old.id, { unrelated: true })}
+                  >
+                    Không liên quan (giữ nguyên)
+                  </Button>
+                  <Button
+                    type="button"
                     variant="destructive"
                     size="sm"
                     onClick={() => setOverride(old.id, { archived: true })}
@@ -589,10 +602,12 @@ export function ImportReimportEditor({
                 override && "newChapterId" in override
                   ? flatChapters.find((entry) => entry.chapter.id === override.newChapterId)?.chapter.title
                   : null;
+              const label =
+                target ?? (override && "unrelated" in override ? "Không liên quan (giữ nguyên)" : "Lưu trữ (archive)");
               return (
                 <li key={old.id} className="flex items-center justify-between gap-2">
                   <span>
-                    {old.title} → {target ?? "Lưu trữ (archive)"}
+                    {old.title} → {label}
                   </span>
                   <button
                     type="button"

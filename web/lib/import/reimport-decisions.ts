@@ -1,13 +1,24 @@
 import type { ChapterMatch, OldChapterRef } from "./reimport-match";
 
-/** A reviewer's explicit choice for an old chapter, overriding auto-match. */
-export type ManualOverride = { newChapterId: string } | { archived: true };
+/**
+ * A reviewer's explicit choice for an old chapter, overriding auto-match.
+ * `unrelated` covers a partial re-import (e.g. importing one new Arc as its
+ * own file rather than the whole manuscript): the old chapter isn't
+ * addressed by this re-import at all and must be left exactly as it is —
+ * distinct from `archived` (hides it) and from mapping it to a new chapter
+ * (which would fold/overwrite its content). Before this existed, the only
+ * way past the "every chapter needs a disposition" gate for such a chapter
+ * was to archive it or wrongly map it onto an unrelated new chapter,
+ * silently discarding its content.
+ */
+export type ManualOverride = { newChapterId: string } | { archived: true } | { unrelated: true };
 
-/** Mirrors the "decisions" entries commit_reimport_job expects in mapping_json (migration 0008). */
+/** Mirrors the "decisions" entries commit_reimport_job expects in mapping_json (migration 0008, kind list extended in 0009). */
 export type Decision =
   | { kind: "primary"; newChapterId: string; oldChapterId: string }
   | { kind: "merged"; newChapterId: string; oldChapterId: string }
-  | { kind: "archived"; oldChapterId: string };
+  | { kind: "archived"; oldChapterId: string }
+  | { kind: "unrelated"; oldChapterId: string };
 
 /**
  * Resolves every old chapter's final disposition: manual override wins
@@ -39,6 +50,11 @@ export function computeFinalDecisions(
 
     if (manual && "archived" in manual) {
       decisions.push({ kind: "archived", oldChapterId: old.id });
+      continue;
+    }
+
+    if (manual && "unrelated" in manual) {
+      decisions.push({ kind: "unrelated", oldChapterId: old.id });
       continue;
     }
 
