@@ -15,6 +15,7 @@ import {
   getWritingStatusMeta,
   type WritingStatus,
 } from "@/lib/writing-status";
+import { useOptimistic } from "react";
 
 const INITIAL_STATE = { error: null, message: null };
 
@@ -31,10 +32,17 @@ export function WritingStatusForm({
     updateStoryWritingStatus,
     INITIAL_STATE,
   );
-  const meta = getWritingStatusMeta(writingStatus);
+  
+  const [optimisticStatus, addOptimisticStatus] = useOptimistic<WritingStatus, WritingStatus>(
+    writingStatus,
+    (state, newStatus) => newStatus
+  );
+  
+  const meta = getWritingStatusMeta(optimisticStatus);
 
   function submitStatus(nextStatus: WritingStatus) {
-    if (isPending || nextStatus === writingStatus) return;
+    if (isPending || nextStatus === optimisticStatus) return;
+    addOptimisticStatus(nextStatus);
     if (statusInputRef.current) {
       statusInputRef.current.value = nextStatus;
     }
@@ -69,7 +77,7 @@ export function WritingStatusForm({
             title={meta.description}
           >
             <span className="truncate">
-              {isPending ? "Đang lưu..." : meta.label}
+              {meta.label}
             </span>
             <ChevronDown
               className="shrink-0"
@@ -89,7 +97,7 @@ export function WritingStatusForm({
           }}
         >
           {WRITING_STATUS_OPTIONS.map((option) => {
-            const selected = option.value === writingStatus;
+            const selected = option.value === optimisticStatus;
 
             return (
               <DropdownMenuItem
