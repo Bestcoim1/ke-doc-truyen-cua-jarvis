@@ -34,9 +34,10 @@ type ActionState = {
 const EMPTY_STATE: ActionState = { error: null, message: null };
 
 /**
- * The mapping_json contract commit_reimport_job expects (migration 0008) —
- * only shape-validated here (array/string presence). Semantic correctness
- * (injectivity, coverage of every active old chapter) is re-derived and
+ * The mapping_json contract commit_reimport_job expects (migration 0008,
+ * decision kinds extended with "unrelated" in 0009) — only shape-validated
+ * here (array/string presence). Semantic correctness (injectivity, coverage
+ * of every active old chapter, recognized decision kind) is re-derived and
  * re-checked independently by the RPC itself; duplicating that logic here
  * would just be a second place it could drift out of sync.
  */
@@ -65,6 +66,8 @@ function reimportCommitErrorMessage(code: string | undefined): string {
       return "Còn chương cũ chưa được xác nhận (archive hoặc ánh xạ). Hãy xử lý hết trước khi commit.";
     case "KD004":
       return "Một ánh xạ tham chiếu tới chương không còn tồn tại. Hãy tải lại trang.";
+    case "KD005":
+      return "Dữ liệu ánh xạ chương không hợp lệ (loại quyết định không xác định). Hãy tải lại trang và thử lại.";
     default:
       return "Không thể hoàn tất cập nhật. Bản nháp vẫn được giữ để thử lại.";
   }

@@ -33,6 +33,8 @@ function manualOverridesFromSavedMapping(
     if (typeof decision.oldChapterId !== "string") continue;
     if (decision.kind === "archived") {
       overrides[decision.oldChapterId] = { archived: true };
+    } else if (decision.kind === "unrelated") {
+      overrides[decision.oldChapterId] = { unrelated: true };
     } else if (
       (decision.kind === "primary" || decision.kind === "merged") &&
       typeof decision.newChapterId === "string"
