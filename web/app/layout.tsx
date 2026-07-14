@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import "./globals.css";
+import { APP_BRANDING } from "@/lib/branding";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -11,8 +12,8 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Kệ Đọc",
-  description: "Bản đọc riêng tư cho bản thảo của tác giả và dịch giả.",
+  title: APP_BRANDING.defaultPageTitle,
+  description: APP_BRANDING.description,
 };
 
 // viewportFit "cover" is what makes env(safe-area-inset-*) resolve to real

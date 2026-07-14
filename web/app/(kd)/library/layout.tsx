@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { AuthButton } from "@/components/auth-button";
 import { EnvVarWarning } from "@/components/env-var-warning";
+import { APP_BRANDING } from "@/lib/branding";
 import { isSupabaseConfigured } from "@/lib/utils";
 
 export default function LibraryLayout({
@@ -15,7 +16,7 @@ export default function LibraryLayout({
         className="flex items-center justify-between px-5 py-4"
         style={{ borderBottom: "1px solid var(--kd-border)" }}
       >
-        <span className="text-lg font-bold">Kệ Đọc</span>
+        <span className="text-lg font-bold">{APP_BRANDING.name}</span>
         {isSupabaseConfigured ? (
           <Suspense>
             <AuthButton />
