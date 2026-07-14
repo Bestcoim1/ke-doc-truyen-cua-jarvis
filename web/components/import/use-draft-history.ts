@@ -27,9 +27,14 @@ export function useDraftHistory(initialDraft: ReviewDraft) {
         const entry = prev.stack[prev.index];
         const nextDraft = updater(entry.draft);
         if (nextDraft === entry.draft) return prev;
-        const nextPendingOps = op ? [...entry.pendingOps, op] : entry.pendingOps;
+        const nextPendingOps = op
+          ? [...entry.pendingOps, op]
+          : entry.pendingOps;
         const truncated = prev.stack.slice(0, prev.index + 1);
-        const nextStack = [...truncated, { draft: nextDraft, pendingOps: nextPendingOps }];
+        const nextStack = [
+          ...truncated,
+          { draft: nextDraft, pendingOps: nextPendingOps },
+        ];
         return { stack: nextStack, index: nextStack.length - 1 };
       });
     },
@@ -37,12 +42,16 @@ export function useDraftHistory(initialDraft: ReviewDraft) {
   );
 
   const undo = useCallback(() => {
-    setHistory((prev) => (prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev));
+    setHistory((prev) =>
+      prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev,
+    );
   }, []);
 
   const redo = useCallback(() => {
     setHistory((prev) =>
-      prev.index < prev.stack.length - 1 ? { ...prev, index: prev.index + 1 } : prev,
+      prev.index < prev.stack.length - 1
+        ? { ...prev, index: prev.index + 1 }
+        : prev,
     );
   }, []);
 

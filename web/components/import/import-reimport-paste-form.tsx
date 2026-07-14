@@ -8,8 +8,17 @@ import { createPasteReimportJob } from "@/lib/import/reimport-actions";
 
 const INITIAL_STATE = { error: null, message: null };
 
-export function ImportReimportPasteForm({ storyId, storyTitle }: { storyId: string; storyTitle: string }) {
-  const [state, formAction, isPending] = useActionState(createPasteReimportJob, INITIAL_STATE);
+export function ImportReimportPasteForm({
+  storyId,
+  storyTitle,
+}: {
+  storyId: string;
+  storyTitle: string;
+}) {
+  const [state, formAction, isPending] = useActionState(
+    createPasteReimportJob,
+    INITIAL_STATE,
+  );
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -32,10 +41,13 @@ export function ImportReimportPasteForm({ storyId, storyTitle }: { storyId: stri
           className="min-h-[50dvh] w-full resize-y rounded-xl border bg-transparent px-4 py-3 font-serif text-base leading-7 shadow-sm outline-none placeholder:font-sans placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring sm:min-h-[28rem]"
           placeholder={`Hồi 1: Khởi đầu\n\nChương 1: Cuộc gặp gỡ\n\nNội dung chương...`}
         />
-        <p className="text-xs leading-5" style={{ color: "var(--kd-text-muted)" }}>
-          Ở bước sau, hệ thống sẽ so sánh bản này với nội dung hiện tại của tác phẩm — chương
-          nào không đổi sẽ giữ nguyên, chương nào sửa nội dung sẽ có bản mới, chương biến mất
-          sẽ cần bạn xác nhận trước khi lưu trữ.
+        <p
+          className="text-xs leading-5"
+          style={{ color: "var(--kd-text-muted)" }}
+        >
+          Ở bước sau, hệ thống sẽ so sánh bản này với nội dung hiện tại của tác
+          phẩm — chương nào không đổi sẽ giữ nguyên, chương nào sửa nội dung sẽ
+          có bản mới, chương biến mất sẽ cần bạn xác nhận trước khi lưu trữ.
         </p>
       </div>
 
@@ -49,7 +61,12 @@ export function ImportReimportPasteForm({ storyId, storyTitle }: { storyId: stri
       ) : null}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button asChild type="button" variant="outline" className="w-full sm:w-auto">
+        <Button
+          asChild
+          type="button"
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
           <Link href="/library">Hủy</Link>
         </Button>
         <Button type="submit" disabled={isPending} className="w-full sm:w-auto">

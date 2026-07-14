@@ -63,16 +63,24 @@ export async function getStoryTreeForReimport(
   const sectionPaths = buildOldSectionPaths(oldSections);
 
   const oldChapters: OldChapterRef[] = (chapterRows ?? []).map((row) => {
-    const revision = row.chapter_revisions as unknown as { content_blocks: ChapterRevisionContent } | null;
+    const revision = row.chapter_revisions as unknown as {
+      content_blocks: ChapterRevisionContent;
+    } | null;
     const blocks = revision?.content_blocks?.blocks ?? [];
     return {
       id: row.id,
-      sectionPath: (row.section_id ? sectionPaths.get(row.section_id) : undefined) ?? "unsectioned",
+      sectionPath:
+        (row.section_id ? sectionPaths.get(row.section_id) : undefined) ??
+        "unsectioned",
       title: row.title,
       sourceKey: row.source_key,
       sortOrder: row.sort_order,
-      firstParagraphFingerprint: blocks[0] ? fingerprintParagraph(blocks[0].text) : null,
-      lastParagraphFingerprint: blocks.at(-1) ? fingerprintParagraph(blocks.at(-1)!.text) : null,
+      firstParagraphFingerprint: blocks[0]
+        ? fingerprintParagraph(blocks[0].text)
+        : null,
+      lastParagraphFingerprint: blocks.at(-1)
+        ? fingerprintParagraph(blocks.at(-1)!.text)
+        : null,
     };
   });
 
@@ -81,7 +89,10 @@ export async function getStoryTreeForReimport(
     ...(chapterRows ?? []).map((row) => row.updated_at),
   ];
   // ISO 8601 timestamps sort lexicographically in chronological order.
-  const baseTreeToken = timestamps.length > 0 ? timestamps.sort().at(-1)! : new Date(0).toISOString();
+  const baseTreeToken =
+    timestamps.length > 0
+      ? timestamps.sort().at(-1)!
+      : new Date(0).toISOString();
 
   return { storyTitle: story.title, oldChapters, oldSections, baseTreeToken };
 }

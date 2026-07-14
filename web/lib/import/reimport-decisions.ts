@@ -11,7 +11,8 @@ import type { ChapterMatch, OldChapterRef } from "./reimport-match";
  * was to archive it or wrongly map it onto an unrelated new chapter,
  * silently discarding its content.
  */
-export type ManualOverride = { newChapterId: string } | { archived: true } | { unrelated: true };
+export type ManualOverride =
+  { newChapterId: string } | { archived: true } | { unrelated: true };
 
 /** Mirrors the "decisions" entries commit_reimport_job expects in mapping_json (migration 0008, kind list extended in 0009). */
 export type Decision =
@@ -59,16 +60,23 @@ export function computeFinalDecisions(
     }
 
     const targetNewChapterId =
-      manual?.newChapterId ?? autoMatches.find((match) => match.oldChapterId === old.id)?.newChapterId;
+      manual?.newChapterId ??
+      autoMatches.find((match) => match.oldChapterId === old.id)?.newChapterId;
 
     if (!targetNewChapterId || !currentNewChapterIds.has(targetNewChapterId)) {
       unresolvedOld.push(old);
       continue;
     }
 
-    const kind = claimedNewChapterIds.has(targetNewChapterId) ? "merged" : "primary";
+    const kind = claimedNewChapterIds.has(targetNewChapterId)
+      ? "merged"
+      : "primary";
     claimedNewChapterIds.add(targetNewChapterId);
-    decisions.push({ kind, newChapterId: targetNewChapterId, oldChapterId: old.id });
+    decisions.push({
+      kind,
+      newChapterId: targetNewChapterId,
+      oldChapterId: old.id,
+    });
   }
 
   return { decisions, unresolvedOld };

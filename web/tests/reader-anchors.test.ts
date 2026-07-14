@@ -11,17 +11,23 @@ import {
 
 describe("normalizeParagraphText", () => {
   it("collapses internal whitespace and trims", () => {
-    expect(normalizeParagraphText("  Xin   chào\n\nthế giới  ")).toBe("Xin chào thế giới");
+    expect(normalizeParagraphText("  Xin   chào\n\nthế giới  ")).toBe(
+      "Xin chào thế giới",
+    );
   });
 });
 
 describe("fingerprintParagraph", () => {
   it("is deterministic for the same normalized text", () => {
-    expect(fingerprintParagraph("Xin chào")).toBe(fingerprintParagraph("  Xin   chào  "));
+    expect(fingerprintParagraph("Xin chào")).toBe(
+      fingerprintParagraph("  Xin   chào  "),
+    );
   });
 
   it("differs for different text", () => {
-    expect(fingerprintParagraph("Xin chào")).not.toBe(fingerprintParagraph("Tạm biệt"));
+    expect(fingerprintParagraph("Xin chào")).not.toBe(
+      fingerprintParagraph("Tạm biệt"),
+    );
   });
 });
 
@@ -47,8 +53,12 @@ describe("assignAnchorIds", () => {
 
 describe("extractFingerprintFromAnchorId", () => {
   it("round-trips through buildAnchorId for both suffixed and unsuffixed ids", () => {
-    expect(extractFingerprintFromAnchorId(buildAnchorId("abc123", 0))).toBe("abc123");
-    expect(extractFingerprintFromAnchorId(buildAnchorId("abc123", 3))).toBe("abc123");
+    expect(extractFingerprintFromAnchorId(buildAnchorId("abc123", 0))).toBe(
+      "abc123",
+    );
+    expect(extractFingerprintFromAnchorId(buildAnchorId("abc123", 3))).toBe(
+      "abc123",
+    );
   });
 });
 

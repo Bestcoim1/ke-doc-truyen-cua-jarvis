@@ -29,11 +29,21 @@ function buildLargeStory(): { sections: SectionRow[]; chapters: ChapterRow[] } {
 
   for (let v = 0; v < 10; v += 1) {
     const volumeId = `vol-${v}`;
-    sections.push({ id: volumeId, parent_section_id: null, title: `Quyển ${v + 1}`, sort_order: v });
+    sections.push({
+      id: volumeId,
+      parent_section_id: null,
+      title: `Quyển ${v + 1}`,
+      sort_order: v,
+    });
 
     for (let a = 0; a < 5; a += 1) {
       const arcId = `arc-${v}-${a}`;
-      sections.push({ id: arcId, parent_section_id: volumeId, title: `Hồi ${a + 1}`, sort_order: a });
+      sections.push({
+        id: arcId,
+        parent_section_id: volumeId,
+        title: `Hồi ${a + 1}`,
+        sort_order: a,
+      });
 
       for (let c = 0; c < 10; c += 1) {
         chapters.push({
@@ -68,7 +78,11 @@ describe("TOC transforms at 500 chapters", () => {
     expect(flat.at(-1)!.sectionPath).toEqual(["Quyển 10", "Hồi 5"]);
     // 10 root volumes, each with 5 arc children.
     expect(tree).toHaveLength(10);
-    expect(tree.every((node) => node.kind === "section" && node.children.length === 5)).toBe(true);
+    expect(
+      tree.every(
+        (node) => node.kind === "section" && node.children.length === 5,
+      ),
+    ).toBe(true);
 
     // Catastrophic-regression tripwire only (see file header).
     expect(elapsed).toBeLessThan(500);
@@ -80,7 +94,9 @@ describe("chapter content transforms at ~100k characters", () => {
     // ~800 paragraphs of ~130 chars each ≈ 100k characters, mirroring the
     // seed fixture's long-chapter edge case.
     const paragraphs = Array.from({ length: 800 }, (_, i) => ({
-      text: `Đoạn văn số ${i + 1}. ` + "Câu văn tiếng Việt có dấu để kiểm thử độ dài. ".repeat(3),
+      text:
+        `Đoạn văn số ${i + 1}. ` +
+        "Câu văn tiếng Việt có dấu để kiểm thử độ dài. ".repeat(3),
     }));
     const totalChars = paragraphs.reduce((sum, p) => sum + p.text.length, 0);
     expect(totalChars).toBeGreaterThan(100_000);

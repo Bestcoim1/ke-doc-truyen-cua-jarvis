@@ -22,7 +22,9 @@ export async function updateReadingSettings(patch: Partial<ReadingSettings>) {
     .eq("user_id", userId)
     .maybeSingle();
   if (current.error) {
-    logEvent("reader.settings_current_query_error", { code: current.error.code });
+    logEvent("reader.settings_current_query_error", {
+      code: current.error.code,
+    });
   }
 
   const next = {

@@ -18,14 +18,18 @@ test.describe("unauthenticated shell", () => {
     await expect(page.getByRole("button", { name: "Đăng nhập" })).toBeVisible();
   });
 
-  test("visiting the library while signed out redirects to login", async ({ page }) => {
+  test("visiting the library while signed out redirects to login", async ({
+    page,
+  }) => {
     await page.goto("/library");
 
     await expect(page).toHaveURL(/\/auth\/login/);
     await expect(page.getByLabel("Email")).toBeVisible();
   });
 
-  test("the root route sends a signed-out visitor to login", async ({ page }) => {
+  test("the root route sends a signed-out visitor to login", async ({
+    page,
+  }) => {
     await page.goto("/");
 
     await expect(page).toHaveURL(/\/auth\/login/);

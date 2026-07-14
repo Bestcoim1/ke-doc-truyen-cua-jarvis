@@ -1,5 +1,10 @@
 import { fingerprintParagraph } from "../reader/anchors";
-import { normalizeSourceSegment, type DraftChapter, type DraftSection, type ImportDraft } from "./text-parser";
+import {
+  normalizeSourceSegment,
+  type DraftChapter,
+  type DraftSection,
+  type ImportDraft,
+} from "./text-parser";
 
 /**
  * A chapter from the story's current (live) tree, as it exists before this
@@ -87,7 +92,8 @@ function flattenNewChapters(sections: DraftSection[]): FlatNewChapter[] {
   function walk(list: DraftSection[]) {
     for (const section of list) {
       const sectionPath = paths.get(section.id) ?? "unsectioned";
-      for (const chapter of section.chapters) result.push({ chapter, sectionPath });
+      for (const chapter of section.chapters)
+        result.push({ chapter, sectionPath });
       walk(section.children);
     }
   }
@@ -108,20 +114,27 @@ function groupBy<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> {
 }
 
 /** Tier 1: exact source_key equality. */
-function matchByTier1(oldRefs: OldChapterRef[], newFlat: FlatNewChapter[]): ChapterMatch[] {
+function matchByTier1(
+  oldRefs: OldChapterRef[],
+  newFlat: FlatNewChapter[],
+): ChapterMatch[] {
   const matches: ChapterMatch[] = [];
   const usedOld = new Set<string>();
 
   for (const flat of newFlat) {
     const old = oldRefs.find(
-      (ref) => !usedOld.has(ref.id) && ref.sourceKey && ref.sourceKey === flat.chapter.sourceKey,
+      (ref) =>
+        !usedOld.has(ref.id) &&
+        ref.sourceKey &&
+        ref.sourceKey === flat.chapter.sourceKey,
     );
     if (old) {
       matches.push({
         newChapterId: flat.chapter.id,
         oldChapterId: old.id,
         tier: 1,
-        reason: "Khớp chính xác theo source_key (đường dẫn hồi/phần + tiêu đề).",
+        reason:
+          "Khớp chính xác theo source_key (đường dẫn hồi/phần + tiêu đề).",
       });
       usedOld.add(old.id);
     }
@@ -138,10 +151,18 @@ function matchByTier1(oldRefs: OldChapterRef[], newFlat: FlatNewChapter[]): Chap
  * `kind` to match, so a re-import that reorders same-titled chapters (which
  * shifts tier-1's occurrence suffix) can still resolve via title+position.
  */
-function matchByTier2(oldRefs: OldChapterRef[], newFlat: FlatNewChapter[]): ChapterMatch[] {
-  const keyOf = (sectionPath: string, title: string) => `${sectionPath}::${normalizeSourceSegment(title)}`;
-  const oldGroups = groupBy(oldRefs, (ref) => keyOf(ref.sectionPath, ref.title));
-  const newGroups = groupBy(newFlat, (flat) => keyOf(flat.sectionPath, flat.chapter.title));
+function matchByTier2(
+  oldRefs: OldChapterRef[],
+  newFlat: FlatNewChapter[],
+): ChapterMatch[] {
+  const keyOf = (sectionPath: string, title: string) =>
+    `${sectionPath}::${normalizeSourceSegment(title)}`;
+  const oldGroups = groupBy(oldRefs, (ref) =>
+    keyOf(ref.sectionPath, ref.title),
+  );
+  const newGroups = groupBy(newFlat, (flat) =>
+    keyOf(flat.sectionPath, flat.chapter.title),
+  );
   const matches: ChapterMatch[] = [];
 
   for (const [key, oldGroup] of oldGroups) {
@@ -163,13 +184,19 @@ function matchByTier2(oldRefs: OldChapterRef[], newFlat: FlatNewChapter[]): Chap
   return matches;
 }
 
-function paragraphFingerprint(chapter: DraftChapter, edge: "first" | "last"): string | null {
+function paragraphFingerprint(
+  chapter: DraftChapter,
+  edge: "first" | "last",
+): string | null {
   const block = edge === "first" ? chapter.blocks[0] : chapter.blocks.at(-1);
   return block ? fingerprintParagraph(block.text) : null;
 }
 
 /** Tier 3: first AND last paragraph fingerprints both match (title may have changed). */
-function matchByTier3(oldRefs: OldChapterRef[], newFlat: FlatNewChapter[]): ChapterMatch[] {
+function matchByTier3(
+  oldRefs: OldChapterRef[],
+  newFlat: FlatNewChapter[],
+): ChapterMatch[] {
   const matches: ChapterMatch[] = [];
   const usedOld = new Set<string>();
 
@@ -189,7 +216,8 @@ function matchByTier3(oldRefs: OldChapterRef[], newFlat: FlatNewChapter[]): Chap
         newChapterId: flat.chapter.id,
         oldChapterId: old.id,
         tier: 3,
-        reason: "Khớp theo đoạn văn đầu và cuối giống hệt (tiêu đề có thể đã đổi).",
+        reason:
+          "Khớp theo đoạn văn đầu và cuối giống hệt (tiêu đề có thể đã đổi).",
       });
       usedOld.add(old.id);
     }
@@ -206,7 +234,10 @@ function matchByTier3(oldRefs: OldChapterRef[], newFlat: FlatNewChapter[]): Chap
  * import_jobs.mapping_json; the commit RPC re-validates injectivity
  * server-side rather than trusting that payload (see migration 0008).
  */
-export function matchChapters(oldRefs: OldChapterRef[], newDraft: ImportDraft): ChapterMatchResult {
+export function matchChapters(
+  oldRefs: OldChapterRef[],
+  newDraft: ImportDraft,
+): ChapterMatchResult {
   const newFlat = flattenNewChapters(newDraft.sections);
   const matches: ChapterMatch[] = [];
   const matchedOldIds = new Set<string>();
@@ -215,9 +246,15 @@ export function matchChapters(oldRefs: OldChapterRef[], newDraft: ImportDraft): 
   const tiers = [matchByTier1, matchByTier2, matchByTier3];
   for (const runTier of tiers) {
     const remainingOld = oldRefs.filter((ref) => !matchedOldIds.has(ref.id));
-    const remainingNew = newFlat.filter((flat) => !matchedNewIds.has(flat.chapter.id));
+    const remainingNew = newFlat.filter(
+      (flat) => !matchedNewIds.has(flat.chapter.id),
+    );
     for (const match of runTier(remainingOld, remainingNew)) {
-      if (matchedOldIds.has(match.oldChapterId) || matchedNewIds.has(match.newChapterId)) continue;
+      if (
+        matchedOldIds.has(match.oldChapterId) ||
+        matchedNewIds.has(match.newChapterId)
+      )
+        continue;
       matches.push(match);
       matchedOldIds.add(match.oldChapterId);
       matchedNewIds.add(match.newChapterId);
@@ -227,12 +264,16 @@ export function matchChapters(oldRefs: OldChapterRef[], newDraft: ImportDraft): 
   return {
     matches,
     unmatchedOld: oldRefs.filter((ref) => !matchedOldIds.has(ref.id)),
-    unmatchedNew: newFlat.filter((flat) => !matchedNewIds.has(flat.chapter.id)).map((flat) => flat.chapter),
+    unmatchedNew: newFlat
+      .filter((flat) => !matchedNewIds.has(flat.chapter.id))
+      .map((flat) => flat.chapter),
   };
 }
 
 /** Exported for lib/import/reimport-queries.ts, which needs the same path convention to build OldChapterRef.sectionPath. */
-export function buildOldSectionPaths(oldSections: OldSectionRef[]): Map<string, string> {
+export function buildOldSectionPaths(
+  oldSections: OldSectionRef[],
+): Map<string, string> {
   const byId = new Map(oldSections.map((section) => [section.id, section]));
   const cache = new Map<string, string>();
 
@@ -240,7 +281,9 @@ export function buildOldSectionPaths(oldSections: OldSectionRef[]): Map<string, 
     const cached = cache.get(section.id);
     if (cached) return cached;
     const segment = `${section.type}:${normalizeSourceSegment(section.title)}`;
-    const parent = section.parentSectionId ? byId.get(section.parentSectionId) : undefined;
+    const parent = section.parentSectionId
+      ? byId.get(section.parentSectionId)
+      : undefined;
     const path = parent ? `${pathOf(parent)}/${segment}` : segment;
     cache.set(section.id, path);
     return path;
@@ -251,7 +294,10 @@ export function buildOldSectionPaths(oldSections: OldSectionRef[]): Map<string, 
 }
 
 function collectNewSections(sections: DraftSection[]): DraftSection[] {
-  return sections.flatMap((section) => [section, ...collectNewSections(section.children)]);
+  return sections.flatMap((section) => [
+    section,
+    ...collectNewSections(section.children),
+  ]);
 }
 
 /**
@@ -261,7 +307,10 @@ function collectNewSections(sections: DraftSection[]): DraftSection[] {
  * the old one is archived by the commit RPC if it ends up with no active
  * chapters/children after commit.
  */
-export function matchSections(oldSections: OldSectionRef[], newDraft: ImportDraft): SectionMatchResult {
+export function matchSections(
+  oldSections: OldSectionRef[],
+  newDraft: ImportDraft,
+): SectionMatchResult {
   const oldPaths = buildOldSectionPaths(oldSections);
   const newPaths = buildSectionPaths(newDraft.sections);
 
@@ -284,6 +333,8 @@ export function matchSections(oldSections: OldSectionRef[], newDraft: ImportDraf
 
   return {
     matches,
-    unmatchedOld: oldSections.filter((section) => !matchedOldIds.has(section.id)),
+    unmatchedOld: oldSections.filter(
+      (section) => !matchedOldIds.has(section.id),
+    ),
   };
 }

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { computeFinalDecisions, type ManualOverride } from "../lib/import/reimport-decisions";
+import {
+  computeFinalDecisions,
+  type ManualOverride,
+} from "../lib/import/reimport-decisions";
 import type { OldChapterRef, ChapterMatch } from "../lib/import/reimport-match";
 
 function oldRef(id: string, title = id): OldChapterRef {
@@ -18,17 +21,28 @@ function oldRef(id: string, title = id): OldChapterRef {
 describe("computeFinalDecisions", () => {
   it("uses the auto-match as a primary decision when no manual override exists", () => {
     const oldChapters = [oldRef("old-1")];
-    const autoMatches: ChapterMatch[] = [{ oldChapterId: "old-1", newChapterId: "new-1", tier: 1, reason: "x" }];
+    const autoMatches: ChapterMatch[] = [
+      { oldChapterId: "old-1", newChapterId: "new-1", tier: 1, reason: "x" },
+    ];
 
-    const { decisions, unresolvedOld } = computeFinalDecisions(oldChapters, autoMatches, {}, new Set(["new-1"]));
+    const { decisions, unresolvedOld } = computeFinalDecisions(
+      oldChapters,
+      autoMatches,
+      {},
+      new Set(["new-1"]),
+    );
 
-    expect(decisions).toEqual([{ kind: "primary", newChapterId: "new-1", oldChapterId: "old-1" }]);
+    expect(decisions).toEqual([
+      { kind: "primary", newChapterId: "new-1", oldChapterId: "old-1" },
+    ]);
     expect(unresolvedOld).toHaveLength(0);
   });
 
   it("lets a manual override replace an auto-match", () => {
     const oldChapters = [oldRef("old-1")];
-    const autoMatches: ChapterMatch[] = [{ oldChapterId: "old-1", newChapterId: "new-1", tier: 1, reason: "x" }];
+    const autoMatches: ChapterMatch[] = [
+      { oldChapterId: "old-1", newChapterId: "new-1", tier: 1, reason: "x" },
+    ];
 
     const { decisions } = computeFinalDecisions(
       oldChapters,
@@ -37,7 +51,9 @@ describe("computeFinalDecisions", () => {
       new Set(["new-1", "new-2"]),
     );
 
-    expect(decisions).toEqual([{ kind: "primary", newChapterId: "new-2", oldChapterId: "old-1" }]);
+    expect(decisions).toEqual([
+      { kind: "primary", newChapterId: "new-2", oldChapterId: "old-1" },
+    ]);
   });
 
   it("marks an explicit archive decision", () => {
@@ -55,7 +71,12 @@ describe("computeFinalDecisions", () => {
 
   it("leaves an old chapter with no match and no override unresolved", () => {
     const oldChapters = [oldRef("old-1")];
-    const { decisions, unresolvedOld } = computeFinalDecisions(oldChapters, [], {}, new Set());
+    const { decisions, unresolvedOld } = computeFinalDecisions(
+      oldChapters,
+      [],
+      {},
+      new Set(),
+    );
 
     expect(decisions).toHaveLength(0);
     expect(unresolvedOld).toEqual(oldChapters);
@@ -68,7 +89,12 @@ describe("computeFinalDecisions", () => {
       "old-2": { newChapterId: "new-1" },
     };
 
-    const { decisions } = computeFinalDecisions(oldChapters, [], manualOverrides, new Set(["new-1"]));
+    const { decisions } = computeFinalDecisions(
+      oldChapters,
+      [],
+      manualOverrides,
+      new Set(["new-1"]),
+    );
 
     expect(decisions).toEqual([
       { kind: "primary", newChapterId: "new-1", oldChapterId: "old-1" },
@@ -78,7 +104,9 @@ describe("computeFinalDecisions", () => {
 
   it("drops a manual override that targets a chapter no longer in the current draft, falling back to unresolved", () => {
     const oldChapters = [oldRef("old-1")];
-    const manualOverrides = { "old-1": { newChapterId: "new-deleted-by-merge" } };
+    const manualOverrides = {
+      "old-1": { newChapterId: "new-deleted-by-merge" },
+    };
 
     const { decisions, unresolvedOld } = computeFinalDecisions(
       oldChapters,
@@ -111,9 +139,16 @@ describe("computeFinalDecisions", () => {
     // merge just to satisfy coverage.
     const oldChapters = [oldRef("arc1-ch1"), oldRef("arc3-ch1")];
     const autoMatches: ChapterMatch[] = [
-      { oldChapterId: "arc3-ch1", newChapterId: "new-arc3-ch1", tier: 2, reason: "x" },
+      {
+        oldChapterId: "arc3-ch1",
+        newChapterId: "new-arc3-ch1",
+        tier: 2,
+        reason: "x",
+      },
     ];
-    const manualOverrides: Record<string, ManualOverride> = { "arc1-ch1": { unrelated: true } };
+    const manualOverrides: Record<string, ManualOverride> = {
+      "arc1-ch1": { unrelated: true },
+    };
 
     const { decisions, unresolvedOld } = computeFinalDecisions(
       oldChapters,
@@ -124,7 +159,11 @@ describe("computeFinalDecisions", () => {
 
     expect(decisions).toEqual([
       { kind: "unrelated", oldChapterId: "arc1-ch1" },
-      { kind: "primary", newChapterId: "new-arc3-ch1", oldChapterId: "arc3-ch1" },
+      {
+        kind: "primary",
+        newChapterId: "new-arc3-ch1",
+        oldChapterId: "arc3-ch1",
+      },
     ]);
     expect(unresolvedOld).toHaveLength(0);
   });

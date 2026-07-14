@@ -48,11 +48,15 @@ export const WRITING_STATUS_OPTIONS: {
   },
 ];
 
-export const WRITING_STATUS_VALUES = WRITING_STATUS_OPTIONS.map((option) => option.value);
+export const WRITING_STATUS_VALUES = WRITING_STATUS_OPTIONS.map(
+  (option) => option.value,
+);
 
 export function getWritingStatusMeta(status: WritingStatus | null | undefined) {
   return (
     WRITING_STATUS_OPTIONS.find((option) => option.value === status) ??
-    WRITING_STATUS_OPTIONS.find((option) => option.value === DEFAULT_WRITING_STATUS)!
+    WRITING_STATUS_OPTIONS.find(
+      (option) => option.value === DEFAULT_WRITING_STATUS,
+    )!
   );
 }

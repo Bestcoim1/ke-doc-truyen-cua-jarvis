@@ -87,7 +87,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${geistSans.className} ${fraunces.variable} ${sourceSerif4.variable} antialiased`}>
+      <body
+        className={`${geistSans.className} ${fraunces.variable} ${sourceSerif4.variable} antialiased`}
+      >
         <Suspense fallback={null}>
           <NonceThemeProvider>{children}</NonceThemeProvider>
         </Suspense>

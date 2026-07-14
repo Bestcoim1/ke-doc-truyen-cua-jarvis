@@ -19,8 +19,13 @@ export function fingerprintParagraph(text: string): string {
  * occurrenceIndex disambiguates repeated identical paragraphs within the
  * same chapter (PRD §10.2.3) — 0 is unsuffixed, 1+ gets an "_n" suffix.
  */
-export function buildAnchorId(fingerprint: string, occurrenceIndex: number): string {
-  return occurrenceIndex === 0 ? `p_${fingerprint}` : `p_${fingerprint}_${occurrenceIndex}`;
+export function buildAnchorId(
+  fingerprint: string,
+  occurrenceIndex: number,
+): string {
+  return occurrenceIndex === 0
+    ? `p_${fingerprint}`
+    : `p_${fingerprint}_${occurrenceIndex}`;
 }
 
 /**
@@ -36,7 +41,11 @@ export function assignAnchorIds<T extends { text: string }>(
     const fingerprint = fingerprintParagraph(block.text);
     const occurrenceIndex = seen.get(fingerprint) ?? 0;
     seen.set(fingerprint, occurrenceIndex + 1);
-    return { ...block, fingerprint, anchorId: buildAnchorId(fingerprint, occurrenceIndex) };
+    return {
+      ...block,
+      fingerprint,
+      anchorId: buildAnchorId(fingerprint, occurrenceIndex),
+    };
   });
 }
 
@@ -46,6 +55,8 @@ export function extractFingerprintFromAnchorId(anchorId: string): string {
 }
 
 export function hashContentBlocks(blocks: { text: string }[]): string {
-  const normalized = blocks.map((block) => normalizeParagraphText(block.text)).join("\n");
+  const normalized = blocks
+    .map((block) => normalizeParagraphText(block.text))
+    .join("\n");
   return createHash("sha256").update(normalized).digest("hex");
 }

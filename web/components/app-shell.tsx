@@ -10,7 +10,7 @@ import { isSupabaseConfigured } from "@/lib/utils";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div 
+    <div
       className="min-h-[100dvh] border-l-[6px] pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-0"
       style={{ borderLeftColor: "var(--kd-binding)" }}
     >
@@ -33,11 +33,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span
               aria-hidden
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-              style={{ background: "var(--kd-binding)", color: "var(--kd-accent-foreground)" }}
+              style={{
+                background: "var(--kd-binding)",
+                color: "var(--kd-accent-foreground)",
+              }}
             >
               <BookOpen size={18} />
             </span>
-            <span className="truncate text-base font-extrabold font-display tracking-tight">{APP_BRANDING.name}</span>
+            <span className="truncate text-base font-extrabold font-display tracking-tight">
+              {APP_BRANDING.name}
+            </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
             <AppTopNav />

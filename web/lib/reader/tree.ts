@@ -52,19 +52,29 @@ function siblingsOf(
     | { kind: "chapter"; sortOrder: number; chapter: ChapterRow };
 
   const nodes: Node[] = [
-    ...(childSections.get(parentId) ?? []).map(
-      (section): Node => ({ kind: "section", sortOrder: section.sort_order, section }),
-    ),
-    ...(chaptersBySection.get(parentId) ?? []).map(
-      (chapter): Node => ({ kind: "chapter", sortOrder: chapter.sort_order, chapter }),
-    ),
+    ...(childSections.get(parentId) ?? []).map((section): Node => ({
+      kind: "section",
+      sortOrder: section.sort_order,
+      section,
+    })),
+    ...(chaptersBySection.get(parentId) ?? []).map((chapter): Node => ({
+      kind: "chapter",
+      sortOrder: chapter.sort_order,
+      chapter,
+    })),
   ];
   nodes.sort((a, b) => a.sortOrder - b.sortOrder);
   return nodes;
 }
 
-export function buildTocTree(sections: SectionRow[], chapters: ChapterRow[]): TocNode[] {
-  const { childSections, chaptersBySection } = groupByParent(sections, chapters);
+export function buildTocTree(
+  sections: SectionRow[],
+  chapters: ChapterRow[],
+): TocNode[] {
+  const { childSections, chaptersBySection } = groupByParent(
+    sections,
+    chapters,
+  );
 
   function build(parentId: string | null): TocNode[] {
     return siblingsOf(parentId, childSections, chaptersBySection).map((node) =>
@@ -86,7 +96,10 @@ export function buildFlatChapterList(
   sections: SectionRow[],
   chapters: ChapterRow[],
 ): FlatChapterEntry[] {
-  const { childSections, chaptersBySection } = groupByParent(sections, chapters);
+  const { childSections, chaptersBySection } = groupByParent(
+    sections,
+    chapters,
+  );
   const result: FlatChapterEntry[] = [];
 
   function walk(parentId: string | null, sectionPath: string[]) {

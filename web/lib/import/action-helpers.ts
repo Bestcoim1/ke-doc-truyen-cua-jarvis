@@ -25,7 +25,8 @@ export const TXT_PARSER_VERSION = "txt-utf8-v1";
 // directly, and requireUser/assertUnderJobQuota only touch server-only
 // APIs (next/headers cookies via createClient).
 
-export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+export const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
 export async function requireUser(nextPath: string) {
   const supabase = await createClient();
@@ -68,7 +69,9 @@ export async function deleteStorageObjectSafely(
   path: string,
 ): Promise<void> {
   try {
-    const { error } = await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove([path]);
     if (error) logEvent("import.storage_cleanup_error", { code: error.name });
   } catch {
     logEvent("import.storage_cleanup_error", { code: "exception" });

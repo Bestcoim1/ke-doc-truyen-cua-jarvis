@@ -22,7 +22,11 @@ function recordOf(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function requiredString(value: unknown, label: string, maxLength: number): string {
+function requiredString(
+  value: unknown,
+  label: string,
+  maxLength: number,
+): string {
   if (typeof value !== "string") throw new Error(`${label} không hợp lệ.`);
   const normalized = value.trim();
   if (!normalized || normalized.length > maxLength) {
@@ -50,7 +54,8 @@ export function normalizeImportDraft(
   if (sourceType !== "paste" && sourceType !== "txt" && sourceType !== "docx") {
     throw new Error("Nguồn import không hợp lệ.");
   }
-  if (!Array.isArray(input.sections)) throw new Error("Cấu trúc section không hợp lệ.");
+  if (!Array.isArray(input.sections))
+    throw new Error("Cấu trúc section không hợp lệ.");
 
   const seenSectionIds = new Set<string>();
   const seenChapterIds = new Set<string>();
@@ -61,7 +66,8 @@ export function normalizeImportDraft(
   const parseChapter = (value: unknown): DraftChapter => {
     const chapter = recordOf(value);
     const id = requiredString(chapter.id, "ID chapter", 300);
-    if (seenChapterIds.has(id)) throw new Error("Chapter bị trùng trong bản nháp.");
+    if (seenChapterIds.has(id))
+      throw new Error("Chapter bị trùng trong bản nháp.");
     seenChapterIds.add(id);
 
     const kind = chapter.kind;
@@ -73,7 +79,10 @@ export function normalizeImportDraft(
     }
     characterCount += chapter.contentText.length;
     chapterCount += 1;
-    if (chapterCount > MAX_CHAPTERS || characterCount > MAX_CONTENT_CHARACTERS) {
+    if (
+      chapterCount > MAX_CHAPTERS ||
+      characterCount > MAX_CONTENT_CHARACTERS
+    ) {
       throw new Error("Bản nháp vượt quá giới hạn import.");
     }
 
@@ -92,10 +101,12 @@ export function normalizeImportDraft(
     if (depth > 1) throw new Error("Bản nháp vượt quá hai tầng section.");
     const section = recordOf(value);
     const id = requiredString(section.id, "ID section", 300);
-    if (seenSectionIds.has(id)) throw new Error("Section bị trùng trong bản nháp.");
+    if (seenSectionIds.has(id))
+      throw new Error("Section bị trùng trong bản nháp.");
     seenSectionIds.add(id);
     sectionCount += 1;
-    if (sectionCount > MAX_SECTIONS) throw new Error("Bản nháp có quá nhiều section.");
+    if (sectionCount > MAX_SECTIONS)
+      throw new Error("Bản nháp có quá nhiều section.");
 
     const type = section.type;
     if (type !== "arc" && type !== "part" && type !== "volume") {
@@ -132,11 +143,15 @@ export function normalizeImportDraft(
 }
 
 function requireChapterId(value: unknown): string {
-  if (typeof value !== "string" || !value) throw new Error("ID chapter không hợp lệ.");
+  if (typeof value !== "string" || !value)
+    throw new Error("ID chapter không hợp lệ.");
   return value;
 }
 
-function collectChapters(sections: DraftSection[], map: Map<string, DraftChapter>): void {
+function collectChapters(
+  sections: DraftSection[],
+  map: Map<string, DraftChapter>,
+): void {
   for (const section of sections) {
     for (const chapter of section.chapters) map.set(chapter.id, chapter);
     collectChapters(section.children, map);
@@ -152,16 +167,22 @@ const MAX_CONTENT_OPS = 500;
  * boundary from the commit_import_job migration's follow-up comment: the
  * server, not the client, derives content_blocks/content_hash.
  */
-function applyContentOps(base: ImportDraft, rawOps: unknown): Map<string, DraftChapter> {
+function applyContentOps(
+  base: ImportDraft,
+  rawOps: unknown,
+): Map<string, DraftChapter> {
   const chapters = new Map<string, DraftChapter>();
   collectChapters(base.sections, chapters);
 
   if (rawOps === undefined || rawOps === null) return chapters;
-  if (!Array.isArray(rawOps)) throw new Error("Danh sách thao tác không hợp lệ.");
-  if (rawOps.length > MAX_CONTENT_OPS) throw new Error("Quá nhiều thao tác trong một lần lưu.");
+  if (!Array.isArray(rawOps))
+    throw new Error("Danh sách thao tác không hợp lệ.");
+  if (rawOps.length > MAX_CONTENT_OPS)
+    throw new Error("Quá nhiều thao tác trong một lần lưu.");
 
   for (const raw of rawOps as unknown[]) {
-    if (!raw || typeof raw !== "object") throw new Error("Thao tác không hợp lệ.");
+    if (!raw || typeof raw !== "object")
+      throw new Error("Thao tác không hợp lệ.");
     const op = raw as Record<string, unknown>;
 
     if (op.type === "merge") {
@@ -169,9 +190,16 @@ function applyContentOps(base: ImportDraft, rawOps: unknown): Map<string, DraftC
       const mergedId = requireChapterId(op.mergedChapterId);
       const keep = chapters.get(keepId);
       const merged = chapters.get(mergedId);
-      if (!keep || !merged) throw new Error("Chapter cần gộp không còn tồn tại.");
-      const contentText = [keep.contentText, merged.contentText].filter(Boolean).join("\n\n");
-      chapters.set(keepId, { ...keep, contentText, ...buildDraftChapterContent(contentText) });
+      if (!keep || !merged)
+        throw new Error("Chapter cần gộp không còn tồn tại.");
+      const contentText = [keep.contentText, merged.contentText]
+        .filter(Boolean)
+        .join("\n\n");
+      chapters.set(keepId, {
+        ...keep,
+        contentText,
+        ...buildDraftChapterContent(contentText),
+      });
       chapters.delete(mergedId);
       continue;
     }
@@ -180,12 +208,17 @@ function applyContentOps(base: ImportDraft, rawOps: unknown): Map<string, DraftC
       const chapterId = requireChapterId(op.chapterId);
       const newChapterId = requireChapterId(op.newChapterId);
       const blockIndex = op.blockIndex;
-      if (typeof blockIndex !== "number") throw new Error("Vị trí tách không hợp lệ.");
+      if (typeof blockIndex !== "number")
+        throw new Error("Vị trí tách không hợp lệ.");
       const chapter = chapters.get(chapterId);
       if (!chapter) throw new Error("Chapter cần tách không còn tồn tại.");
-      if (chapters.has(newChapterId)) throw new Error("ID chapter mới bị trùng.");
+      if (chapters.has(newChapterId))
+        throw new Error("ID chapter mới bị trùng.");
 
-      const [firstText, secondText] = splitChapterContent(chapter.contentText, blockIndex);
+      const [firstText, secondText] = splitChapterContent(
+        chapter.contentText,
+        blockIndex,
+      );
       chapters.set(chapterId, {
         ...chapter,
         contentText: firstText,
@@ -231,13 +264,15 @@ function rebuildStructureSection(
   const chapters = section.chapters.map((rawChapter): DraftChapter => {
     const chapterRef = recordOf(rawChapter);
     const chapterId = requireChapterId(chapterRef.id);
-    if (usedChapterIds.has(chapterId)) throw new Error("Chapter bị lặp trong bản nháp.");
+    if (usedChapterIds.has(chapterId))
+      throw new Error("Chapter bị lặp trong bản nháp.");
     const content = contentById.get(chapterId);
     if (!content) throw new Error("Chapter tham chiếu không còn tồn tại.");
     usedChapterIds.add(chapterId);
 
     const kind = chapterRef.kind;
-    if (kind !== "regular" && kind !== "extra") throw new Error("Loại chapter không hợp lệ.");
+    if (kind !== "regular" && kind !== "extra")
+      throw new Error("Loại chapter không hợp lệ.");
 
     return {
       ...content,

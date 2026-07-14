@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ChevronLeft, ChevronRight, List } from "lucide-react";
 
@@ -14,10 +21,15 @@ import { BlockRenderer } from "./block-renderer";
 import { TocPanel } from "./toc-panel";
 import { SettingsSheet } from "./settings-sheet";
 
-type ReadState = { maxProgressPct: number; completedContentHash: string | null };
+type ReadState = {
+  maxProgressPct: number;
+  completedContentHash: string | null;
+};
 
 function scrollAnchorToFocusLine(container: HTMLElement, anchorId: string) {
-  const el = container.querySelector<HTMLElement>(`[data-anchor-id="${CSS.escape(anchorId)}"]`);
+  const el = container.querySelector<HTMLElement>(
+    `[data-anchor-id="${CSS.escape(anchorId)}"]`,
+  );
   if (!el) return;
   const containerRect = container.getBoundingClientRect();
   const elRect = el.getBoundingClientRect();
@@ -64,7 +76,9 @@ export function ReaderView({
   const [settings, setSettings] = useState(initialSettings);
   const [showToc, setShowToc] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [progressPct, setProgressPct] = useState(chapterReadState?.maxProgressPct ?? 0);
+  const [progressPct, setProgressPct] = useState(
+    chapterReadState?.maxProgressPct ?? 0,
+  );
   // One-time, dismissible: PRD §10.2/FR-10 — only surfaced when resume had
   // to fall back beyond an exact anchor match (nearby paragraph or ordinal
   // ratio), never for the common exact-match case.
@@ -114,7 +128,10 @@ export function ReaderView({
       pendingProgressRef.current = null;
 
       const anchorId =
-        pending?.anchorId ?? currentAnchorRef.current ?? chapter.blocks.at(-1)?.anchor_id ?? "";
+        pending?.anchorId ??
+        currentAnchorRef.current ??
+        chapter.blocks.at(-1)?.anchor_id ??
+        "";
       const body: {
         progress?: Record<string, unknown>;
         chapterState?: Record<string, unknown>;
@@ -126,7 +143,9 @@ export function ReaderView({
           chapterId: chapter.chapterId,
           chapterRevisionId: chapter.revisionId,
           paragraphAnchorId: pending.anchorId,
-          paragraphFingerprint: extractFingerprintFromAnchorId(pending.anchorId),
+          paragraphFingerprint: extractFingerprintFromAnchorId(
+            pending.anchorId,
+          ),
           paragraphOrdinal: pending.ordinal,
           paragraphOffsetRatio: null,
           chapterProgressPct: pending.pct,
@@ -141,7 +160,7 @@ export function ReaderView({
           revisionId: chapter.revisionId,
           contentHash: chapter.contentHash,
           anchorId,
-          progressPct: completion ? 100 : pending?.pct ?? 0,
+          progressPct: completion ? 100 : (pending?.pct ?? 0),
           markCompleted: Boolean(completion),
           completionMethod: completion ?? null,
         };
@@ -160,7 +179,13 @@ export function ReaderView({
         // is already gone; the next observation will produce a fresh write.
       }
     },
-    [storyId, chapter.chapterId, chapter.revisionId, chapter.contentHash, chapter.blocks],
+    [
+      storyId,
+      chapter.chapterId,
+      chapter.revisionId,
+      chapter.contentHash,
+      chapter.blocks,
+    ],
   );
 
   const onFocusAnchorChange = useCallback(
@@ -201,7 +226,9 @@ export function ReaderView({
       (entries) => {
         const intersecting = entries.filter((entry) => entry.isIntersecting);
         if (intersecting.length === 0) return;
-        intersecting.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        intersecting.sort(
+          (a, b) => a.boundingClientRect.top - b.boundingClientRect.top,
+        );
         const anchorId = intersecting[0].target.getAttribute("data-anchor-id");
         if (anchorId && anchorId !== currentAnchorRef.current) {
           onFocusAnchorChange(anchorId);
@@ -210,7 +237,9 @@ export function ReaderView({
       { root: container, rootMargin: "-30% 0px -70% 0px", threshold: 0 },
     );
 
-    container.querySelectorAll("[data-anchor-id]").forEach((el) => observer.observe(el));
+    container
+      .querySelectorAll("[data-anchor-id]")
+      .forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [chapter.chapterId, onFocusAnchorChange]);
 
@@ -340,10 +369,15 @@ export function ReaderView({
           <ArrowLeft size={18} />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-xs font-display" style={{ color: "var(--kd-text-muted)" }}>
+          <div
+            className="truncate text-xs font-display"
+            style={{ color: "var(--kd-text-muted)" }}
+          >
             {[storyTitle, ...chapter.sectionPath].join(" · ")}
           </div>
-          <div className="truncate text-sm font-bold font-display">{chapter.chapterTitle}</div>
+          <div className="truncate text-sm font-bold font-display">
+            {chapter.chapterTitle}
+          </div>
         </div>
         <button
           onClick={() => openOverlay("toc")}
@@ -361,7 +395,10 @@ export function ReaderView({
         </button>
       </header>
 
-      <div className="h-[3px] flex-shrink-0" style={{ background: "var(--kd-border)" }}>
+      <div
+        className="h-[3px] flex-shrink-0"
+        style={{ background: "var(--kd-border)" }}
+      >
         <div
           className="h-full transition-[width]"
           style={{ width: `${progressPct}%`, background: "var(--kd-accent)" }}
@@ -372,9 +409,15 @@ export function ReaderView({
         <div
           role="status"
           className="flex flex-shrink-0 items-center justify-between gap-2 px-3 py-2 text-xs"
-          style={{ background: "var(--kd-surface)", color: "var(--kd-text-muted)" }}
+          style={{
+            background: "var(--kd-surface)",
+            color: "var(--kd-text-muted)",
+          }}
         >
-          <span>Nội dung chương đã thay đổi — đã mở gần đúng vị trí bạn đọc lần trước.</span>
+          <span>
+            Nội dung chương đã thay đổi — đã mở gần đúng vị trí bạn đọc lần
+            trước.
+          </span>
           <button
             onClick={() => setShowResumeNotice(false)}
             aria-label="Đóng thông báo"
@@ -399,15 +442,24 @@ export function ReaderView({
       >
         <BlockRenderer blocks={chapter.blocks} />
         <div ref={endSentinelRef} />
-        <div className="mt-8 border-t pt-4 text-center" style={{ borderColor: "var(--kd-border)" }}>
+        <div
+          className="mt-8 border-t pt-4 text-center"
+          style={{ borderColor: "var(--kd-border)" }}
+        >
           {nextChapterEntry ? (
             <>
-              <div className="mb-2 text-xs" style={{ color: "var(--kd-text-muted)" }}>
+              <div
+                className="mb-2 text-xs"
+                style={{ color: "var(--kd-text-muted)" }}
+              >
                 Chương tiếp theo
               </div>
               <button
                 className="rounded-full px-5 py-2.5 text-sm font-bold"
-                style={{ background: "var(--kd-accent)", color: "var(--kd-accent-foreground)" }}
+                style={{
+                  background: "var(--kd-accent)",
+                  color: "var(--kd-accent-foreground)",
+                }}
                 onClick={handleNext}
               >
                 {nextChapterEntry.chapterTitle}
@@ -461,7 +513,11 @@ export function ReaderView({
         />
       )}
       {showSettings && (
-        <SettingsSheet settings={settings} onUpdate={updateSetting} onClose={closeOverlays} />
+        <SettingsSheet
+          settings={settings}
+          onUpdate={updateSetting}
+          onClose={closeOverlays}
+        />
       )}
     </div>
   );

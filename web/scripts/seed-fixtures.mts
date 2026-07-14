@@ -70,14 +70,20 @@ function generateParagraphs(seed: number, count: number): string[] {
     const sentenceCount = 2 + Math.floor(random() * 3);
     const sentences: string[] = [];
     for (let s = 0; s < sentenceCount; s += 1) {
-      sentences.push(FILLER_SENTENCES[Math.floor(random() * FILLER_SENTENCES.length)]);
+      sentences.push(
+        FILLER_SENTENCES[Math.floor(random() * FILLER_SENTENCES.length)],
+      );
     }
     paragraphs.push(sentences.join(" "));
   }
   return paragraphs;
 }
 
-function buildContentBlocks(paragraphs: string[]): { content_blocks: { schema_version: 1; blocks: Block[] }; content_hash: string; word_count: number } {
+function buildContentBlocks(paragraphs: string[]): {
+  content_blocks: { schema_version: 1; blocks: Block[] };
+  content_hash: string;
+  word_count: number;
+} {
   const withAnchors = assignAnchorIds(paragraphs.map((text) => ({ text })));
   const blocks: Block[] = withAnchors.map((p) => ({
     anchor_id: p.anchorId,
@@ -85,7 +91,10 @@ function buildContentBlocks(paragraphs: string[]): { content_blocks: { schema_ve
     text: p.text,
     marks: [],
   }));
-  const wordCount = paragraphs.reduce((sum, p) => sum + p.split(/\s+/).length, 0);
+  const wordCount = paragraphs.reduce(
+    (sum, p) => sum + p.split(/\s+/).length,
+    0,
+  );
   return {
     content_blocks: { schema_version: 1, blocks },
     content_hash: hashContentBlocks(blocks),
@@ -95,16 +104,25 @@ function buildContentBlocks(paragraphs: string[]): { content_blocks: { schema_ve
 
 async function findUserByEmail(email: string) {
   for (let page = 1; page <= 20; page += 1) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+    const { data, error } = await supabase.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
     if (error) throw error;
-    const match = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+    const match = data.users.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase(),
+    );
     if (match) return match;
     if (data.users.length < 200) break;
   }
   return null;
 }
 
-async function chunked<T>(items: T[], size: number, fn: (item: T) => Promise<void>) {
+async function chunked<T>(
+  items: T[],
+  size: number,
+  fn: (item: T) => Promise<void>,
+) {
   for (let i = 0; i < items.length; i += size) {
     await Promise.all(items.slice(i, i + size).map(fn));
   }
@@ -136,11 +154,18 @@ async function main() {
     )
     .select("id, sort_order");
   if (sectionsError) throw sectionsError;
-  const orderedSections = [...sections].sort((a, b) => a.sort_order - b.sort_order);
+  const orderedSections = [...sections].sort(
+    (a, b) => a.sort_order - b.sort_order,
+  );
 
   const { data: extraSection, error: extraSectionError } = await supabase
     .from("sections")
-    .insert({ story_id: storyId, type: "arc", title: "Ngoại truyện", sort_order: 5 })
+    .insert({
+      story_id: storyId,
+      type: "arc",
+      title: "Ngoại truyện",
+      sort_order: 5,
+    })
     .select("id")
     .single();
   if (extraSectionError) throw extraSectionError;
@@ -173,7 +198,9 @@ async function main() {
     title: "Chương ngắn",
     sort_order: 0,
     kind: "extra",
-    paragraphs: ["Đây là một chương rất ngắn, vừa đúng một màn hình, dùng để kiểm tra completion không cần cuộn."],
+    paragraphs: [
+      "Đây là một chương rất ngắn, vừa đúng một màn hình, dùng để kiểm tra completion không cần cuộn.",
+    ],
   });
 
   // Edge case: a ~100,000-character chapter.
@@ -211,11 +238,16 @@ async function main() {
 
   // Match inserted rows back to pending content by (section_id, sort_order),
   // since a bulk INSERT doesn't guarantee returning order for large batches.
-  const byKey = new Map(pending.map((p) => [`${p.section_id}:${p.sort_order}`, p]));
+  const byKey = new Map(
+    pending.map((p) => [`${p.section_id}:${p.sort_order}`, p]),
+  );
   const withContent = insertedChapters.map((row) => {
     const key = `${row.section_id}:${row.sort_order}`;
     const source = byKey.get(key)!;
-    return { chapterId: row.id as string, ...buildContentBlocks(source.paragraphs) };
+    return {
+      chapterId: row.id as string,
+      ...buildContentBlocks(source.paragraphs),
+    };
   });
 
   console.log("Inserting chapter revisions...");
@@ -232,7 +264,9 @@ async function main() {
     .select("id, chapter_id");
   if (revisionsError) throw revisionsError;
 
-  const revisionByChapter = new Map(revisions.map((r) => [r.chapter_id as string, r.id as string]));
+  const revisionByChapter = new Map(
+    revisions.map((r) => [r.chapter_id as string, r.id as string]),
+  );
 
   console.log("Pointing chapters at their current revision...");
   await chunked(withContent, 25, async (c) => {
@@ -244,7 +278,9 @@ async function main() {
     if (error) throw error;
   });
 
-  console.log(`Done. Story ${storyId} seeded with ${withContent.length} chapters.`);
+  console.log(
+    `Done. Story ${storyId} seeded with ${withContent.length} chapters.`,
+  );
 }
 
 main().catch((error) => {

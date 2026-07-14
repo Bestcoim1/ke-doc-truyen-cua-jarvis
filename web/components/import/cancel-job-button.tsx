@@ -8,7 +8,10 @@ import { cancelImportJob } from "@/lib/import/actions";
 const INITIAL_STATE = { error: null, message: null };
 
 export function CancelJobButton({ jobId }: { jobId: string }) {
-  const [state, formAction, isPending] = useActionState(cancelImportJob, INITIAL_STATE);
+  const [state, formAction, isPending] = useActionState(
+    cancelImportJob,
+    INITIAL_STATE,
+  );
 
   return (
     <form action={formAction} className="flex flex-col items-end gap-1">
@@ -19,7 +22,9 @@ export function CancelJobButton({ jobId }: { jobId: string }) {
         size="sm"
         disabled={isPending}
         onClick={(event) => {
-          if (!window.confirm("Hủy bản nháp này? Nội dung chưa commit sẽ mất.")) {
+          if (
+            !window.confirm("Hủy bản nháp này? Nội dung chưa commit sẽ mất.")
+          ) {
             event.preventDefault();
           }
         }}

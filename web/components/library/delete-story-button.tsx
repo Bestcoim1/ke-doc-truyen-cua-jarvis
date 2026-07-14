@@ -6,11 +6,23 @@ import { deleteStory } from "@/lib/library/actions";
 
 const INITIAL_STATE = { error: null, message: null };
 
-export function DeleteStoryButton({ storyId, storyTitle }: { storyId: string; storyTitle: string }) {
-  const [state, formAction, isPending] = useActionState(deleteStory, INITIAL_STATE);
+export function DeleteStoryButton({
+  storyId,
+  storyTitle,
+}: {
+  storyId: string;
+  storyTitle: string;
+}) {
+  const [state, formAction, isPending] = useActionState(
+    deleteStory,
+    INITIAL_STATE,
+  );
 
   return (
-    <form action={formAction} className="flex shrink-0 flex-col items-end gap-1">
+    <form
+      action={formAction}
+      className="flex shrink-0 flex-col items-end gap-1"
+    >
       <input type="hidden" name="storyId" value={storyId} />
       <button
         type="submit"

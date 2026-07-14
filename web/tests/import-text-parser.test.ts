@@ -39,7 +39,9 @@ Dòng thứ hai vẫn cùng đoạn.
       "Dòng thứ nhất.\nDòng thứ hai vẫn cùng đoạn.",
       "Đoạn thứ hai.",
     ]);
-    expect(chapter.blocks.every((block) => block.marks.length === 0)).toBe(true);
+    expect(chapter.blocks.every((block) => block.marks.length === 0)).toBe(
+      true,
+    );
     expect(chapter.contentHash).toBe(hashContentBlocks(chapter.blocks));
     expect(draft.stats).toMatchObject({ sectionCount: 1, chapterCount: 1 });
     expect(draft.stats.wordCount).toBe(chapter.wordCount);
@@ -59,9 +61,9 @@ Nội dung hai.`);
     });
     expect(draft.sections[0].chapters).toHaveLength(2);
     expect(draft.stats.chapterCount).toBe(2);
-    expect(draft.warnings.some((warning) => warning.includes("Chưa phân hồi"))).toBe(
-      true,
-    );
+    expect(
+      draft.warnings.some((warning) => warning.includes("Chưa phân hồi")),
+    ).toBe(true);
   });
 
   it("classifies Ngoại truyện chapters as extra", () => {
@@ -72,7 +74,9 @@ Ngoại truyện 2: Chuyến đi
 Nội dung B.`);
 
     expect(draft.sections[0].type).toBe("part");
-    expect(draft.sections[0].chapters.map(({ title, kind }) => ({ title, kind }))).toEqual([
+    expect(
+      draft.sections[0].chapters.map(({ title, kind }) => ({ title, kind })),
+    ).toEqual([
       { title: "Ngoại truyện: Ngày nghỉ", kind: "extra" },
       { title: "Ngoại truyện 2: Chuyến đi", kind: "extra" },
     ]);
@@ -117,7 +121,9 @@ Holiday content.`);
       ["scene_break", "---"],
       ["paragraph", "Đoạn cuối."],
     ]);
-    expect(chapter.blocks.every((block) => block.anchor_id.startsWith("p_"))).toBe(true);
+    expect(
+      chapter.blocks.every((block) => block.anchor_id.startsWith("p_")),
+    ).toBe(true);
     expect(chapter.wordCount).toBe(4);
     expect(chapter.contentHash).toBe(hashContentBlocks(chapter.blocks));
   });
@@ -128,7 +134,10 @@ Holiday content.`);
 Đoạn văn thứ hai.`);
 
     expect(draft.sections).toHaveLength(1);
-    expect(draft.sections[0]).toMatchObject({ title: "Chưa phân hồi", type: "arc" });
+    expect(draft.sections[0]).toMatchObject({
+      title: "Chưa phân hồi",
+      type: "arc",
+    });
     expect(draft.sections[0].chapters).toHaveLength(1);
     expect(draft.sections[0].chapters[0]).toMatchObject({
       title: "Chương chưa đặt tên",
@@ -136,7 +145,9 @@ Holiday content.`);
       contentText: "Đoạn văn đầu tiên.\n\nĐoạn văn thứ hai.",
     });
     expect(
-      draft.warnings.some((warning) => warning.includes("Không tìm thấy tiêu đề chương")),
+      draft.warnings.some((warning) =>
+        warning.includes("Không tìm thấy tiêu đề chương"),
+      ),
     ).toBe(true);
   });
 
@@ -144,7 +155,10 @@ Holiday content.`);
     const draft = parseStoryText(`Arc 1: Khởi đầu
 Nội dung không có heading chương.`);
 
-    expect(draft.sections[0]).toMatchObject({ title: "Arc 1: Khởi đầu", type: "arc" });
+    expect(draft.sections[0]).toMatchObject({
+      title: "Arc 1: Khởi đầu",
+      type: "arc",
+    });
     expect(draft.sections[0].chapters[0]).toMatchObject({
       title: "Arc 1: Khởi đầu",
       kind: "regular",
@@ -181,10 +195,16 @@ Chương 2
 Nội dung trong hồi.`);
 
     expect(draft.sections).toHaveLength(1);
-    expect(draft.sections[0]).toMatchObject({ type: "volume", title: "Quyển 1" });
+    expect(draft.sections[0]).toMatchObject({
+      type: "volume",
+      title: "Quyển 1",
+    });
     expect(draft.sections[0].chapters).toHaveLength(1);
     expect(draft.sections[0].children).toHaveLength(1);
-    expect(draft.sections[0].children[0]).toMatchObject({ type: "arc", title: "Hồi 1" });
+    expect(draft.sections[0].children[0]).toMatchObject({
+      type: "arc",
+      title: "Hồi 1",
+    });
     expect(draft.sections[0].children[0].chapters).toHaveLength(1);
     expect(draft.stats).toMatchObject({ sectionCount: 2, chapterCount: 2 });
   });

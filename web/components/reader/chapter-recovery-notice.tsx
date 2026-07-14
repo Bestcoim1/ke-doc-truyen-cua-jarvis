@@ -26,14 +26,16 @@ export function ChapterRecoveryNotice({
       <div className="max-w-md">
         <h1 className="text-lg font-bold">Không mở được chương này</h1>
         <p className="mt-2 text-sm" style={{ color: "var(--kd-text-muted)" }}>
-          Dữ liệu của “{chapterTitle}” trong “{storyTitle}” không đọc được (có thể
-          từ một bản lưu cũ). Các chương khác vẫn mở bình thường. Hãy nhập lại tác
-          phẩm để khôi phục chương này.
+          Dữ liệu của “{chapterTitle}” trong “{storyTitle}” không đọc được (có
+          thể từ một bản lưu cũ). Các chương khác vẫn mở bình thường. Hãy nhập
+          lại tác phẩm để khôi phục chương này.
         </p>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button asChild>
-          <Link href={`/import/reimport/${storyId}/new`}>Nhập lại tác phẩm</Link>
+          <Link href={`/import/reimport/${storyId}/new`}>
+            Nhập lại tác phẩm
+          </Link>
         </Button>
         <Button asChild variant="outline">
           <Link href="/library">Về thư viện</Link>

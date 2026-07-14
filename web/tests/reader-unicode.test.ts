@@ -36,7 +36,9 @@ describe("Vietnamese NFC/NFD equivalence", () => {
   });
 
   it("also folds surrounding whitespace differences on top of NFD", () => {
-    expect(fingerprintParagraph(`  ${NFD}\n\n`)).toBe(fingerprintParagraph(NFC));
+    expect(fingerprintParagraph(`  ${NFD}\n\n`)).toBe(
+      fingerprintParagraph(NFC),
+    );
   });
 });
 
@@ -59,8 +61,13 @@ describe("anchor assignment on Vietnamese content", () => {
 
 describe("chapter hash stability across composition form", () => {
   it("hashContentBlocks is identical for an NFC and an NFD rendering of a chapter", () => {
-    const nfcChapter = [{ text: NFC }, { text: "Chương kế tiếp bắt đầu ở đây." }];
-    const nfdChapter = nfcChapter.map((b) => ({ text: b.text.normalize("NFD") }));
+    const nfcChapter = [
+      { text: NFC },
+      { text: "Chương kế tiếp bắt đầu ở đây." },
+    ];
+    const nfdChapter = nfcChapter.map((b) => ({
+      text: b.text.normalize("NFD"),
+    }));
     expect(hashContentBlocks(nfdChapter)).toBe(hashContentBlocks(nfcChapter));
   });
 });

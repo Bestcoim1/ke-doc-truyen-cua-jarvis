@@ -22,7 +22,10 @@ type LibraryPageProps = {
 export default function LibraryPage({ searchParams }: LibraryPageProps) {
   if (!isSupabaseConfigured) {
     return (
-      <p className="max-w-sm p-6 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+      <p
+        className="max-w-sm p-6 text-sm"
+        style={{ color: "var(--kd-text-muted)" }}
+      >
         Supabase chưa được cấu hình — điền `.env.local` rồi tải lại.
       </p>
     );
@@ -37,7 +40,8 @@ export default function LibraryPage({ searchParams }: LibraryPageProps) {
 
 async function LibraryContent({ searchParams }: LibraryPageProps) {
   const { status: statusParam } = await searchParams;
-  const status: "active" | "archived" = statusParam === "archived" ? "archived" : "active";
+  const status: "active" | "archived" =
+    statusParam === "archived" ? "archived" : "active";
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
@@ -47,7 +51,11 @@ async function LibraryContent({ searchParams }: LibraryPageProps) {
     redirect("/auth/login?next=/library");
   }
 
-  const { stories, error: storiesError } = await getLibraryStories(supabase, user.sub, status);
+  const { stories, error: storiesError } = await getLibraryStories(
+    supabase,
+    user.sub,
+    status,
+  );
 
   if (!storiesError) {
     logEvent("library.viewed", { storyCount: stories?.length ?? 0, status });
@@ -57,16 +65,29 @@ async function LibraryContent({ searchParams }: LibraryPageProps) {
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-sm font-semibold" style={{ color: "var(--kd-gilt)" }}>
+          <p
+            className="text-sm font-semibold"
+            style={{ color: "var(--kd-gilt)" }}
+          >
             Không gian bản thảo cá nhân
           </p>
-          <h1 className="mt-2 text-4xl font-extrabold font-display tracking-tight sm:text-5xl">Thư viện truyện</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6" style={{ color: "var(--kd-text-muted)" }}>
-            Theo dõi chỗ đang đọc và cả nhịp sáng tác của từng tác phẩm trong cùng một kệ.
+          <h1 className="mt-2 text-4xl font-extrabold font-display tracking-tight sm:text-5xl">
+            Thư viện truyện
+          </h1>
+          <p
+            className="mt-3 max-w-2xl text-sm leading-6"
+            style={{ color: "var(--kd-text-muted)" }}
+          >
+            Theo dõi chỗ đang đọc và cả nhịp sáng tác của từng tác phẩm trong
+            cùng một kệ.
           </p>
         </div>
         <div className="grid gap-2 sm:flex sm:items-center">
-          <Button asChild variant="outline" className="justify-center rounded-full">
+          <Button
+            asChild
+            variant="outline"
+            className="justify-center rounded-full"
+          >
             <Link href="/import">Bản nháp đang chờ</Link>
           </Button>
           <Button asChild className="justify-center rounded-full">
@@ -80,14 +101,20 @@ async function LibraryContent({ searchParams }: LibraryPageProps) {
 
       <div
         className="mt-6 grid w-full grid-cols-2 rounded-full border p-1 sm:w-fit"
-        style={{ borderColor: "var(--kd-border)", background: "var(--kd-surface)" }}
+        style={{
+          borderColor: "var(--kd-border)",
+          background: "var(--kd-surface)",
+        }}
       >
         <Link
           href="/library"
           className="rounded-full px-4 py-2 text-center text-sm font-bold transition-colors"
           style={
             status === "active"
-              ? { background: "var(--kd-binding)", color: "var(--kd-accent-foreground)" }
+              ? {
+                  background: "var(--kd-binding)",
+                  color: "var(--kd-accent-foreground)",
+                }
               : { color: "var(--kd-text-muted)" }
           }
         >
@@ -98,7 +125,10 @@ async function LibraryContent({ searchParams }: LibraryPageProps) {
           className="rounded-full px-4 py-2 text-center text-sm font-bold transition-colors"
           style={
             status === "archived"
-              ? { background: "var(--kd-binding)", color: "var(--kd-accent-foreground)" }
+              ? {
+                  background: "var(--kd-binding)",
+                  color: "var(--kd-accent-foreground)",
+                }
               : { color: "var(--kd-text-muted)" }
           }
         >
@@ -134,7 +164,10 @@ function EmptyLibraryState({ status }: { status: "active" | "archived" }) {
   return (
     <div
       className="mt-6 rounded-3xl border p-8 text-center"
-      style={{ background: "var(--kd-surface)", borderColor: "var(--kd-border)" }}
+      style={{
+        background: "var(--kd-surface)",
+        borderColor: "var(--kd-border)",
+      }}
     >
       <BookOpen className="mx-auto h-10 w-10 opacity-35" />
       <p className="mt-4 text-sm" style={{ color: "var(--kd-text-muted)" }}>
@@ -151,7 +184,13 @@ function EmptyLibraryState({ status }: { status: "active" | "archived" }) {
   );
 }
 
-function StoryCard({ story, status }: { story: LibraryStory; status: "active" | "archived" }) {
+function StoryCard({
+  story,
+  status,
+}: {
+  story: LibraryStory;
+  status: "active" | "archived";
+}) {
   const writing = getWritingStatusMeta(story.writingStatus);
   const readingPct = story.progress?.pct ?? 0;
   const readingLabel = story.progress
@@ -177,7 +216,8 @@ function StoryCard({ story, status }: { story: LibraryStory; status: "active" | 
             style={{
               background:
                 "linear-gradient(160deg, var(--kd-binding), color-mix(in srgb, var(--kd-binding) 55%, #000))",
-              borderColor: "color-mix(in srgb, var(--kd-gilt) 45%, transparent)",
+              borderColor:
+                "color-mix(in srgb, var(--kd-gilt) 45%, transparent)",
               color: "var(--kd-accent-foreground)",
             }}
           >
@@ -186,12 +226,19 @@ function StoryCard({ story, status }: { story: LibraryStory; status: "active" | 
           <div className="min-w-0 flex-1">
             {status === "active" ? (
               <Link href={`/read/${story.id}`} className="block">
-                <h2 className="line-clamp-2 text-xl font-extrabold font-display leading-tight">{story.title}</h2>
+                <h2 className="line-clamp-2 text-xl font-extrabold font-display leading-tight">
+                  {story.title}
+                </h2>
               </Link>
             ) : (
-              <h2 className="line-clamp-2 text-xl font-extrabold font-display leading-tight">{story.title}</h2>
+              <h2 className="line-clamp-2 text-xl font-extrabold font-display leading-tight">
+                {story.title}
+              </h2>
             )}
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--kd-text-muted)" }}>
+            <div
+              className="mt-2 flex flex-wrap items-center gap-2 text-xs"
+              style={{ color: "var(--kd-text-muted)" }}
+            >
               <span>{story.chapterCount} chương</span>
               <span aria-hidden>·</span>
               <span>{readingLabel}</span>
@@ -200,18 +247,32 @@ function StoryCard({ story, status }: { story: LibraryStory; status: "active" | 
         </div>
 
         <div className="mt-5 space-y-4">
-          <ProgressRow label="Tiến trình đọc" pct={readingPct} value={`${readingPct}%`} />
-          <ProgressRow label="Tiến trình sáng tác" pct={writing.progressPct} value={writing.label} />
+          <ProgressRow
+            label="Tiến trình đọc"
+            pct={readingPct}
+            value={`${readingPct}%`}
+          />
+          <ProgressRow
+            label="Tiến trình sáng tác"
+            pct={writing.progressPct}
+            value={writing.label}
+          />
         </div>
 
         {status === "active" ? (
           <div className="mt-5">
-            <WritingStatusForm storyId={story.id} writingStatus={story.writingStatus} />
+            <WritingStatusForm
+              storyId={story.id}
+              writingStatus={story.writingStatus}
+            />
           </div>
         ) : (
           <div
             className="mt-5 inline-flex rounded-full border px-3 py-1 text-xs font-bold"
-            style={{ borderColor: "var(--kd-border)", color: "var(--kd-text-muted)" }}
+            style={{
+              borderColor: "var(--kd-border)",
+              color: "var(--kd-text-muted)",
+            }}
           >
             {writing.label}
           </div>
@@ -251,22 +312,39 @@ function StoryCard({ story, status }: { story: LibraryStory; status: "active" | 
   );
 }
 
-function ProgressRow({ label, pct, value }: { label: string; pct: number; value: string }) {
+function ProgressRow({
+  label,
+  pct,
+  value,
+}: {
+  label: string;
+  pct: number;
+  value: string;
+}) {
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-3 text-xs font-bold">
-        <span className="inline-flex items-center gap-1.5" style={{ color: "var(--kd-text-muted)" }}>
+        <span
+          className="inline-flex items-center gap-1.5"
+          style={{ color: "var(--kd-text-muted)" }}
+        >
           <Clock3 size={13} />
           {label}
         </span>
         <span>{value}</span>
       </div>
-      <div className="h-2.5 rounded-full" style={{ background: "color-mix(in srgb, var(--kd-border) 60%, transparent)" }}>
+      <div
+        className="h-2.5 rounded-full"
+        style={{
+          background: "color-mix(in srgb, var(--kd-border) 60%, transparent)",
+        }}
+      >
         <div
           className="h-full rounded-full transition-[width]"
           style={{
             width: `${Math.max(0, Math.min(100, pct))}%`,
-            background: "linear-gradient(90deg, var(--kd-binding), var(--kd-gilt))",
+            background:
+              "linear-gradient(90deg, var(--kd-binding), var(--kd-gilt))",
           }}
         />
       </div>

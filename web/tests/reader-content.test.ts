@@ -35,7 +35,9 @@ describe("parseChapterContent", () => {
       ]),
     );
     expect(result).not.toBeNull();
-    expect(result!.blocks[0].marks).toEqual([{ type: "bold", start: 0, end: 3 }]);
+    expect(result!.blocks[0].marks).toEqual([
+      { type: "bold", start: 0, end: 3 },
+    ]);
   });
 
   it.each([

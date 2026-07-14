@@ -106,7 +106,9 @@ export type LogicalLine = {
   headingHint?: 1 | 2;
 };
 
-export function classifyImportedHeading(line: unknown): ImportedHeadingType | null {
+export function classifyImportedHeading(
+  line: unknown,
+): ImportedHeadingType | null {
   const normalized = String(line || "").trim();
   if (!normalized) return null;
   if (SECTION_HEADER_PATTERN.test(normalized)) return "section";
@@ -137,10 +139,16 @@ function contentFromLines(lines: string[]): string {
   let firstContentLine = 0;
   let lastContentLine = lines.length;
 
-  while (firstContentLine < lastContentLine && !lines[firstContentLine].trim()) {
+  while (
+    firstContentLine < lastContentLine &&
+    !lines[firstContentLine].trim()
+  ) {
     firstContentLine += 1;
   }
-  while (lastContentLine > firstContentLine && !lines[lastContentLine - 1].trim()) {
+  while (
+    lastContentLine > firstContentLine &&
+    !lines[lastContentLine - 1].trim()
+  ) {
     lastContentLine -= 1;
   }
 
@@ -175,11 +183,18 @@ function createParseIdFactory(): (type: EntityType) => string {
 }
 
 export function normalizeSourceSegment(value: string): string {
-  return encodeURIComponent(value.normalize("NFC").trim().replace(/\s+/gu, " ").toLowerCase());
+  return encodeURIComponent(
+    value.normalize("NFC").trim().replace(/\s+/gu, " ").toLowerCase(),
+  );
 }
 
-export function buildTextBlocks(contentText: string): ChapterRevisionContent["blocks"] {
-  const blockSeeds: Omit<ChapterRevisionContent["blocks"][number], "anchor_id">[] = [];
+export function buildTextBlocks(
+  contentText: string,
+): ChapterRevisionContent["blocks"] {
+  const blockSeeds: Omit<
+    ChapterRevisionContent["blocks"][number],
+    "anchor_id"
+  >[] = [];
   let paragraphLines: string[] = [];
 
   const finishParagraph = () => {
@@ -219,14 +234,16 @@ export function buildTextBlocks(contentText: string): ChapterRevisionContent["bl
 export function countWords(blocks: ChapterRevisionContent["blocks"]): number {
   return blocks.reduce((total, block) => {
     if (block.type === "scene_break") return total;
-    return total + (block.text.match(/[\p{L}\p{N}]+(?:[’'\-][\p{L}\p{N}]+)*/gu)?.length ?? 0);
+    return (
+      total +
+      (block.text.match(/[\p{L}\p{N}]+(?:[’'\-][\p{L}\p{N}]+)*/gu)?.length ?? 0)
+    );
   }, 0);
 }
 
-export function buildDraftChapterContent(contentText: string): Pick<
-  DraftChapter,
-  "blocks" | "contentHash" | "wordCount"
-> {
+export function buildDraftChapterContent(
+  contentText: string,
+): Pick<DraftChapter, "blocks" | "contentHash" | "wordCount"> {
   const blocks = buildTextBlocks(contentText);
   return {
     blocks,
@@ -242,13 +259,24 @@ export function buildDraftChapterContent(contentText: string): Pick<
  * incidental whitespace but is lossless for the blocks buildDraftChapterContent
  * derives from it, which is the only thing that's ever actually stored.
  */
-export function splitChapterContent(contentText: string, blockIndex: number): [string, string] {
+export function splitChapterContent(
+  contentText: string,
+  blockIndex: number,
+): [string, string] {
   const blocks = buildTextBlocks(contentText);
-  if (!Number.isInteger(blockIndex) || blockIndex <= 0 || blockIndex >= blocks.length) {
+  if (
+    !Number.isInteger(blockIndex) ||
+    blockIndex <= 0 ||
+    blockIndex >= blocks.length
+  ) {
     throw new Error("Vị trí tách không hợp lệ.");
   }
-  const toText = (list: typeof blocks) => list.map((block) => block.text).join("\n\n");
-  return [toText(blocks.slice(0, blockIndex)), toText(blocks.slice(blockIndex))];
+  const toText = (list: typeof blocks) =>
+    list.map((block) => block.text).join("\n\n");
+  return [
+    toText(blocks.slice(0, blockIndex)),
+    toText(blocks.slice(blockIndex)),
+  ];
 }
 
 function countSections(sections: DraftSection[]): number {
@@ -293,7 +321,10 @@ export function buildImportedStory({
     stats: {
       sectionCount: countSections(sections),
       chapterCount: chapters.length,
-      wordCount: chapters.reduce((total, chapter) => total + chapter.wordCount, 0),
+      wordCount: chapters.reduce(
+        (total, chapter) => total + chapter.wordCount,
+        0,
+      ),
       characterCount: chapters.reduce(
         (total, chapter) => total + chapter.contentText.length,
         0,
@@ -323,7 +354,10 @@ export function parseLogicalLines(
     if (!warnings.includes(message)) warnings.push(message);
   };
 
-  const createSection = (title: string, type: DraftSectionType): DraftSection => {
+  const createSection = (
+    title: string,
+    type: DraftSectionType,
+  ): DraftSection => {
     const section: DraftSection = {
       id: createId("section"),
       title,
@@ -338,7 +372,10 @@ export function parseLogicalLines(
 
     const segment = `${type}:${normalizeSourceSegment(title)}`;
     const parentPath = parent ? sectionSourcePaths.get(parent.id) : undefined;
-    sectionSourcePaths.set(section.id, parentPath ? `${parentPath}/${segment}` : segment);
+    sectionSourcePaths.set(
+      section.id,
+      parentPath ? `${parentPath}/${segment}` : segment,
+    );
 
     if (type === "volume") currentVolume = section;
     currentSection = section;
@@ -481,12 +518,16 @@ export function parseLogicalLines(
   }
 
   const populatedSections = pruneEmptySections(rootSections);
-  const emptySectionCount = countSections(rootSections) - countSections(populatedSections);
+  const emptySectionCount =
+    countSections(rootSections) - countSections(populatedSections);
   if (emptySectionCount > 0) {
-    addWarning(`Đã bỏ ${emptySectionCount} hồi/phần không có chương khỏi kết quả import.`);
+    addWarning(
+      `Đã bỏ ${emptySectionCount} hồi/phần không có chương khỏi kết quả import.`,
+    );
   }
 
-  if (allChapters(populatedSections).length === 0) addWarning(NO_CHAPTERS_MESSAGE);
+  if (allChapters(populatedSections).length === 0)
+    addWarning(NO_CHAPTERS_MESSAGE);
 
   return buildImportedStory({
     title: options.title,

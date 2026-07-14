@@ -12,7 +12,10 @@ type ReimportNewPageProps = {
 export default function ReimportNewPage({ params }: ReimportNewPageProps) {
   if (!isSupabaseConfigured) {
     return (
-      <p className="max-w-sm p-6 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+      <p
+        className="max-w-sm p-6 text-sm"
+        style={{ color: "var(--kd-text-muted)" }}
+      >
         Supabase chưa được cấu hình — điền `.env.local` rồi tải lại.
       </p>
     );
@@ -50,16 +53,28 @@ async function ReimportNewContent({ params }: ReimportNewPageProps) {
         <p className="text-sm" style={{ color: "var(--kd-text-muted)" }}>
           Cập nhật bản thảo
         </p>
-        <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">{story.title}</h1>
-        <p className="mt-2 text-sm leading-6" style={{ color: "var(--kd-text-muted)" }}>
-          Thư viện chưa thay đổi cho tới khi bạn xem xong bản so sánh và bấm commit.
+        <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">
+          {story.title}
+        </h1>
+        <p
+          className="mt-2 text-sm leading-6"
+          style={{ color: "var(--kd-text-muted)" }}
+        >
+          Thư viện chưa thay đổi cho tới khi bạn xem xong bản so sánh và bấm
+          commit.
         </p>
       </div>
       <div
         className="rounded-xl border p-4 sm:p-6"
-        style={{ background: "var(--kd-surface)", borderColor: "var(--kd-border)" }}
+        style={{
+          background: "var(--kd-surface)",
+          borderColor: "var(--kd-border)",
+        }}
       >
-        <ImportReimportMethodPicker storyId={story.id} storyTitle={story.title} />
+        <ImportReimportMethodPicker
+          storyId={story.id}
+          storyTitle={story.title}
+        />
       </div>
     </div>
   );

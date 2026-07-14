@@ -13,9 +13,7 @@ export default function Page() {
         <div className="flex flex-col gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">
-                Cảm ơn bạn đã đăng ký!
-              </CardTitle>
+              <CardTitle className="text-2xl">Cảm ơn bạn đã đăng ký!</CardTitle>
               <CardDescription>Kiểm tra email để xác nhận</CardDescription>
             </CardHeader>
             <CardContent>

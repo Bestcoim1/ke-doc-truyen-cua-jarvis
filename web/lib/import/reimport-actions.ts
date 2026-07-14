@@ -19,7 +19,11 @@ import {
 } from "./action-helpers";
 import { applyReviewSubmission } from "./draft-validation";
 import { parseDocxDraft } from "./docx-parser";
-import { decodeStrictUtf8Text, detectUploadKind, MAX_UPLOAD_BYTES } from "./file-validation";
+import {
+  decodeStrictUtf8Text,
+  detectUploadKind,
+  MAX_UPLOAD_BYTES,
+} from "./file-validation";
 import { remapReadingProgressAfterReimport } from "./reimport-progress";
 import { parseStoryText, type ImportDraft } from "./text-parser";
 
@@ -83,13 +87,21 @@ export async function createPasteReimportJob(
     return { error: "Tác phẩm không hợp lệ.", message: null };
   }
   if (!content.trim()) {
-    return { error: "Hãy paste nội dung bản thảo mới trước khi tách chương.", message: null };
+    return {
+      error: "Hãy paste nội dung bản thảo mới trước khi tách chương.",
+      message: null,
+    };
   }
   if (content.length > MAX_PASTE_CHARACTERS) {
-    return { error: "Nội dung vượt quá giới hạn 5 triệu ký tự.", message: null };
+    return {
+      error: "Nội dung vượt quá giới hạn 5 triệu ký tự.",
+      message: null,
+    };
   }
 
-  const { supabase, userId } = await requireUser(`/import/reimport/${storyId}/new`);
+  const { supabase, userId } = await requireUser(
+    `/import/reimport/${storyId}/new`,
+  );
 
   const { data: story } = await supabase
     .from("stories")
@@ -106,7 +118,10 @@ export async function createPasteReimportJob(
 
   let draft;
   try {
-    draft = parseStoryText(content, { title: story.title, sourceType: "paste" });
+    draft = parseStoryText(content, {
+      title: story.title,
+      sourceType: "paste",
+    });
   } catch {
     return {
       error: "Không thể tự tách nội dung này. Hãy kiểm tra văn bản và thử lại.",
@@ -115,7 +130,10 @@ export async function createPasteReimportJob(
   }
 
   if (draft.stats.chapterCount === 0) {
-    return { error: "Không tìm thấy nội dung chương để review.", message: null };
+    return {
+      error: "Không tìm thấy nội dung chương để review.",
+      message: null,
+    };
   }
 
   const sourceHash = createHash("sha256").update(content).digest("hex");
@@ -135,11 +153,19 @@ export async function createPasteReimportJob(
     .single();
 
   if (error || !job) {
-    logEvent("reimport.job_create_error", { code: error?.code ?? "missing_row" });
-    return { error: "Chưa thể tạo bản review. Vui lòng thử lại sau.", message: null };
+    logEvent("reimport.job_create_error", {
+      code: error?.code ?? "missing_row",
+    });
+    return {
+      error: "Chưa thể tạo bản review. Vui lòng thử lại sau.",
+      message: null,
+    };
   }
 
-  logEvent("reimport.job_created", { storyId, chapterCount: draft.stats.chapterCount });
+  logEvent("reimport.job_created", {
+    storyId,
+    chapterCount: draft.stats.chapterCount,
+  });
   redirect(`/import/review/${job.id}`);
 }
 
@@ -154,7 +180,10 @@ export async function createFileReimportJob(
     return { error: "Tác phẩm không hợp lệ.", message: null };
   }
   if (!(file instanceof File) || file.size === 0) {
-    return { error: "Hãy chọn file TXT hoặc DOCX trước khi tải lên.", message: null };
+    return {
+      error: "Hãy chọn file TXT hoặc DOCX trước khi tải lên.",
+      message: null,
+    };
   }
   if (file.size > MAX_UPLOAD_BYTES) {
     return {
@@ -167,7 +196,9 @@ export async function createFileReimportJob(
     return { error: "Chỉ hỗ trợ file .txt hoặc .docx.", message: null };
   }
 
-  const { supabase, userId } = await requireUser(`/import/reimport/${storyId}/new`);
+  const { supabase, userId } = await requireUser(
+    `/import/reimport/${storyId}/new`,
+  );
 
   const { data: story } = await supabase
     .from("stories")
@@ -194,15 +225,21 @@ export async function createFileReimportJob(
       source_type: kind,
       source_filename: file.name.slice(0, 255),
       source_hash: sourceHash,
-      parser_version: kind === "docx" ? DOCX_PARSER_VERSION : TXT_PARSER_VERSION,
+      parser_version:
+        kind === "docx" ? DOCX_PARSER_VERSION : TXT_PARSER_VERSION,
       status: "parsing",
     })
     .select("id")
     .single();
 
   if (insertError || !job) {
-    logEvent("reimport.job_create_error", { code: insertError?.code ?? "missing_row" });
-    return { error: "Chưa thể tạo bản review. Vui lòng thử lại sau.", message: null };
+    logEvent("reimport.job_create_error", {
+      code: insertError?.code ?? "missing_row",
+    });
+    return {
+      error: "Chưa thể tạo bản review. Vui lòng thử lại sau.",
+      message: null,
+    };
   }
 
   const { error: uploadError } = await supabase.storage
@@ -221,7 +258,10 @@ export async function createFileReimportJob(
       .from("import_jobs")
       .update({ status: "failed", error_message: "upload_failed" })
       .eq("id", job.id);
-    return { error: "Không thể tải file lên. Vui lòng thử lại.", message: null };
+    return {
+      error: "Không thể tải file lên. Vui lòng thử lại.",
+      message: null,
+    };
   }
 
   let draft: ImportDraft;
@@ -240,7 +280,8 @@ export async function createFileReimportJob(
     }
   } catch (error) {
     await deleteStorageObjectSafely(supabase, storagePath);
-    const message = error instanceof Error ? error.message : "Không thể xử lý file này.";
+    const message =
+      error instanceof Error ? error.message : "Không thể xử lý file này.";
     await supabase
       .from("import_jobs")
       .update({ status: "failed", error_message: message })
@@ -250,7 +291,11 @@ export async function createFileReimportJob(
 
   const { error: finalizeError } = await supabase
     .from("import_jobs")
-    .update({ status: "needs_review", draft_json: draft, warnings: draft.warnings })
+    .update({
+      status: "needs_review",
+      draft_json: draft,
+      warnings: draft.warnings,
+    })
     .eq("id", job.id);
 
   if (finalizeError) {
@@ -259,7 +304,10 @@ export async function createFileReimportJob(
     // it, leave the job in 'parsing' (recoverable) rather than silently
     // and permanently losing the content.
     logEvent("reimport.job_create_error", { code: finalizeError.code });
-    return { error: "Chưa thể lưu bản review. Vui lòng thử lại sau.", message: null };
+    return {
+      error: "Chưa thể lưu bản review. Vui lòng thử lại sau.",
+      message: null,
+    };
   }
 
   await deleteStorageObjectSafely(supabase, storagePath);
@@ -303,18 +351,24 @@ export async function reviewReimportDraft(
   let mapping: Record<string, unknown>;
   try {
     const structure = JSON.parse(structureRaw) as unknown;
-    const contentOps = contentOpsRaw ? (JSON.parse(contentOpsRaw) as unknown) : [];
+    const contentOps = contentOpsRaw
+      ? (JSON.parse(contentOpsRaw) as unknown)
+      : [];
     draft = applyReviewSubmission(job.draft_json, structure, contentOps);
     mapping = validateMappingShape(mappingRaw ? JSON.parse(mappingRaw) : null);
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Bản review không hợp lệ.",
+      error:
+        error instanceof Error ? error.message : "Bản review không hợp lệ.",
       message: null,
     };
   }
 
   if (draft.stats.chapterCount === 0) {
-    return { error: "Cần giữ lại ít nhất một chương trước khi commit.", message: null };
+    return {
+      error: "Cần giữ lại ít nhất một chương trước khi commit.",
+      message: null,
+    };
   }
 
   if (intent === "commit") {
@@ -330,7 +384,11 @@ export async function reviewReimportDraft(
   if (intent === "save") {
     const { data: updated, error } = await supabase
       .from("import_jobs")
-      .update({ draft_json: draft, mapping_json: mapping as unknown as Json, warnings: draft.warnings })
+      .update({
+        draft_json: draft,
+        mapping_json: mapping as unknown as Json,
+        warnings: draft.warnings,
+      })
       .eq("id", jobId)
       .eq("owner_id", userId)
       .eq("status", "needs_review")
@@ -338,7 +396,8 @@ export async function reviewReimportDraft(
       .maybeSingle();
     if (error || !updated) {
       return {
-        error: "Chưa thể lưu thay đổi. Bản cập nhật có thể đã được commit ở nơi khác.",
+        error:
+          "Chưa thể lưu thay đổi. Bản cập nhật có thể đã được commit ở nơi khác.",
         message: null,
       };
     }
@@ -353,7 +412,11 @@ export async function reviewReimportDraft(
   // RPC, which reads both off the row rather than trusting request params.
   const { data: persisted, error: persistError } = await supabase
     .from("import_jobs")
-    .update({ draft_json: draft, mapping_json: mapping as unknown as Json, warnings: draft.warnings })
+    .update({
+      draft_json: draft,
+      mapping_json: mapping as unknown as Json,
+      warnings: draft.warnings,
+    })
     .eq("id", jobId)
     .eq("owner_id", userId)
     .eq("status", "needs_review")
@@ -377,24 +440,36 @@ export async function reviewReimportDraft(
       .maybeSingle();
     if (current?.status !== "completed") {
       return {
-        error: "Bản cập nhật không còn ở trạng thái có thể commit. Hãy tải lại trang.",
+        error:
+          "Bản cập nhật không còn ở trạng thái có thể commit. Hãy tải lại trang.",
         message: null,
       };
     }
   }
 
-  const { data, error } = await supabase.rpc("commit_reimport_job", { p_job_id: jobId });
+  const { data, error } = await supabase.rpc("commit_reimport_job", {
+    p_job_id: jobId,
+  });
   const result = Array.isArray(data) ? data[0] : data;
   const resultStoryId = result?.story_id;
   if (error || !resultStoryId) {
-    logEvent("reimport.commit_error", { code: error?.code ?? "missing_result" });
+    logEvent("reimport.commit_error", {
+      code: error?.code ?? "missing_result",
+    });
     return { error: reimportCommitErrorMessage(error?.code), message: null };
   }
 
-  await remapReadingProgressAfterReimport(supabase, resultStoryId, result?.chapter_id_pairs ?? null);
+  await remapReadingProgressAfterReimport(
+    supabase,
+    resultStoryId,
+    result?.chapter_id_pairs ?? null,
+  );
 
   revalidatePath("/library");
   revalidatePath(reviewPath);
-  logEvent("reimport.commit_success", { storyId, chapterCount: draft.stats.chapterCount });
+  logEvent("reimport.commit_success", {
+    storyId,
+    chapterCount: draft.stats.chapterCount,
+  });
   redirect(`/read/${resultStoryId}`);
 }

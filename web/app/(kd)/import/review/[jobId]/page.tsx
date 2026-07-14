@@ -23,13 +23,24 @@ function manualOverridesFromSavedMapping(
   currentBaseTreeToken: string,
 ): Record<string, ManualOverride> {
   if (!mappingJson || typeof mappingJson !== "object") return {};
-  const mapping = mappingJson as { baseTreeToken?: unknown; decisions?: unknown };
-  if (mapping.baseTreeToken !== currentBaseTreeToken || !Array.isArray(mapping.decisions)) return {};
+  const mapping = mappingJson as {
+    baseTreeToken?: unknown;
+    decisions?: unknown;
+  };
+  if (
+    mapping.baseTreeToken !== currentBaseTreeToken ||
+    !Array.isArray(mapping.decisions)
+  )
+    return {};
 
   const overrides: Record<string, ManualOverride> = {};
   for (const raw of mapping.decisions) {
     if (!raw || typeof raw !== "object") continue;
-    const decision = raw as { kind?: unknown; oldChapterId?: unknown; newChapterId?: unknown };
+    const decision = raw as {
+      kind?: unknown;
+      oldChapterId?: unknown;
+      newChapterId?: unknown;
+    };
     if (typeof decision.oldChapterId !== "string") continue;
     if (decision.kind === "archived") {
       overrides[decision.oldChapterId] = { archived: true };
@@ -39,7 +50,9 @@ function manualOverridesFromSavedMapping(
       (decision.kind === "primary" || decision.kind === "merged") &&
       typeof decision.newChapterId === "string"
     ) {
-      overrides[decision.oldChapterId] = { newChapterId: decision.newChapterId };
+      overrides[decision.oldChapterId] = {
+        newChapterId: decision.newChapterId,
+      };
     }
   }
   return overrides;
@@ -52,7 +65,10 @@ type ReviewPageProps = {
 export default function ReviewImportPage({ params }: ReviewPageProps) {
   if (!isSupabaseConfigured) {
     return (
-      <p className="max-w-sm p-6 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+      <p
+        className="max-w-sm p-6 text-sm"
+        style={{ color: "var(--kd-text-muted)" }}
+      >
         Supabase chưa được cấu hình — điền `.env.local` rồi tải lại.
       </p>
     );
@@ -87,9 +103,12 @@ async function ReviewImportContent({ params }: ReviewPageProps) {
   if (job.status !== "needs_review") {
     return (
       <div className="mx-auto max-w-xl p-6">
-        <h1 className="text-xl font-bold">Bản import chưa sẵn sàng để review</h1>
+        <h1 className="text-xl font-bold">
+          Bản import chưa sẵn sàng để review
+        </h1>
         <p className="mt-2 text-sm" style={{ color: "var(--kd-text-muted)" }}>
-          Trạng thái hiện tại: {job.status}. Hãy quay lại sau hoặc tạo bản import mới.
+          Trạng thái hiện tại: {job.status}. Hãy quay lại sau hoặc tạo bản
+          import mới.
         </p>
       </div>
     );
@@ -114,7 +133,9 @@ async function ReviewImportContent({ params }: ReviewPageProps) {
     if (!tree) {
       return (
         <div className="mx-auto max-w-xl p-6">
-          <h1 className="text-xl font-bold">Không tìm thấy tác phẩm để cập nhật</h1>
+          <h1 className="text-xl font-bold">
+            Không tìm thấy tác phẩm để cập nhật
+          </h1>
           <p className="mt-2 text-sm" style={{ color: "var(--kd-text-muted)" }}>
             Tác phẩm đích có thể đã bị lưu trữ hoặc không còn thuộc về bạn.
           </p>
@@ -123,8 +144,14 @@ async function ReviewImportContent({ params }: ReviewPageProps) {
     }
 
     const { matches } = matchChapters(tree.oldChapters, fullDraft);
-    const { matches: sectionMatches } = matchSections(tree.oldSections, fullDraft);
-    const initialManualOverrides = manualOverridesFromSavedMapping(job.mapping_json, tree.baseTreeToken);
+    const { matches: sectionMatches } = matchSections(
+      tree.oldSections,
+      fullDraft,
+    );
+    const initialManualOverrides = manualOverridesFromSavedMapping(
+      job.mapping_json,
+      tree.baseTreeToken,
+    );
 
     return (
       <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
@@ -143,7 +170,10 @@ async function ReviewImportContent({ params }: ReviewPageProps) {
 
   return (
     <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
-      <ImportReviewEditor jobId={jobId} initialDraft={toReviewDraft(fullDraft)} />
+      <ImportReviewEditor
+        jobId={jobId}
+        initialDraft={toReviewDraft(fullDraft)}
+      />
     </div>
   );
 }

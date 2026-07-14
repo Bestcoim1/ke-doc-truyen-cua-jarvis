@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import type { DraftChapter, DraftSection } from "../../lib/import/text-parser";
 import { parseStoryText } from "../../lib/import/text-parser";
-import { createTestClient, USER_A_EMAIL, USER_A_PASSWORD, USER_B_EMAIL, USER_B_PASSWORD } from "./env";
+import {
+  createTestClient,
+  USER_A_EMAIL,
+  USER_A_PASSWORD,
+  USER_B_EMAIL,
+  USER_B_PASSWORD,
+} from "./env";
 
 function firstChapter(sections: DraftSection[]): DraftChapter | undefined {
   for (const section of sections) {
@@ -61,13 +67,15 @@ describe("import domain constraints and RLS", () => {
         storyIds.push(data!.id);
       }
 
-      const { error: missingDraftError } = await clientA.from("import_jobs").insert({
-        owner_id: userAId,
-        story_id: storyIds[0],
-        source_type: "paste",
-        parser_version: "test-v1",
-        status: "needs_review",
-      });
+      const { error: missingDraftError } = await clientA
+        .from("import_jobs")
+        .insert({
+          owner_id: userAId,
+          story_id: storyIds[0],
+          source_type: "paste",
+          parser_version: "test-v1",
+          status: "needs_review",
+        });
       expect(missingDraftError).not.toBeNull();
 
       for (const storyId of [storyIds[0], storyIds[1], storyIds[0]]) {
@@ -100,12 +108,14 @@ describe("import domain constraints and RLS", () => {
       expect(versionError).toBeNull();
       versionId = version!.id;
 
-      const { error: crossStoryError } = await clientA.from("story_versions").insert({
-        story_id: storyIds[0],
-        import_job_id: jobIds[1],
-        version_number: 2,
-        parser_version: "test-v1",
-      });
+      const { error: crossStoryError } = await clientA
+        .from("story_versions")
+        .insert({
+          story_id: storyIds[0],
+          import_job_id: jobIds[1],
+          version_number: 2,
+          parser_version: "test-v1",
+        });
       expect(crossStoryError).not.toBeNull();
 
       const { error: duplicateVersionError } = await clientA
@@ -144,13 +154,15 @@ describe("import domain constraints and RLS", () => {
         .select("id");
       expect(deletedVersionsByB ?? []).toHaveLength(0);
 
-      const { error: foreignStoryJobError } = await clientB.from("import_jobs").insert({
-        owner_id: userBId,
-        story_id: storyIds[0],
-        source_type: "paste",
-        parser_version: "test-v1",
-        status: "uploaded",
-      });
+      const { error: foreignStoryJobError } = await clientB
+        .from("import_jobs")
+        .insert({
+          owner_id: userBId,
+          story_id: storyIds[0],
+          source_type: "paste",
+          parser_version: "test-v1",
+          status: "uploaded",
+        });
       expect(foreignStoryJobError).not.toBeNull();
     } finally {
       if (versionId) {
@@ -167,10 +179,11 @@ describe("import domain constraints and RLS", () => {
 
   it("commits a reviewed draft atomically and idempotently", async () => {
     const client = createTestClient();
-    const { data: signIn, error: signInError } = await client.auth.signInWithPassword({
-      email: USER_A_EMAIL,
-      password: USER_A_PASSWORD,
-    });
+    const { data: signIn, error: signInError } =
+      await client.auth.signInWithPassword({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+      });
     expect(signInError).toBeNull();
     const ownerId = signIn.user!.id;
     const draft = twoChapterDraft("RPC import test");
@@ -214,14 +227,19 @@ describe("import domain constraints and RLS", () => {
       expect(versions).toHaveLength(1);
       expect(sections).toHaveLength(1);
       expect(chapters).toHaveLength(2);
-      expect(chapters?.every((chapter) => chapter.current_revision_id)).toBe(true);
+      expect(chapters?.every((chapter) => chapter.current_revision_id)).toBe(
+        true,
+      );
 
       const { data: completedJob } = await client
         .from("import_jobs")
         .select("status, story_id, completed_at")
         .eq("id", jobId)
         .single();
-      expect(completedJob).toMatchObject({ status: "completed", story_id: storyId });
+      expect(completedJob).toMatchObject({
+        status: "completed",
+        story_id: storyId,
+      });
       expect(completedJob?.completed_at).toBeTruthy();
     } finally {
       if (storyId) await client.from("stories").delete().eq("id", storyId);
@@ -233,10 +251,11 @@ describe("import domain constraints and RLS", () => {
     const clientA = createTestClient();
     const clientB = createTestClient();
 
-    const { data: signInA, error: signInAError } = await clientA.auth.signInWithPassword({
-      email: USER_A_EMAIL,
-      password: USER_A_PASSWORD,
-    });
+    const { data: signInA, error: signInAError } =
+      await clientA.auth.signInWithPassword({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+      });
     expect(signInAError).toBeNull();
     const { error: signInBError } = await clientB.auth.signInWithPassword({
       email: USER_B_EMAIL,
@@ -279,10 +298,11 @@ describe("import domain constraints and RLS", () => {
 
   it("rolls back and leaves the job resumable when the draft has no chapters", async () => {
     const client = createTestClient();
-    const { data: signIn, error: signInError } = await client.auth.signInWithPassword({
-      email: USER_A_EMAIL,
-      password: USER_A_PASSWORD,
-    });
+    const { data: signIn, error: signInError } =
+      await client.auth.signInWithPassword({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+      });
     expect(signInError).toBeNull();
     const ownerId = signIn.user!.id;
     const title = "Empty draft rollback test";
@@ -312,7 +332,11 @@ describe("import domain constraints and RLS", () => {
         .select("status, story_id, completed_at")
         .eq("id", jobId)
         .single();
-      expect(jobAfter).toMatchObject({ status: "needs_review", story_id: null, completed_at: null });
+      expect(jobAfter).toMatchObject({
+        status: "needs_review",
+        story_id: null,
+        completed_at: null,
+      });
 
       const { data: leakedStories } = await client
         .from("stories")
@@ -327,10 +351,11 @@ describe("import domain constraints and RLS", () => {
 
   it("rolls back when a chapter's content hash is malformed", async () => {
     const client = createTestClient();
-    const { data: signIn, error: signInError } = await client.auth.signInWithPassword({
-      email: USER_A_EMAIL,
-      password: USER_A_PASSWORD,
-    });
+    const { data: signIn, error: signInError } =
+      await client.auth.signInWithPassword({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+      });
     expect(signInError).toBeNull();
     const ownerId = signIn.user!.id;
     const title = "Malformed hash rollback test";
@@ -364,7 +389,10 @@ describe("import domain constraints and RLS", () => {
         .select("status, story_id")
         .eq("id", jobId)
         .single();
-      expect(jobAfter).toMatchObject({ status: "needs_review", story_id: null });
+      expect(jobAfter).toMatchObject({
+        status: "needs_review",
+        story_id: null,
+      });
 
       const { data: leakedStories } = await client
         .from("stories")
@@ -379,10 +407,11 @@ describe("import domain constraints and RLS", () => {
 
   it("commits idempotently when the same job is committed concurrently", async () => {
     const client = createTestClient();
-    const { data: signIn, error: signInError } = await client.auth.signInWithPassword({
-      email: USER_A_EMAIL,
-      password: USER_A_PASSWORD,
-    });
+    const { data: signIn, error: signInError } =
+      await client.auth.signInWithPassword({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+      });
     expect(signInError).toBeNull();
     const ownerId = signIn.user!.id;
     const title = "Concurrent commit test";

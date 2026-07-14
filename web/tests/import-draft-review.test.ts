@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { applyReviewSubmission, normalizeImportDraft } from "../lib/import/draft-validation";
+import {
+  applyReviewSubmission,
+  normalizeImportDraft,
+} from "../lib/import/draft-validation";
 import {
   changeSectionType,
   deleteChapter,
@@ -75,7 +78,11 @@ describe("import review draft operations", () => {
 
   it("changes a section's type, restricted to a single root chapter change", () => {
     const initial = createDraft();
-    const changed = changeSectionType(initial, initial.sections[0].id, "volume");
+    const changed = changeSectionType(
+      initial,
+      initial.sections[0].id,
+      "volume",
+    );
     expect(changed.sections[0].type).toBe("volume");
     expect(changed.sections[1].type).toBe("arc");
   });
@@ -91,14 +98,21 @@ describe("import review draft operations", () => {
       firstChapterId,
     ]);
     // no-op at the boundary, not a crash
-    expect(reorderChapter(movedDown, firstChapterId, "down").sections[0].chapters.map((c) => c.id)).toEqual(
-      [secondChapterId, firstChapterId],
-    );
+    expect(
+      reorderChapter(
+        movedDown,
+        firstChapterId,
+        "down",
+      ).sections[0].chapters.map((c) => c.id),
+    ).toEqual([secondChapterId, firstChapterId]);
 
     const firstSectionId = initial.sections[0].id;
     const secondSectionId = initial.sections[1].id;
     const reordered = reorderSection(initial, firstSectionId, "down");
-    expect(reordered.sections.map((s) => s.id)).toEqual([secondSectionId, firstSectionId]);
+    expect(reordered.sections.map((s) => s.id)).toEqual([
+      secondSectionId,
+      firstSectionId,
+    ]);
   });
 
   it("splits a chapter at a paragraph boundary into two chapters", () => {
@@ -118,14 +132,20 @@ describe("import review draft operations", () => {
 
     expect(split.sections[0].chapters).toHaveLength(2);
     expect(split.sections[0].chapters[0].contentText).toBe("Đoạn một.");
-    expect(split.sections[0].chapters[1].contentText).toBe("Đoạn hai.\n\nĐoạn ba.");
+    expect(split.sections[0].chapters[1].contentText).toBe(
+      "Đoạn hai.\n\nĐoạn ba.",
+    );
     expect(split.sections[0].chapters[1].id).toBe("chapter-split-test");
     expect(split.stats.chapterCount).toBe(draft.stats.chapterCount + 1);
   });
 
   it("round-trips through toStructure + applyReviewSubmission without resending content", () => {
     const initial = createDraft();
-    const renamed = renameSection(initial, initial.sections[0].id, "Hồi mở đầu");
+    const renamed = renameSection(
+      initial,
+      initial.sections[0].id,
+      "Hồi mở đầu",
+    );
     const structure = toStructure(renamed);
 
     // Nothing content-shaped survives in the structure payload.
@@ -135,7 +155,9 @@ describe("import review draft operations", () => {
     const rebuilt = applyReviewSubmission(initial, structure, []);
     expect(rebuilt.sections[0].title).toBe("Hồi mở đầu");
     expect(rebuilt.stats.chapterCount).toBe(initial.stats.chapterCount);
-    expect(rebuilt.sections[0].chapters[0].contentText).toBe("Đoạn giống nhau.");
+    expect(rebuilt.sections[0].chapters[0].contentText).toBe(
+      "Đoạn giống nhau.",
+    );
   });
 
   it("applies a split ContentOp server-side and reflects it in the rebuilt structure", () => {
@@ -159,7 +181,12 @@ describe("import review draft operations", () => {
     });
 
     const rebuilt = applyReviewSubmission(initial, structure, [
-      { type: "split", chapterId, blockIndex: 1, newChapterId: "chapter-split-test" },
+      {
+        type: "split",
+        chapterId,
+        blockIndex: 1,
+        newChapterId: "chapter-split-test",
+      },
     ]);
 
     expect(rebuilt.sections[0].chapters).toHaveLength(2);

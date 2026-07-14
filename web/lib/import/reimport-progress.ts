@@ -36,17 +36,31 @@ export function parseChapterIdPairs(raw: unknown): ChapterIdPair[] {
 export function resolveRemapTarget(
   pairs: ChapterIdPair[],
   oldChapterId: string,
-): { oldRevisionId: string | null; targetChapterId: string; targetRevisionId: string | null } | null {
+): {
+  oldRevisionId: string | null;
+  targetChapterId: string;
+  targetRevisionId: string | null;
+} | null {
   const direct = pairs.find((pair) => pair.oldChapterId === oldChapterId);
   if (!direct) return null;
 
   if (!direct.merged) {
-    return { oldRevisionId: direct.oldRevisionId, targetChapterId: direct.oldChapterId, targetRevisionId: direct.newRevisionId };
+    return {
+      oldRevisionId: direct.oldRevisionId,
+      targetChapterId: direct.oldChapterId,
+      targetRevisionId: direct.newRevisionId,
+    };
   }
 
-  const primary = pairs.find((pair) => !pair.merged && pair.newChapterId === direct.newChapterId);
+  const primary = pairs.find(
+    (pair) => !pair.merged && pair.newChapterId === direct.newChapterId,
+  );
   if (!primary) return null;
-  return { oldRevisionId: direct.oldRevisionId, targetChapterId: primary.oldChapterId, targetRevisionId: primary.newRevisionId };
+  return {
+    oldRevisionId: direct.oldRevisionId,
+    targetChapterId: primary.oldChapterId,
+    targetRevisionId: primary.newRevisionId,
+  };
 }
 
 /**
@@ -78,10 +92,17 @@ export async function remapReadingProgressAfterReimport(
     if (!progress) return;
 
     const target = resolveRemapTarget(pairs, progress.chapter_id);
-    if (!target || !target.targetRevisionId || target.targetRevisionId === progress.chapter_revision_id) return;
+    if (
+      !target ||
+      !target.targetRevisionId ||
+      target.targetRevisionId === progress.chapter_revision_id
+    )
+      return;
 
     const [oldContent, newContent] = await Promise.all([
-      target.oldRevisionId ? getChapterRevisionContent(supabase, target.oldRevisionId) : null,
+      target.oldRevisionId
+        ? getChapterRevisionContent(supabase, target.oldRevisionId)
+        : null,
       getChapterRevisionContent(supabase, target.targetRevisionId),
     ]);
     // content is null when the revision's blob failed validation — can't
@@ -98,7 +119,10 @@ export async function remapReadingProgressAfterReimport(
     if (!resolved) return;
 
     if (resolved.method !== "exact") {
-      logEvent("reimport.progress_remap_fallback", { storyId, method: resolved.method });
+      logEvent("reimport.progress_remap_fallback", {
+        storyId,
+        method: resolved.method,
+      });
     }
 
     const { error } = await supabase.rpc("upsert_reading_progress", {
@@ -117,7 +141,10 @@ export async function remapReadingProgressAfterReimport(
       logEvent("reimport.progress_remap_error", { code: error.code });
       return;
     }
-    logEvent("reimport.progress_remapped", { storyId, method: resolved.method });
+    logEvent("reimport.progress_remapped", {
+      storyId,
+      method: resolved.method,
+    });
   } catch {
     logEvent("reimport.progress_remap_error", { code: "exception" });
   }

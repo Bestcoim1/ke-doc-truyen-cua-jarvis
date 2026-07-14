@@ -20,7 +20,10 @@ export function AppTopNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="hidden items-center gap-1 sm:flex" aria-label="Điều hướng chính">
+    <nav
+      className="hidden items-center gap-1 sm:flex"
+      aria-label="Điều hướng chính"
+    >
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         const Icon = item.icon;
@@ -32,7 +35,9 @@ export function AppTopNav() {
             aria-current={active ? "page" : undefined}
             className={cn(
               "inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition-colors",
-              active ? "text-[var(--kd-accent)]" : "text-[var(--kd-text-muted)] hover:text-[var(--kd-text)]",
+              active
+                ? "text-[var(--kd-accent)]"
+                : "text-[var(--kd-text-muted)] hover:text-[var(--kd-text)]",
             )}
           >
             <Icon size={16} />

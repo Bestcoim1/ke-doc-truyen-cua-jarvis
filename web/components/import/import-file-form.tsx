@@ -12,7 +12,10 @@ const INITIAL_STATE = { error: null, message: null };
 const MAX_UPLOAD_MB = 15;
 
 export function ImportFileForm() {
-  const [state, formAction, isPending] = useActionState(createFileImport, INITIAL_STATE);
+  const [state, formAction, isPending] = useActionState(
+    createFileImport,
+    INITIAL_STATE,
+  );
   const [fileName, setFileName] = useState<string | null>(null);
 
   return (
@@ -54,17 +57,22 @@ export function ImportFileForm() {
           type="file"
           accept=".txt,.docx"
           required
-          onChange={(event) => setFileName(event.target.files?.[0]?.name ?? null)}
+          onChange={(event) =>
+            setFileName(event.target.files?.[0]?.name ?? null)
+          }
         />
         {fileName ? (
           <p className="text-xs" style={{ color: "var(--kd-text-muted)" }}>
             Đã chọn: {fileName}
           </p>
         ) : null}
-        <p className="text-xs leading-5" style={{ color: "var(--kd-text-muted)" }}>
-          File .txt phải là UTF-8. File .docx dùng style Heading 1/Heading 2 trong Word sẽ được
-          nhận làm Hồi/Chương chính xác hơn; nếu không có style, hệ thống sẽ tự đoán theo mẫu
-          Chương/Hồi giống như paste text.
+        <p
+          className="text-xs leading-5"
+          style={{ color: "var(--kd-text-muted)" }}
+        >
+          File .txt phải là UTF-8. File .docx dùng style Heading 1/Heading 2
+          trong Word sẽ được nhận làm Hồi/Chương chính xác hơn; nếu không có
+          style, hệ thống sẽ tự đoán theo mẫu Chương/Hồi giống như paste text.
         </p>
       </div>
 
@@ -78,7 +86,12 @@ export function ImportFileForm() {
       ) : null}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button asChild type="button" variant="outline" className="w-full sm:w-auto">
+        <Button
+          asChild
+          type="button"
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
           <Link href="/library">Hủy</Link>
         </Button>
         <Button type="submit" disabled={isPending} className="w-full sm:w-auto">

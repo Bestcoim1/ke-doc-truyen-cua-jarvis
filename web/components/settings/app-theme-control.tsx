@@ -34,7 +34,9 @@ export function AppThemeControl() {
             onClick={() => setTheme(option.value)}
             className={cn(
               "inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-3 text-sm font-bold transition-colors",
-              active ? "text-[var(--kd-accent-foreground)]" : "text-[var(--kd-text-muted)]",
+              active
+                ? "text-[var(--kd-accent-foreground)]"
+                : "text-[var(--kd-text-muted)]",
             )}
             style={active ? { background: "var(--kd-binding)" } : undefined}
           >

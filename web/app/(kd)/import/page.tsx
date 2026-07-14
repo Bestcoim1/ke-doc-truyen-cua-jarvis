@@ -28,7 +28,10 @@ const SOURCE_LABELS = {
 export default function ImportDraftsPage() {
   if (!isSupabaseConfigured) {
     return (
-      <p className="max-w-sm p-6 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+      <p
+        className="max-w-sm p-6 text-sm"
+        style={{ color: "var(--kd-text-muted)" }}
+      >
         Supabase chưa được cấu hình — điền `.env.local` rồi tải lại.
       </p>
     );
@@ -56,7 +59,9 @@ async function ImportDraftsContent() {
           <p className="text-sm" style={{ color: "var(--kd-text-muted)" }}>
             Import
           </p>
-          <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">Bản nháp đang chờ</h1>
+          <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">
+            Bản nháp đang chờ
+          </h1>
         </div>
         <Button asChild className="w-full sm:w-auto">
           <Link href="/import/new">Thêm tác phẩm</Link>
@@ -73,16 +78,28 @@ async function ImportDraftsContent() {
             <li
               key={job.id}
               className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"
-              style={{ background: "var(--kd-surface)", borderColor: "var(--kd-border)" }}
+              style={{
+                background: "var(--kd-surface)",
+                borderColor: "var(--kd-border)",
+              }}
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{SOURCE_LABELS[job.source_type]}</Badge>
-                  <Badge variant={job.status === "failed" ? "destructive" : "secondary"}>
+                  <Badge variant="outline">
+                    {SOURCE_LABELS[job.source_type]}
+                  </Badge>
+                  <Badge
+                    variant={
+                      job.status === "failed" ? "destructive" : "secondary"
+                    }
+                  >
                     {STATUS_LABELS[job.status]}
                   </Badge>
                 </div>
-                <p className="mt-1 truncate text-sm" style={{ color: "var(--kd-text-muted)" }}>
+                <p
+                  className="mt-1 truncate text-sm"
+                  style={{ color: "var(--kd-text-muted)" }}
+                >
                   {job.source_filename ?? "Không có tên file"} ·{" "}
                   {new Date(job.created_at).toLocaleString("vi-VN")}
                 </p>
@@ -90,12 +107,16 @@ async function ImportDraftsContent() {
               <div className="flex shrink-0 items-center gap-2">
                 {job.status === "needs_review" ? (
                   <Button asChild size="sm">
-                    <Link href={`/import/review/${job.id}`}>Tiếp tục review</Link>
+                    <Link href={`/import/review/${job.id}`}>
+                      Tiếp tục review
+                    </Link>
                   </Button>
                 ) : null}
                 {job.status === "completed" && job.story_id ? (
                   <Button asChild size="sm" variant="outline">
-                    <Link href={`/read/${job.story_id}`}>Mở trong Thư viện</Link>
+                    <Link href={`/read/${job.story_id}`}>
+                      Mở trong Thư viện
+                    </Link>
                   </Button>
                 ) : null}
                 {isCancellableStatus(job.status) ? (

@@ -22,7 +22,10 @@ import {
  * pipeline, not hand-typed strings, so tests exercise the same normalization
  * the matcher relies on.
  */
-function draftToOldRefs(draft: ImportDraft): { chapters: OldChapterRef[]; sections: OldSectionRef[] } {
+function draftToOldRefs(draft: ImportDraft): {
+  chapters: OldChapterRef[];
+  sections: OldSectionRef[];
+} {
   const chapters: OldChapterRef[] = [];
   const sections: OldSectionRef[] = [];
   let sortOrder = 0;
@@ -31,10 +34,21 @@ function draftToOldRefs(draft: ImportDraft): { chapters: OldChapterRef[]; sectio
     return `${section.type}:${normalizeSourceSegment(section.title)}`;
   }
 
-  function walk(list: DraftSection[], parentId: string | null, parentPath: string | undefined) {
+  function walk(
+    list: DraftSection[],
+    parentId: string | null,
+    parentPath: string | undefined,
+  ) {
     for (const section of list) {
-      sections.push({ id: section.id, parentSectionId: parentId, title: section.title, type: section.type });
-      const path = parentPath ? `${parentPath}/${pathSegment(section)}` : pathSegment(section);
+      sections.push({
+        id: section.id,
+        parentSectionId: parentId,
+        title: section.title,
+        type: section.type,
+      });
+      const path = parentPath
+        ? `${parentPath}/${pathSegment(section)}`
+        : pathSegment(section);
 
       for (const chapter of section.chapters) {
         chapters.push({
@@ -43,8 +57,12 @@ function draftToOldRefs(draft: ImportDraft): { chapters: OldChapterRef[]; sectio
           title: chapter.title,
           sourceKey: chapter.sourceKey,
           sortOrder: sortOrder++,
-          firstParagraphFingerprint: chapter.blocks[0] ? fingerprintParagraph(chapter.blocks[0].text) : null,
-          lastParagraphFingerprint: chapter.blocks.at(-1) ? fingerprintParagraph(chapter.blocks.at(-1)!.text) : null,
+          firstParagraphFingerprint: chapter.blocks[0]
+            ? fingerprintParagraph(chapter.blocks[0].text)
+            : null,
+          lastParagraphFingerprint: chapter.blocks.at(-1)
+            ? fingerprintParagraph(chapter.blocks.at(-1)!.text)
+            : null,
         });
       }
 
@@ -58,12 +76,17 @@ function draftToOldRefs(draft: ImportDraft): { chapters: OldChapterRef[]; sectio
 
 function findChapter(sections: DraftSection[], title: string): DraftChapter {
   for (const section of sections) {
-    const found = section.chapters.find((c) => c.title === title) ?? findChapterOrUndefined(section.children, title);
+    const found =
+      section.chapters.find((c) => c.title === title) ??
+      findChapterOrUndefined(section.children, title);
     if (found) return found;
   }
   throw new Error(`chapter not found: ${title}`);
 }
-function findChapterOrUndefined(sections: DraftSection[], title: string): DraftChapter | undefined {
+function findChapterOrUndefined(
+  sections: DraftSection[],
+  title: string,
+): DraftChapter | undefined {
   for (const section of sections) {
     const found = section.chapters.find((c) => c.title === title);
     if (found) return found;
@@ -85,10 +108,16 @@ Nội dung chương ba sẽ mất khỏi bản mới.`;
 
 describe("matchChapters", () => {
   it("tier 1: matches unchanged chapters by exact source_key", () => {
-    const oldDraft = parseStoryText(SAMPLE, { title: "T", sourceType: "paste" });
+    const oldDraft = parseStoryText(SAMPLE, {
+      title: "T",
+      sourceType: "paste",
+    });
     const { chapters: oldRefs } = draftToOldRefs(oldDraft);
     // Re-parsing identical text yields identical sourceKeys (deterministic from title/path), new ids.
-    const newDraft = parseStoryText(SAMPLE, { title: "T", sourceType: "paste" });
+    const newDraft = parseStoryText(SAMPLE, {
+      title: "T",
+      sourceType: "paste",
+    });
 
     const result = matchChapters(oldRefs, newDraft);
 
@@ -100,7 +129,9 @@ describe("matchChapters", () => {
     const ch1Match = result.matches.find(
       (m) => m.newChapterId === findChapter(newDraft.sections, "Chương 1").id,
     );
-    expect(ch1Match?.oldChapterId).toBe(findChapter(oldDraft.sections, "Chương 1").id);
+    expect(ch1Match?.oldChapterId).toBe(
+      findChapter(oldDraft.sections, "Chương 1").id,
+    );
   });
 
   it("tier 2: falls back to title+position when the stored source_key no longer matches a fresh parse", () => {
@@ -116,7 +147,10 @@ Nội dung A không đổi.`;
     // applyContentOps). Tier 1 (exact source_key) can no longer find it by
     // key; tier 2 (title + section path + occurrence order) still can,
     // recomputing the path fresh from the current title.
-    const oldRefs = oldRefsRaw.map((ref) => ({ ...ref, sourceKey: `${ref.sourceKey}#split` }));
+    const oldRefs = oldRefsRaw.map((ref) => ({
+      ...ref,
+      sourceKey: `${ref.sourceKey}#split`,
+    }));
     const newDraft = parseStoryText(text, { title: "T", sourceType: "paste" });
 
     const result = matchChapters(oldRefs, newDraft);
@@ -143,9 +177,15 @@ Chương 9: Tên đã đổi hoàn toàn
 
 Đoạn kết thúc giống hệt cả hai bản.`;
 
-    const oldDraft = parseStoryText(oldText, { title: "T", sourceType: "paste" });
+    const oldDraft = parseStoryText(oldText, {
+      title: "T",
+      sourceType: "paste",
+    });
     const { chapters: oldRefs } = draftToOldRefs(oldDraft);
-    const newDraft = parseStoryText(newText, { title: "T", sourceType: "paste" });
+    const newDraft = parseStoryText(newText, {
+      title: "T",
+      sourceType: "paste",
+    });
 
     const result = matchChapters(oldRefs, newDraft);
 
@@ -156,9 +196,15 @@ Chương 9: Tên đã đổi hoàn toàn
   });
 
   it("prefers tier 1 over tier 2/3 when multiple tiers would technically match", () => {
-    const oldDraft = parseStoryText(SAMPLE, { title: "T", sourceType: "paste" });
+    const oldDraft = parseStoryText(SAMPLE, {
+      title: "T",
+      sourceType: "paste",
+    });
     const { chapters: oldRefs } = draftToOldRefs(oldDraft);
-    const newDraft = parseStoryText(SAMPLE, { title: "T", sourceType: "paste" });
+    const newDraft = parseStoryText(SAMPLE, {
+      title: "T",
+      sourceType: "paste",
+    });
 
     const result = matchChapters(oldRefs, newDraft);
     expect(result.matches.every((m) => m.tier === 1)).toBe(true);
@@ -178,9 +224,15 @@ Nội dung chương một.
 Chương 3
 Nội dung chương ba, hoàn toàn mới.`;
 
-    const oldDraft = parseStoryText(oldText, { title: "T", sourceType: "paste" });
+    const oldDraft = parseStoryText(oldText, {
+      title: "T",
+      sourceType: "paste",
+    });
     const { chapters: oldRefs } = draftToOldRefs(oldDraft);
-    const newDraft = parseStoryText(newText, { title: "T", sourceType: "paste" });
+    const newDraft = parseStoryText(newText, {
+      title: "T",
+      sourceType: "paste",
+    });
 
     const result = matchChapters(oldRefs, newDraft);
 
@@ -199,7 +251,10 @@ Nội dung chương ba, hoàn toàn mới.`;
     expect(emptyOldResult.unmatchedNew).toHaveLength(3);
 
     const { chapters: oldRefs } = draftToOldRefs(draft);
-    const emptyNewDraft = parseStoryText("", { title: "T", sourceType: "paste" });
+    const emptyNewDraft = parseStoryText("", {
+      title: "T",
+      sourceType: "paste",
+    });
     const emptyNewResult = matchChapters(oldRefs, emptyNewDraft);
     expect(emptyNewResult.matches).toHaveLength(0);
     expect(emptyNewResult.unmatchedOld).toHaveLength(3);
@@ -208,9 +263,15 @@ Nội dung chương ba, hoàn toàn mới.`;
 
 describe("matchSections", () => {
   it("matches sections by exact normalized (type, title, parent chain) path", () => {
-    const oldDraft = parseStoryText(SAMPLE, { title: "T", sourceType: "paste" });
+    const oldDraft = parseStoryText(SAMPLE, {
+      title: "T",
+      sourceType: "paste",
+    });
     const { sections: oldSections } = draftToOldRefs(oldDraft);
-    const newDraft = parseStoryText(SAMPLE, { title: "T", sourceType: "paste" });
+    const newDraft = parseStoryText(SAMPLE, {
+      title: "T",
+      sourceType: "paste",
+    });
 
     const result = matchSections(oldSections, newDraft);
 
@@ -221,10 +282,16 @@ describe("matchSections", () => {
   });
 
   it("treats a renamed section as unmatched (no fuzzy matching)", () => {
-    const oldDraft = parseStoryText(SAMPLE, { title: "T", sourceType: "paste" });
+    const oldDraft = parseStoryText(SAMPLE, {
+      title: "T",
+      sourceType: "paste",
+    });
     const { sections: oldSections } = draftToOldRefs(oldDraft);
     const renamed = SAMPLE.replace("Hồi 1", "Hồi 1: Khởi đầu mới");
-    const newDraft = parseStoryText(renamed, { title: "T", sourceType: "paste" });
+    const newDraft = parseStoryText(renamed, {
+      title: "T",
+      sourceType: "paste",
+    });
 
     const result = matchSections(oldSections, newDraft);
 

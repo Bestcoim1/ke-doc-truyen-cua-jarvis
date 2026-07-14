@@ -44,7 +44,9 @@ export function resolveResumeAnchor(
   if (newBlocks.length === 0) return null;
   const assigned = assignAnchorIds(newBlocks);
 
-  const exactIndex = assigned.findIndex((block) => block.anchorId === oldAnchorId);
+  const exactIndex = assigned.findIndex(
+    (block) => block.anchorId === oldAnchorId,
+  );
   if (exactIndex !== -1) return toResult(assigned, exactIndex, "exact");
 
   const candidates = assigned
@@ -61,6 +63,9 @@ export function resolveResumeAnchor(
   }
 
   const ratio = oldBlockCount > 0 ? oldOrdinal / oldBlockCount : 0;
-  const ordinalIndex = Math.min(assigned.length - 1, Math.max(0, Math.round(ratio * assigned.length)));
+  const ordinalIndex = Math.min(
+    assigned.length - 1,
+    Math.max(0, Math.round(ratio * assigned.length)),
+  );
   return toResult(assigned, ordinalIndex, "ordinal");
 }

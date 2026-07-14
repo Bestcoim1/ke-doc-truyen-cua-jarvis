@@ -15,13 +15,21 @@ function isValidMark(raw: unknown): raw is Block["marks"][number] {
 function parseBlock(raw: unknown): Block | null {
   if (!raw || typeof raw !== "object") return null;
   const block = raw as Record<string, unknown>;
-  if (typeof block.anchor_id !== "string" || block.anchor_id.length === 0) return null;
+  if (typeof block.anchor_id !== "string" || block.anchor_id.length === 0)
+    return null;
   if (block.type !== "paragraph" && block.type !== "scene_break") return null;
   if (typeof block.text !== "string") return null;
   // Marks are decorative: drop malformed entries rather than fail the whole
   // block — a bad mark should never blank out readable prose.
-  const marks = Array.isArray(block.marks) ? (block.marks.filter(isValidMark) as Block["marks"]) : [];
-  return { anchor_id: block.anchor_id, type: block.type, text: block.text, marks };
+  const marks = Array.isArray(block.marks)
+    ? (block.marks.filter(isValidMark) as Block["marks"])
+    : [];
+  return {
+    anchor_id: block.anchor_id,
+    type: block.type,
+    text: block.text,
+    marks,
+  };
 }
 
 /**
@@ -34,7 +42,9 @@ function parseBlock(raw: unknown): Block | null {
  * when the blob can't be safely rendered; the reader page turns that into a
  * per-chapter recovery card.
  */
-export function parseChapterContent(raw: unknown): ChapterRevisionContent | null {
+export function parseChapterContent(
+  raw: unknown,
+): ChapterRevisionContent | null {
   if (!raw || typeof raw !== "object") return null;
   const content = raw as Record<string, unknown>;
   if (content.schema_version !== 1) return null;

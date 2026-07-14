@@ -17,10 +17,17 @@ function renderMarkedText(block: Block) {
     const end = boundaries[i + 1];
     if (start >= end) continue;
 
-    const activeMarks = marks.filter((mark) => mark.start <= start && mark.end >= end);
+    const activeMarks = marks.filter(
+      (mark) => mark.start <= start && mark.end >= end,
+    );
     let node: React.ReactNode = text.slice(start, end);
     for (const mark of activeMarks) {
-      node = mark.type === "bold" ? <strong key={`b-${start}`}>{node}</strong> : <em key={`i-${start}`}>{node}</em>;
+      node =
+        mark.type === "bold" ? (
+          <strong key={`b-${start}`}>{node}</strong>
+        ) : (
+          <em key={`i-${start}`}>{node}</em>
+        );
     }
     segments.push(<span key={start}>{node}</span>);
   }

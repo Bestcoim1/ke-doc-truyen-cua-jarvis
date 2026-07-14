@@ -41,7 +41,8 @@ type ChapterStatePayload = {
   completionMethod: "reader_end" | "next_action" | null;
 };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_RE.test(value);
@@ -79,7 +80,9 @@ function parseProgress(raw: unknown): ProgressPayload | null {
     paragraphAnchorId: p.paragraphAnchorId,
     paragraphFingerprint: p.paragraphFingerprint,
     paragraphOrdinal: Math.max(0, Math.trunc(p.paragraphOrdinal)),
-    paragraphOffsetRatio: isFiniteNumber(offset) ? Math.min(1, Math.max(0, offset)) : null,
+    paragraphOffsetRatio: isFiniteNumber(offset)
+      ? Math.min(1, Math.max(0, offset))
+      : null,
     chapterProgressPct: Math.min(100, Math.max(0, p.chapterProgressPct)),
     writeId: p.writeId,
     observedAt: p.observedAt,
@@ -111,7 +114,8 @@ function parseChapterState(raw: unknown): ChapterStatePayload | null {
     anchorId: p.anchorId,
     progressPct: Math.min(100, Math.max(0, p.progressPct)),
     markCompleted: p.markCompleted === true,
-    completionMethod: method === "reader_end" || method === "next_action" ? method : null,
+    completionMethod:
+      method === "reader_end" || method === "next_action" ? method : null,
   };
 }
 
@@ -126,14 +130,19 @@ export async function POST(request: NextRequest) {
   const { progress: rawProgress, chapterState: rawChapterState } =
     (body as { progress?: unknown; chapterState?: unknown }) ?? {};
 
-  const progress = rawProgress !== undefined ? parseProgress(rawProgress) : null;
-  const chapterState = rawChapterState !== undefined ? parseChapterState(rawChapterState) : null;
+  const progress =
+    rawProgress !== undefined ? parseProgress(rawProgress) : null;
+  const chapterState =
+    rawChapterState !== undefined ? parseChapterState(rawChapterState) : null;
 
   if (rawProgress !== undefined && !progress) {
     return NextResponse.json({ error: "invalid_progress" }, { status: 400 });
   }
   if (rawChapterState !== undefined && !chapterState) {
-    return NextResponse.json({ error: "invalid_chapter_state" }, { status: 400 });
+    return NextResponse.json(
+      { error: "invalid_chapter_state" },
+      { status: 400 },
+    );
   }
   if (!progress && !chapterState) {
     return NextResponse.json({ error: "empty_payload" }, { status: 400 });
@@ -161,7 +170,10 @@ export async function POST(request: NextRequest) {
     });
     if (error) {
       logEvent("reader.progress_save_error", { code: error.code });
-      return NextResponse.json({ error: "progress_write_failed" }, { status: 500 });
+      return NextResponse.json(
+        { error: "progress_write_failed" },
+        { status: 500 },
+      );
     }
   }
 
@@ -178,7 +190,10 @@ export async function POST(request: NextRequest) {
     });
     if (error) {
       logEvent("reader.chapter_progress_error", { code: error.code });
-      return NextResponse.json({ error: "chapter_state_write_failed" }, { status: 500 });
+      return NextResponse.json(
+        { error: "chapter_state_write_failed" },
+        { status: 500 },
+      );
     }
     if (chapterState.markCompleted) {
       logEvent("reader.chapter_completed", {

@@ -13,7 +13,10 @@ import {
   getSectionsAndChapters,
   getStoryForReader,
 } from "@/lib/reader/queries";
-import { resolveResumeAnchor, type ResumeFallbackMethod } from "@/lib/reader/resume-fallback";
+import {
+  resolveResumeAnchor,
+  type ResumeFallbackMethod,
+} from "@/lib/reader/resume-fallback";
 import type { Block } from "@/lib/reader/types";
 import { ReaderView } from "@/components/reader/reader-view";
 import { ReaderSkeleton } from "@/components/reader/reader-skeleton";
@@ -43,12 +46,16 @@ async function resolveResumeState(
   currentRevisionId: string,
   newBlocks: Block[],
 ): Promise<{ anchorId: string | null; method: ResumeFallbackMethod | null }> {
-  if (!progress || progress.chapter_id !== chapterId) return { anchorId: null, method: null };
+  if (!progress || progress.chapter_id !== chapterId)
+    return { anchorId: null, method: null };
   if (progress.chapter_revision_id === currentRevisionId) {
     return { anchorId: progress.paragraph_anchor_id, method: "exact" };
   }
 
-  const oldContent = await getChapterRevisionContent(supabase, progress.chapter_revision_id);
+  const oldContent = await getChapterRevisionContent(
+    supabase,
+    progress.chapter_revision_id,
+  );
   const resolved = resolveResumeAnchor(
     progress.paragraph_anchor_id,
     progress.paragraph_fingerprint,
@@ -67,12 +74,13 @@ type ReaderChapterPageProps = {
   params: Promise<{ storyId: string; chapterId: string }>;
 };
 
-export default function ReaderChapterPage({
-  params,
-}: ReaderChapterPageProps) {
+export default function ReaderChapterPage({ params }: ReaderChapterPageProps) {
   if (!isSupabaseConfigured) {
     return (
-      <p className="max-w-sm p-6 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+      <p
+        className="max-w-sm p-6 text-sm"
+        style={{ color: "var(--kd-text-muted)" }}
+      >
         Supabase chưa được cấu hình — điền `.env.local` rồi tải lại.
       </p>
     );
@@ -98,7 +106,10 @@ async function ReaderChapterContent({ params }: ReaderChapterPageProps) {
   const story = await getStoryForReader(supabase, userId, storyId);
   if (!story) notFound();
 
-  const { sections, chapters } = await getSectionsAndChapters(supabase, storyId);
+  const { sections, chapters } = await getSectionsAndChapters(
+    supabase,
+    storyId,
+  );
   const flat = buildFlatChapterList(sections, chapters);
   const index = flat.findIndex((entry) => entry.chapterId === chapterId);
   if (index === -1) notFound();

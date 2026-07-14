@@ -23,22 +23,29 @@ export async function getStoryForReader(
   return data;
 }
 
-export async function getSectionsAndChapters(supabase: SupabaseClient<Database>, storyId: string) {
-  const [{ data: sections, error: sectionsError }, { data: chapters, error: chaptersError }] =
-    await Promise.all([
-      supabase
-        .from("sections")
-        .select("id, parent_section_id, title, sort_order")
-        .eq("story_id", storyId)
-        .eq("is_active", true),
-      supabase
-        .from("chapters")
-        .select("id, section_id, title, sort_order, current_revision_id")
-        .eq("story_id", storyId)
-        .eq("is_active", true),
-    ]);
-  if (sectionsError) logEvent("reader.sections_query_error", { code: sectionsError.code });
-  if (chaptersError) logEvent("reader.chapters_query_error", { code: chaptersError.code });
+export async function getSectionsAndChapters(
+  supabase: SupabaseClient<Database>,
+  storyId: string,
+) {
+  const [
+    { data: sections, error: sectionsError },
+    { data: chapters, error: chaptersError },
+  ] = await Promise.all([
+    supabase
+      .from("sections")
+      .select("id, parent_section_id, title, sort_order")
+      .eq("story_id", storyId)
+      .eq("is_active", true),
+    supabase
+      .from("chapters")
+      .select("id, section_id, title, sort_order, current_revision_id")
+      .eq("story_id", storyId)
+      .eq("is_active", true),
+  ]);
+  if (sectionsError)
+    logEvent("reader.sections_query_error", { code: sectionsError.code });
+  if (chaptersError)
+    logEvent("reader.chapters_query_error", { code: chaptersError.code });
   return { sections: sections ?? [], chapters: chapters ?? [] };
 }
 
@@ -51,7 +58,8 @@ export async function getChapterRevisionContent(
     .select("id, content_blocks, content_hash")
     .eq("id", currentRevisionId)
     .maybeSingle();
-  if (error) logEvent("reader.chapter_revision_query_error", { code: error.code });
+  if (error)
+    logEvent("reader.chapter_revision_query_error", { code: error.code });
 
   if (!data) return null;
 
@@ -73,7 +81,9 @@ export async function getReadingProgress(
 ) {
   const { data, error } = await supabase
     .from("reading_progress")
-    .select("chapter_id, chapter_revision_id, paragraph_anchor_id, paragraph_fingerprint, paragraph_ordinal")
+    .select(
+      "chapter_id, chapter_revision_id, paragraph_anchor_id, paragraph_fingerprint, paragraph_ordinal",
+    )
     .eq("user_id", userId)
     .eq("story_id", storyId)
     .maybeSingle();
@@ -93,7 +103,10 @@ export async function getChapterReadStates(
     .eq("story_id", storyId);
   if (error) logEvent("reader.read_states_query_error", { code: error.code });
 
-  const map = new Map<string, { maxProgressPct: number; completedContentHash: string | null }>();
+  const map = new Map<
+    string,
+    { maxProgressPct: number; completedContentHash: string | null }
+  >();
   for (const row of data ?? []) {
     map.set(row.chapter_id, {
       maxProgressPct: row.max_progress_pct,

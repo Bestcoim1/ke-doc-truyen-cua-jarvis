@@ -4,9 +4,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, ChevronRight, ChevronDown } from "lucide-react";
 
-import { buildTocTree, type ChapterRow, type SectionRow, type TocNode } from "@/lib/reader/tree";
+import {
+  buildTocTree,
+  type ChapterRow,
+  type SectionRow,
+  type TocNode,
+} from "@/lib/reader/tree";
 
-type ReadState = { maxProgressPct: number; completedContentHash: string | null };
+type ReadState = {
+  maxProgressPct: number;
+  completedContentHash: string | null;
+};
 
 function SectionBranch({
   node,
@@ -23,23 +31,42 @@ function SectionBranch({
   filter: string;
   onNavigate: (chapterId: string) => void;
 }) {
-  const containsCurrent = useMemo(() => nodeContainsChapter(node, currentChapterId), [node, currentChapterId]);
-  const [manuallyExpanded, setManuallyExpanded] = useState<boolean | null>(null);
+  const containsCurrent = useMemo(
+    () => nodeContainsChapter(node, currentChapterId),
+    [node, currentChapterId],
+  );
+  const [manuallyExpanded, setManuallyExpanded] = useState<boolean | null>(
+    null,
+  );
   // The branch holding the current chapter is always shown expanded; once
   // the reader explicitly toggles a branch we respect that choice instead
   // (derived-during-render, not synced via a setState-in-effect).
   const expanded = manuallyExpanded ?? containsCurrent;
 
   if (node.kind === "chapter") {
-    if (filter && !node.title.toLowerCase().includes(filter.toLowerCase())) return null;
+    if (filter && !node.title.toLowerCase().includes(filter.toLowerCase()))
+      return null;
     const isCurrent = node.id === currentChapterId;
     const state = readStates[node.id];
-    const label = isCurrent ? "Đang đọc" : state?.completedContentHash ? "Đã đọc" : state ? "Đang đọc" : "Chưa đọc";
+    const label = isCurrent
+      ? "Đang đọc"
+      : state?.completedContentHash
+        ? "Đã đọc"
+        : state
+          ? "Đang đọc"
+          : "Chưa đọc";
 
     return (
       <button
         className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm"
-        style={isCurrent ? { background: "var(--kd-accent)", color: "var(--kd-accent-foreground)" } : undefined}
+        style={
+          isCurrent
+            ? {
+                background: "var(--kd-accent)",
+                color: "var(--kd-accent-foreground)",
+              }
+            : undefined
+        }
         aria-current={isCurrent ? "true" : undefined}
         onClick={() => onNavigate(node.id)}
       >
@@ -102,7 +129,10 @@ export function TocPanel({
   onClose: () => void;
 }) {
   const [filter, setFilter] = useState("");
-  const tree = useMemo(() => buildTocTree(sections, chapters), [sections, chapters]);
+  const tree = useMemo(
+    () => buildTocTree(sections, chapters),
+    [sections, chapters],
+  );
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -128,7 +158,10 @@ export function TocPanel({
           className="fixed right-0 top-0 bottom-0 z-30 flex w-[85%] max-w-sm flex-col shadow-xl outline-none"
           style={{ background: "var(--kd-surface)", color: "var(--kd-text)" }}
         >
-          <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--kd-border)" }}>
+          <div
+            className="flex items-center justify-between border-b px-4 py-3"
+            style={{ borderColor: "var(--kd-border)" }}
+          >
             <Dialog.Title asChild>
               <span className="text-base font-bold">Mục lục</span>
             </Dialog.Title>
@@ -149,13 +182,18 @@ export function TocPanel({
                 placeholder="Tìm chương..."
                 aria-label="Tìm chương"
                 className="w-full rounded-lg border px-3 py-2 text-sm"
-                style={{ borderColor: "var(--kd-border)", background: "var(--kd-bg)" }}
+                style={{
+                  borderColor: "var(--kd-border)",
+                  background: "var(--kd-bg)",
+                }}
               />
             </div>
           )}
           <div
             className="flex-1 overflow-y-auto p-2"
-            style={{ paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))" }}
+            style={{
+              paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))",
+            }}
           >
             {tree.map((node) => (
               <SectionBranch

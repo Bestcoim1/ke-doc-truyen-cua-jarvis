@@ -21,11 +21,7 @@ const notoSerif = Noto_Serif({
  * Reader's h-[100dvh] overflowed the page by the header's height, pushing
  * the prev/next footer below the fold and creating a nested-scroll trap.
  */
-export default function KdLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function KdLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`kd-shell ${beVietnamPro.variable} ${notoSerif.variable}`}

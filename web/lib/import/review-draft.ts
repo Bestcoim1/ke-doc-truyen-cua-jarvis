@@ -86,7 +86,10 @@ export function recalculateReviewStats(draft: ReviewDraft): ReviewDraft {
     stats: {
       sectionCount: countSections(draft.sections),
       chapterCount: chapters.length,
-      wordCount: chapters.reduce((total, chapter) => total + chapter.wordCount, 0),
+      wordCount: chapters.reduce(
+        (total, chapter) => total + chapter.wordCount,
+        0,
+      ),
       characterCount: chapters.reduce(
         (total, chapter) => total + chapter.contentText.length,
         0,
@@ -133,7 +136,10 @@ export function renameChapter(
   };
 }
 
-export function deleteChapter(draft: ReviewDraft, chapterId: string): ReviewDraft {
+export function deleteChapter(
+  draft: ReviewDraft,
+  chapterId: string,
+): ReviewDraft {
   return recalculateReviewStats({
     ...draft,
     sections: mapSections(draft.sections, (section) => ({
@@ -148,7 +154,9 @@ function findChapter(
   chapterId: string,
 ): ReviewChapter | undefined {
   for (const section of sections) {
-    const chapter = section.chapters.find((candidate) => candidate.id === chapterId);
+    const chapter = section.chapters.find(
+      (candidate) => candidate.id === chapterId,
+    );
     if (chapter) return chapter;
     const childChapter = findChapter(section.children, chapterId);
     if (childChapter) return childChapter;
@@ -166,7 +174,9 @@ export function moveChapter(
 
   const withoutChapter = mapSections(draft.sections, (section) => ({
     ...section,
-    chapters: section.chapters.filter((candidate) => candidate.id !== chapterId),
+    chapters: section.chapters.filter(
+      (candidate) => candidate.id !== chapterId,
+    ),
   }));
   let foundTarget = false;
   const sections = mapSections(withoutChapter, (section) => {
@@ -202,7 +212,9 @@ export function mergeChapterWithPrevious(
   chapterId: string,
 ): ReviewDraft {
   const chapters = flattenReviewChapters(draft.sections);
-  const chapterIndex = chapters.findIndex((entry) => entry.chapter.id === chapterId);
+  const chapterIndex = chapters.findIndex(
+    (entry) => entry.chapter.id === chapterId,
+  );
   if (chapterIndex <= 0) return draft;
 
   const previous = chapters[chapterIndex - 1].chapter;
@@ -305,7 +317,10 @@ export function splitChapter(
   let firstText: string;
   let secondText: string;
   try {
-    [firstText, secondText] = splitChapterContent(chapter.contentText, blockIndex);
+    [firstText, secondText] = splitChapterContent(
+      chapter.contentText,
+      blockIndex,
+    );
   } catch {
     return draft;
   }
@@ -337,7 +352,12 @@ export function splitChapter(
 /** Content-mutating edits since the last save/commit — see draft-validation.ts's applyReviewSubmission. */
 export type ContentOp =
   | { type: "merge"; keepChapterId: string; mergedChapterId: string }
-  | { type: "split"; chapterId: string; blockIndex: number; newChapterId: string };
+  | {
+      type: "split";
+      chapterId: string;
+      blockIndex: number;
+      newChapterId: string;
+    };
 
 export type StructureChapter = {
   id: string;

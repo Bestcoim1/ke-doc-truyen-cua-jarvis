@@ -152,6 +152,7 @@ thoại, không chỉ `npm run dev` trên máy.
    **Không** đặt `SUPABASE_SERVICE_ROLE_KEY` trên Vercel — key này chỉ dùng
    cho `scripts/seed-fixtures.mts` chạy cục bộ, ứng dụng deploy không cần và
    không nên có quyền service-role.
+
 4. **Supabase Auth > URL Configuration**: thêm redirect URL production —
    `https://<domain-that-vercel-gives-you>/auth/confirm` (route xác nhận
    email/PKCE thật sự dùng, không phải `/auth/callback`). Thiếu bước này thì
@@ -170,6 +171,7 @@ thoại, không chỉ `npm run dev` trên máy.
    render bình thường nhưng **không nút nào phản hồi** — không lỗi, không
    redirect, không submit được form. Xem comment trong `next.config.ts` để
    biết chi tiết.
+
 6. **Xác minh sau deploy** — đối chiếu với DoD ở §18 spec:
    - Đăng nhập được, Library trống/riêng tư đúng tài khoản.
    - Import một bản thảo thật (paste hoặc DOCX) → review → mở Reader trong

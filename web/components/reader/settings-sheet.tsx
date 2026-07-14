@@ -3,7 +3,11 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
-import { FONT_SIZE_STEPS, LINE_HEIGHT_STEPS, type ReadingSettings } from "@/lib/reader/types";
+import {
+  FONT_SIZE_STEPS,
+  LINE_HEIGHT_STEPS,
+  type ReadingSettings,
+} from "@/lib/reader/types";
 
 export function SettingsSheet({
   settings,
@@ -42,10 +46,17 @@ export function SettingsSheet({
           </div>
 
           <div className="mb-4">
-            <div className="mb-2 text-xs font-bold uppercase" style={{ color: "var(--kd-text-muted)" }}>
+            <div
+              className="mb-2 text-xs font-bold uppercase"
+              style={{ color: "var(--kd-text-muted)" }}
+            >
               Cỡ chữ
             </div>
-            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Cỡ chữ">
+            <div
+              className="flex flex-wrap gap-2"
+              role="radiogroup"
+              aria-label="Cỡ chữ"
+            >
               {FONT_SIZE_STEPS.map((size, step) => (
                 <button
                   key={size}
@@ -54,7 +65,10 @@ export function SettingsSheet({
                   className="inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold"
                   style={
                     settings.fontSizeStep === step
-                      ? { background: "var(--kd-accent)", color: "var(--kd-accent-foreground)" }
+                      ? {
+                          background: "var(--kd-accent)",
+                          color: "var(--kd-accent-foreground)",
+                        }
                       : { background: "var(--kd-bg)" }
                   }
                   onClick={() => onUpdate({ fontSizeStep: step })}
@@ -66,10 +80,17 @@ export function SettingsSheet({
           </div>
 
           <div className="mb-4">
-            <div className="mb-2 text-xs font-bold uppercase" style={{ color: "var(--kd-text-muted)" }}>
+            <div
+              className="mb-2 text-xs font-bold uppercase"
+              style={{ color: "var(--kd-text-muted)" }}
+            >
               Khoảng cách dòng
             </div>
-            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Khoảng cách dòng">
+            <div
+              className="flex flex-wrap gap-2"
+              role="radiogroup"
+              aria-label="Khoảng cách dòng"
+            >
               {LINE_HEIGHT_STEPS.map((lh) => (
                 <button
                   key={lh}
@@ -78,7 +99,10 @@ export function SettingsSheet({
                   className="inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold"
                   style={
                     settings.lineHeight === lh
-                      ? { background: "var(--kd-accent)", color: "var(--kd-accent-foreground)" }
+                      ? {
+                          background: "var(--kd-accent)",
+                          color: "var(--kd-accent-foreground)",
+                        }
                       : { background: "var(--kd-bg)" }
                   }
                   onClick={() => onUpdate({ lineHeight: lh })}
@@ -90,10 +114,17 @@ export function SettingsSheet({
           </div>
 
           <div>
-            <div className="mb-2 text-xs font-bold uppercase" style={{ color: "var(--kd-text-muted)" }}>
+            <div
+              className="mb-2 text-xs font-bold uppercase"
+              style={{ color: "var(--kd-text-muted)" }}
+            >
               Giao diện
             </div>
-            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Giao diện">
+            <div
+              className="flex flex-wrap gap-2"
+              role="radiogroup"
+              aria-label="Giao diện"
+            >
               {(
                 [
                   ["light", "Sáng"],
@@ -108,7 +139,10 @@ export function SettingsSheet({
                   className="inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold"
                   style={
                     settings.theme === key
-                      ? { background: "var(--kd-accent)", color: "var(--kd-accent-foreground)" }
+                      ? {
+                          background: "var(--kd-accent)",
+                          color: "var(--kd-accent-foreground)",
+                        }
                       : { background: "var(--kd-bg)" }
                   }
                   onClick={() => onUpdate({ theme: key })}

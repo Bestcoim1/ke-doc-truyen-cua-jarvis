@@ -19,7 +19,10 @@ export async function AuthButton() {
     // a phone-width header, and being logged in is already obvious from
     // seeing the Library.
     <div className="flex min-w-0 items-center gap-2">
-      <span className="hidden truncate text-sm sm:inline" style={{ color: "var(--kd-text-muted)" }}>
+      <span
+        className="hidden truncate text-sm sm:inline"
+        style={{ color: "var(--kd-text-muted)" }}
+      >
         Xin chào, {user.email}!
       </span>
       <LogoutButton />

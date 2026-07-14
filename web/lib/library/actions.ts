@@ -10,7 +10,8 @@ import {
   type WritingStatus,
 } from "@/lib/writing-status";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
 type ActionState = {
   error: string | null;
@@ -20,12 +21,14 @@ type ActionState = {
 const EMPTY_STATE: ActionState = { error: null, message: null };
 const WRITING_STATUS_SET = new Set<string>(WRITING_STATUS_VALUES);
 
-function isMissingWritingStatusError(error: { code?: string; message?: string } | null) {
+function isMissingWritingStatusError(
+  error: { code?: string; message?: string } | null,
+) {
   return Boolean(
     error &&
-      (error.code === "42703" ||
-        error.code === "PGRST204" ||
-        error.message?.includes("writing_status")),
+    (error.code === "42703" ||
+      error.code === "PGRST204" ||
+      error.message?.includes("writing_status")),
   );
 }
 
@@ -61,8 +64,13 @@ export async function deleteStory(
     .eq("owner_id", userId);
 
   if (error || !count) {
-    logEvent("library.delete_story_error", { code: error?.code ?? "not_found" });
-    return { error: "Không thể xoá tác phẩm này. Vui lòng thử lại.", message: null };
+    logEvent("library.delete_story_error", {
+      code: error?.code ?? "not_found",
+    });
+    return {
+      error: "Không thể xoá tác phẩm này. Vui lòng thử lại.",
+      message: null,
+    };
   }
 
   logEvent("library.story_deleted", { storyId });
@@ -95,7 +103,10 @@ async function setStoryStatus(
 
   if (error || !count) {
     logEvent(`${eventName}_error`, { code: error?.code ?? "not_found" });
-    return { error: "Không thể cập nhật tác phẩm này. Vui lòng thử lại.", message: null };
+    return {
+      error: "Không thể cập nhật tác phẩm này. Vui lòng thử lại.",
+      message: null,
+    };
   }
 
   logEvent(eventName, { storyId });
@@ -148,18 +159,29 @@ export async function updateStoryWritingStatus(
 
   if (error || !count) {
     if (isMissingWritingStatusError(error)) {
-      logEvent("library.writing_status_missing_on_update", { code: error?.code ?? "missing_column" });
+      logEvent("library.writing_status_missing_on_update", {
+        code: error?.code ?? "missing_column",
+      });
       return {
-        error: "Chưa thể lưu tiến trình sáng tác vì database hosted chưa có migration mới.",
+        error:
+          "Chưa thể lưu tiến trình sáng tác vì database hosted chưa có migration mới.",
         message: null,
       };
     }
 
-    logEvent("library.writing_status_update_error", { code: error?.code ?? "not_found" });
-    return { error: "Không thể cập nhật tiến trình sáng tác. Vui lòng thử lại.", message: null };
+    logEvent("library.writing_status_update_error", {
+      code: error?.code ?? "not_found",
+    });
+    return {
+      error: "Không thể cập nhật tiến trình sáng tác. Vui lòng thử lại.",
+      message: null,
+    };
   }
 
-  logEvent("library.writing_status_updated", { storyId, writingStatus: nextStatus });
+  logEvent("library.writing_status_updated", {
+    storyId,
+    writingStatus: nextStatus,
+  });
   revalidatePath("/library");
   revalidatePath("/search");
   return { error: null, message: "Đã cập nhật tiến trình sáng tác." };

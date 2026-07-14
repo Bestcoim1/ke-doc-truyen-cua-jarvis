@@ -12,7 +12,12 @@ export type ImportJobSummary = {
   updated_at: string;
 };
 
-export const CANCELLABLE_STATUSES = ["uploaded", "parsing", "needs_review", "failed"] as const;
+export const CANCELLABLE_STATUSES = [
+  "uploaded",
+  "parsing",
+  "needs_review",
+  "failed",
+] as const;
 
 export function isCancellableStatus(status: string): boolean {
   return (CANCELLABLE_STATUSES as readonly string[]).includes(status);
@@ -24,7 +29,9 @@ export async function listImportJobs(
 ): Promise<ImportJobSummary[]> {
   const { data } = await supabase
     .from("import_jobs")
-    .select("id, source_type, source_filename, status, story_id, created_at, updated_at")
+    .select(
+      "id, source_type, source_filename, status, story_id, created_at, updated_at",
+    )
     .eq("owner_id", ownerId)
     .neq("status", "cancelled")
     .order("created_at", { ascending: false })

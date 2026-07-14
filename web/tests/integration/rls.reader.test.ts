@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { createTestClient, USER_A_EMAIL, USER_A_PASSWORD, USER_B_EMAIL, USER_B_PASSWORD } from "./env";
+import {
+  createTestClient,
+  USER_A_EMAIL,
+  USER_A_PASSWORD,
+  USER_B_EMAIL,
+  USER_B_PASSWORD,
+} from "./env";
 
 // Slice 1's version of the AC-AUTH-01 exit gate, covering the tables added
 // for the Reader.
@@ -9,10 +15,11 @@ describe("reader domain RLS", () => {
     const clientA = createTestClient();
     const clientB = createTestClient();
 
-    const { data: signInA, error: signInAError } = await clientA.auth.signInWithPassword({
-      email: USER_A_EMAIL,
-      password: USER_A_PASSWORD,
-    });
+    const { data: signInA, error: signInAError } =
+      await clientA.auth.signInWithPassword({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+      });
     expect(signInAError).toBeNull();
     const userAId = signInA.user!.id;
 
@@ -110,10 +117,11 @@ describe("reader domain RLS", () => {
 
   it("rejects current_revision_id pointing at another chapter's revision", async () => {
     const client = createTestClient();
-    const { data: signIn, error: signInError } = await client.auth.signInWithPassword({
-      email: USER_A_EMAIL,
-      password: USER_A_PASSWORD,
-    });
+    const { data: signIn, error: signInError } =
+      await client.auth.signInWithPassword({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+      });
     expect(signInError).toBeNull();
     const ownerId = signIn.user!.id;
 

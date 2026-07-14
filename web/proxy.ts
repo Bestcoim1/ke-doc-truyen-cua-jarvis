@@ -18,7 +18,9 @@ export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isProd = process.env.NODE_ENV === "production";
   const devScriptDirectives = isProd ? "" : " 'unsafe-eval'";
-  const devConnectDirectives = isProd ? "" : " ws://localhost:* http://localhost:*";
+  const devConnectDirectives = isProd
+    ? ""
+    : " ws://localhost:* http://localhost:*";
 
   const csp = [
     `default-src 'self'`,

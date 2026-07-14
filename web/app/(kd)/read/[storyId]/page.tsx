@@ -15,12 +15,13 @@ type ReaderResumePageProps = {
   params: Promise<{ storyId: string }>;
 };
 
-export default function ReaderResumePage({
-  params,
-}: ReaderResumePageProps) {
+export default function ReaderResumePage({ params }: ReaderResumePageProps) {
   if (!isSupabaseConfigured) {
     return (
-      <p className="max-w-sm p-6 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+      <p
+        className="max-w-sm p-6 text-sm"
+        style={{ color: "var(--kd-text-muted)" }}
+      >
         Supabase chưa được cấu hình — điền `.env.local` rồi tải lại.
       </p>
     );
@@ -51,7 +52,10 @@ async function ReaderResumeContent({ params }: ReaderResumePageProps) {
     redirect(`/read/${storyId}/${progress.chapter_id}`);
   }
 
-  const { sections, chapters } = await getSectionsAndChapters(supabase, storyId);
+  const { sections, chapters } = await getSectionsAndChapters(
+    supabase,
+    storyId,
+  );
   const flat = buildFlatChapterList(sections, chapters);
   if (flat.length === 0) notFound();
 

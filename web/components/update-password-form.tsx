@@ -46,9 +46,7 @@ export function UpdatePasswordForm({
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Đặt lại mật khẩu</CardTitle>
-          <CardDescription>
-            Nhập mật khẩu mới của bạn bên dưới.
-          </CardDescription>
+          <CardDescription>Nhập mật khẩu mới của bạn bên dưới.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleForgotPassword}>

@@ -56,7 +56,10 @@ export function ImportNewForm() {
           className="min-h-[50dvh] w-full resize-y rounded-xl border bg-transparent px-4 py-3 font-serif text-base leading-7 shadow-sm outline-none placeholder:font-sans placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring sm:min-h-[28rem]"
           placeholder={`Hồi 1: Khởi đầu\n\nChương 1: Cuộc gặp gỡ\n\nNội dung chương...`}
         />
-        <p className="text-xs leading-5" style={{ color: "var(--kd-text-muted)" }}>
+        <p
+          className="text-xs leading-5"
+          style={{ color: "var(--kd-text-muted)" }}
+        >
           Hỗ trợ Chương, Chapter, Ngoại truyện, Hồi, Phần, Quyển, Arc, Part và
           Volume. Bạn sẽ được sửa lại cấu trúc trước khi lưu.
         </p>
@@ -72,7 +75,12 @@ export function ImportNewForm() {
       ) : null}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button asChild type="button" variant="outline" className="w-full sm:w-auto">
+        <Button
+          asChild
+          type="button"
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
           <Link href="/library">Hủy</Link>
         </Button>
         <Button type="submit" disabled={isPending} className="w-full sm:w-auto">

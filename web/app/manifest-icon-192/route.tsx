@@ -12,5 +12,8 @@ import { AppIconArt } from "@/lib/app-icon";
 export const dynamic = "force-static";
 
 export async function GET() {
-  return new ImageResponse(<AppIconArt size={192} />, { width: 192, height: 192 });
+  return new ImageResponse(<AppIconArt size={192} />, {
+    width: 192,
+    height: 192,
+  });
 }

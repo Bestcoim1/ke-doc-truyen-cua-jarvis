@@ -11,8 +11,17 @@ import { createFileReimportJob } from "@/lib/import/reimport-actions";
 const INITIAL_STATE = { error: null, message: null };
 const MAX_UPLOAD_MB = 15;
 
-export function ImportReimportFileForm({ storyId, storyTitle }: { storyId: string; storyTitle: string }) {
-  const [state, formAction, isPending] = useActionState(createFileReimportJob, INITIAL_STATE);
+export function ImportReimportFileForm({
+  storyId,
+  storyTitle,
+}: {
+  storyId: string;
+  storyTitle: string;
+}) {
+  const [state, formAction, isPending] = useActionState(
+    createFileReimportJob,
+    INITIAL_STATE,
+  );
   const [fileName, setFileName] = useState<string | null>(null);
 
   return (
@@ -21,7 +30,9 @@ export function ImportReimportFileForm({ storyId, storyTitle }: { storyId: strin
 
       <div className="grid gap-2">
         <div className="flex items-end justify-between gap-3">
-          <Label htmlFor="file">Bản thảo mới cho &ldquo;{storyTitle}&rdquo;</Label>
+          <Label htmlFor="file">
+            Bản thảo mới cho &ldquo;{storyTitle}&rdquo;
+          </Label>
           <span className="text-xs" style={{ color: "var(--kd-text-muted)" }}>
             .txt hoặc .docx · tối đa {MAX_UPLOAD_MB}MB
           </span>
@@ -33,17 +44,23 @@ export function ImportReimportFileForm({ storyId, storyTitle }: { storyId: strin
           accept=".txt,.docx"
           required
           autoFocus
-          onChange={(event) => setFileName(event.target.files?.[0]?.name ?? null)}
+          onChange={(event) =>
+            setFileName(event.target.files?.[0]?.name ?? null)
+          }
         />
         {fileName ? (
           <p className="text-xs" style={{ color: "var(--kd-text-muted)" }}>
             Đã chọn: {fileName}
           </p>
         ) : null}
-        <p className="text-xs leading-5" style={{ color: "var(--kd-text-muted)" }}>
-          File .txt phải là UTF-8. File .docx dùng style Heading 1/Heading 2 trong Word sẽ được
-          nhận làm Hồi/Chương chính xác hơn — kể cả khi paste text không nhận ra được, vì thao
-          tác paste không giữ lại style của Word.
+        <p
+          className="text-xs leading-5"
+          style={{ color: "var(--kd-text-muted)" }}
+        >
+          File .txt phải là UTF-8. File .docx dùng style Heading 1/Heading 2
+          trong Word sẽ được nhận làm Hồi/Chương chính xác hơn — kể cả khi paste
+          text không nhận ra được, vì thao tác paste không giữ lại style của
+          Word.
         </p>
       </div>
 
@@ -57,7 +74,12 @@ export function ImportReimportFileForm({ storyId, storyTitle }: { storyId: strin
       ) : null}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button asChild type="button" variant="outline" className="w-full sm:w-auto">
+        <Button
+          asChild
+          type="button"
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
           <Link href="/library">Hủy</Link>
         </Button>
         <Button type="submit" disabled={isPending} className="w-full sm:w-auto">

@@ -26,7 +26,9 @@ test.describe("authenticated read journey", () => {
     await expect(page).toHaveURL(/\/library/);
   });
 
-  test("opens a story, advances a chapter, and resumes after reload", async ({ page }) => {
+  test("opens a story, advances a chapter, and resumes after reload", async ({
+    page,
+  }) => {
     // The library lists each story as a link into the reader.
     const storyLink = page.locator('a[href^="/read/"]').first();
     await expect(storyLink).toBeVisible();
@@ -34,7 +36,9 @@ test.describe("authenticated read journey", () => {
 
     // Landing on a story resolves to a concrete chapter URL.
     await expect(page).toHaveURL(/\/read\/[0-9a-f-]+\/[0-9a-f-]+/);
-    await expect(page.getByRole("button", { name: "Về thư viện" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Về thư viện" }),
+    ).toBeVisible();
 
     const firstChapterUrl = page.url();
 
@@ -49,7 +53,9 @@ test.describe("authenticated read journey", () => {
     // bouncing back to the library or the first chapter.
     await page.reload();
     await expect(page).toHaveURL(secondChapterUrl);
-    await expect(page.getByRole("button", { name: "Về thư viện" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Về thư viện" }),
+    ).toBeVisible();
   });
 
   test("the table of contents opens and closes", async ({ page }) => {

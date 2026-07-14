@@ -11,9 +11,7 @@ async function ErrorContent({
   return (
     <>
       {params?.error ? (
-        <p className="text-sm text-muted-foreground">
-          Mã lỗi: {params.error}
-        </p>
+        <p className="text-sm text-muted-foreground">Mã lỗi: {params.error}</p>
       ) : (
         <p className="text-sm text-muted-foreground">
           Đã xảy ra lỗi không xác định.

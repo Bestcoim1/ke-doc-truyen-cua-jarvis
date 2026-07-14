@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { createTestClient, USER_A_EMAIL, USER_A_PASSWORD, USER_B_EMAIL, USER_B_PASSWORD } from "./env";
+import {
+  createTestClient,
+  USER_A_EMAIL,
+  USER_A_PASSWORD,
+  USER_B_EMAIL,
+  USER_B_PASSWORD,
+} from "./env";
 
 // Automated form of the Slice 0 exit gate: "User A không thể đọc dữ liệu
 // User B".

@@ -13,4 +13,3 @@ export function safeNextPath(value: string | null | undefined): string {
     return "/library";
   }
 }
-

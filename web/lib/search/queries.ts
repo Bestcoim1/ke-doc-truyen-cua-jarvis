@@ -2,8 +2,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/database.types";
 import { logEvent } from "@/lib/telemetry";
-import { type ChapterRow, type SectionRow, buildFlatChapterList } from "@/lib/reader/tree";
-import { DEFAULT_WRITING_STATUS, type WritingStatus } from "@/lib/writing-status";
+import {
+  type ChapterRow,
+  type SectionRow,
+  buildFlatChapterList,
+} from "@/lib/reader/tree";
+import {
+  DEFAULT_WRITING_STATUS,
+  type WritingStatus,
+} from "@/lib/writing-status";
 
 type SearchStoryRow = {
   id: string;
@@ -12,7 +19,10 @@ type SearchStoryRow = {
   updated_at: string;
   writing_status?: WritingStatus | null;
 };
-type SearchSectionRow = SectionRow & { story_id: string; type: Database["public"]["Enums"]["section_type"] };
+type SearchSectionRow = SectionRow & {
+  story_id: string;
+  type: Database["public"]["Enums"]["section_type"];
+};
 type SearchChapterRow = ChapterRow & { story_id: string };
 
 export type SearchResult =
@@ -65,12 +75,14 @@ function sectionTypeLabel(type: SearchSectionRow["type"]) {
   return "Phần";
 }
 
-function isMissingWritingStatusError(error: { code?: string; message?: string } | null) {
+function isMissingWritingStatusError(
+  error: { code?: string; message?: string } | null,
+) {
   return Boolean(
     error &&
-      (error.code === "42703" ||
-        error.code === "PGRST204" ||
-        error.message?.includes("writing_status")),
+    (error.code === "42703" ||
+      error.code === "PGRST204" ||
+      error.message?.includes("writing_status")),
   );
 }
 
@@ -91,11 +103,15 @@ async function getSearchStoryRows(
   }
 
   if (!isMissingWritingStatusError(withWritingStatus.error)) {
-    logEvent("search.stories_query_error", { code: withWritingStatus.error.code });
+    logEvent("search.stories_query_error", {
+      code: withWritingStatus.error.code,
+    });
     return { stories: null, error: withWritingStatus.error.code };
   }
 
-  logEvent("search.writing_status_missing_fallback", { code: withWritingStatus.error.code });
+  logEvent("search.writing_status_missing_fallback", {
+    code: withWritingStatus.error.code,
+  });
   const withoutWritingStatus = await supabase
     .from("stories")
     .select("id, title, last_read_at, updated_at")
@@ -105,7 +121,9 @@ async function getSearchStoryRows(
     .order("updated_at", { ascending: false });
 
   if (withoutWritingStatus.error) {
-    logEvent("search.stories_query_error", { code: withoutWritingStatus.error.code });
+    logEvent("search.stories_query_error", {
+      code: withoutWritingStatus.error.code,
+    });
     return { stories: null, error: withoutWritingStatus.error.code };
   }
 
@@ -128,7 +146,11 @@ function firstChapterInSection(
   while (changed) {
     changed = false;
     for (const section of sections) {
-      if (section.parent_section_id && descendantIds.has(section.parent_section_id) && !descendantIds.has(section.id)) {
+      if (
+        section.parent_section_id &&
+        descendantIds.has(section.parent_section_id) &&
+        !descendantIds.has(section.id)
+      ) {
         descendantIds.add(section.id);
         changed = true;
       }
@@ -136,7 +158,9 @@ function firstChapterInSection(
   }
 
   return chapters
-    .filter((chapter) => chapter.section_id && descendantIds.has(chapter.section_id))
+    .filter(
+      (chapter) => chapter.section_id && descendantIds.has(chapter.section_id),
+    )
     .sort((a, b) => a.sort_order - b.sort_order)[0];
 }
 
@@ -147,7 +171,10 @@ export async function searchLibrary(
 ): Promise<LibrarySearchData> {
   const query = rawQuery.trim();
 
-  const { stories, error: storiesError } = await getSearchStoryRows(supabase, ownerId);
+  const { stories, error: storiesError } = await getSearchStoryRows(
+    supabase,
+    ownerId,
+  );
 
   if (storiesError) {
     return { query, suggestions: [], results: [], error: storiesError };
@@ -158,22 +185,26 @@ export async function searchLibrary(
   }
 
   const storyIds = stories.map((story) => story.id);
-  const [{ data: sections, error: sectionsError }, { data: chapters, error: chaptersError }] =
-    await Promise.all([
-      supabase
-        .from("sections")
-        .select("id, story_id, parent_section_id, title, type, sort_order")
-        .in("story_id", storyIds)
-        .eq("is_active", true),
-      supabase
-        .from("chapters")
-        .select("id, story_id, section_id, title, sort_order")
-        .in("story_id", storyIds)
-        .eq("is_active", true),
-    ]);
+  const [
+    { data: sections, error: sectionsError },
+    { data: chapters, error: chaptersError },
+  ] = await Promise.all([
+    supabase
+      .from("sections")
+      .select("id, story_id, parent_section_id, title, type, sort_order")
+      .in("story_id", storyIds)
+      .eq("is_active", true),
+    supabase
+      .from("chapters")
+      .select("id, story_id, section_id, title, sort_order")
+      .in("story_id", storyIds)
+      .eq("is_active", true),
+  ]);
 
-  if (sectionsError) logEvent("search.sections_query_error", { code: sectionsError.code });
-  if (chaptersError) logEvent("search.chapters_query_error", { code: chaptersError.code });
+  if (sectionsError)
+    logEvent("search.sections_query_error", { code: sectionsError.code });
+  if (chaptersError)
+    logEvent("search.chapters_query_error", { code: chaptersError.code });
 
   const sectionRows = (sections ?? []) as SearchSectionRow[];
   const chapterRows = (chapters ?? []) as SearchChapterRow[];
@@ -193,14 +224,16 @@ export async function searchLibrary(
   }
 
   const results: SearchResult[] = [];
-  const suggestionResults: SearchResult[] = stories.slice(0, 6).map((story) => ({
-    kind: "story",
-    id: story.id,
-    title: story.title,
-    href: `/read/${story.id}`,
-    subtitle: "Tác phẩm gần đây trong thư viện",
-    writingStatus: story.writing_status ?? DEFAULT_WRITING_STATUS,
-  }));
+  const suggestionResults: SearchResult[] = stories
+    .slice(0, 6)
+    .map((story) => ({
+      kind: "story",
+      id: story.id,
+      title: story.title,
+      href: `/read/${story.id}`,
+      subtitle: "Tác phẩm gần đây trong thư viện",
+      writingStatus: story.writing_status ?? DEFAULT_WRITING_STATUS,
+    }));
 
   if (!query) {
     return { query, suggestions: suggestionResults, results: [], error: null };
@@ -233,7 +266,9 @@ export async function searchLibrary(
       kind: "section",
       id: section.id,
       title: section.title,
-      href: firstChapter ? `/read/${section.story_id}/${firstChapter.id}` : `/read/${section.story_id}`,
+      href: firstChapter
+        ? `/read/${section.story_id}/${firstChapter.id}`
+        : `/read/${section.story_id}`,
       subtitle: `${sectionTypeLabel(section.type)} trong ${story.title}`,
       sectionType: section.type,
     });

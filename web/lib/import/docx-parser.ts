@@ -38,7 +38,9 @@ function findFirst(nodes: XmlNode[], tag: string): XmlNode | undefined {
 function assertSafeEntryNames(zip: JSZip): void {
   const names = Object.keys(zip.files);
   if (names.length > MAX_ZIP_ENTRIES) {
-    throw new Error("File DOCX có quá nhiều thành phần bên trong — có thể không hợp lệ.");
+    throw new Error(
+      "File DOCX có quá nhiều thành phần bên trong — có thể không hợp lệ.",
+    );
   }
   for (const name of names) {
     if (
@@ -60,7 +62,11 @@ function assertSafeEntryNames(zip: JSZip): void {
  * call would materialize the full decompressed content before we could
  * ever check its length.
  */
-async function readZipEntry(zip: JSZip, path: string, maxBytes: number): Promise<string> {
+async function readZipEntry(
+  zip: JSZip,
+  path: string,
+  maxBytes: number,
+): Promise<string> {
   const entry = zip.file(path);
   if (!entry) throw new Error(`File DOCX thiếu thành phần bắt buộc: ${path}.`);
 
@@ -72,7 +78,8 @@ async function readZipEntry(zip: JSZip, path: string, maxBytes: number): Promise
       total += chunk.length;
       if (total > maxBytes) {
         stream.removeAllListeners();
-        if ("destroy" in stream && typeof stream.destroy === "function") stream.destroy();
+        if ("destroy" in stream && typeof stream.destroy === "function")
+          stream.destroy();
         reject(new Error("Nội dung file DOCX vượt quá giới hạn cho phép."));
         return;
       }
@@ -96,7 +103,11 @@ function extractParagraphText(node: XmlNode): string {
 
     if (key === "w:t") {
       for (const child of Array.isArray(value) ? value : []) {
-        if (child && typeof child === "object" && "#text" in (child as Record<string, unknown>)) {
+        if (
+          child &&
+          typeof child === "object" &&
+          "#text" in (child as Record<string, unknown>)
+        ) {
           text += String((child as Record<string, unknown>)["#text"]);
         }
       }
@@ -112,14 +123,17 @@ function extractParagraphText(node: XmlNode): string {
     }
     if (Array.isArray(value)) {
       for (const child of value) {
-        if (child && typeof child === "object") text += extractParagraphText(child as XmlNode);
+        if (child && typeof child === "object")
+          text += extractParagraphText(child as XmlNode);
       }
     }
   }
   return text;
 }
 
-function extractParagraphs(bodyChildren: XmlNode[]): { text: string; headingHint?: 1 | 2 }[] {
+function extractParagraphs(
+  bodyChildren: XmlNode[],
+): { text: string; headingHint?: 1 | 2 }[] {
   const paragraphs: { text: string; headingHint?: 1 | 2 }[] = [];
 
   for (const node of bodyChildren) {
@@ -130,7 +144,8 @@ function extractParagraphs(bodyChildren: XmlNode[]): { text: string; headingHint
     if (pPr) {
       const pStyle = findFirst(childArray(pPr, "w:pPr"), "w:pStyle");
       const styleId = pStyle?.[":@"]?.["@_w:val"];
-      if (typeof styleId === "string") headingHint = HEADING_STYLE_LEVELS[styleId];
+      if (typeof styleId === "string")
+        headingHint = HEADING_STYLE_LEVELS[styleId];
     }
     paragraphs.push({ text: extractParagraphText(node).trim(), headingHint });
   }
@@ -147,7 +162,9 @@ export async function extractDocxParagraphs(
   buffer: Buffer,
 ): Promise<{ text: string; headingHint?: 1 | 2 }[]> {
   if (!looksLikeZip(buffer)) {
-    throw new Error("File không đúng định dạng DOCX (không phải file ZIP hợp lệ).");
+    throw new Error(
+      "File không đúng định dạng DOCX (không phải file ZIP hợp lệ).",
+    );
   }
 
   let zip: JSZip;
@@ -159,12 +176,20 @@ export async function extractDocxParagraphs(
 
   assertSafeEntryNames(zip);
 
-  const contentTypes = await readZipEntry(zip, "[Content_Types].xml", MAX_ENTRY_BYTES);
+  const contentTypes = await readZipEntry(
+    zip,
+    "[Content_Types].xml",
+    MAX_ENTRY_BYTES,
+  );
   if (!contentTypes.includes("wordprocessingml")) {
     throw new Error("File không phải tài liệu Word (.docx) hợp lệ.");
   }
 
-  const documentXml = await readZipEntry(zip, "word/document.xml", MAX_ENTRY_BYTES);
+  const documentXml = await readZipEntry(
+    zip,
+    "word/document.xml",
+    MAX_ENTRY_BYTES,
+  );
 
   const parser = new XMLParser({
     ignoreAttributes: false,
@@ -181,7 +206,9 @@ export async function extractDocxParagraphs(
 
   const documentNode = findFirst(parsed, "w:document");
   if (!documentNode) {
-    throw new Error("File DOCX thiếu nội dung tài liệu (word/document.xml không hợp lệ).");
+    throw new Error(
+      "File DOCX thiếu nội dung tài liệu (word/document.xml không hợp lệ).",
+    );
   }
   const bodyNode = findFirst(childArray(documentNode, "w:document"), "w:body");
   if (!bodyNode) {
@@ -207,7 +234,10 @@ export async function parseDocxDraft(
   const lines: LogicalLine[] = [];
   for (const paragraph of paragraphs) {
     paragraph.text.split("\n").forEach((segment, index) => {
-      lines.push({ text: segment, headingHint: index === 0 ? paragraph.headingHint : undefined });
+      lines.push({
+        text: segment,
+        headingHint: index === 0 ? paragraph.headingHint : undefined,
+      });
     });
     lines.push({ text: "" });
   }

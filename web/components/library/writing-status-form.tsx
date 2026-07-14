@@ -27,7 +27,10 @@ export function WritingStatusForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const statusInputRef = useRef<HTMLInputElement>(null);
-  const [state, formAction, isPending] = useActionState(updateStoryWritingStatus, INITIAL_STATE);
+  const [state, formAction, isPending] = useActionState(
+    updateStoryWritingStatus,
+    INITIAL_STATE,
+  );
   const meta = getWritingStatusMeta(writingStatus);
 
   function submitStatus(nextStatus: WritingStatus) {
@@ -42,7 +45,12 @@ export function WritingStatusForm({
     <div className="space-y-1">
       <form ref={formRef} action={formAction} className="hidden">
         <input type="hidden" name="storyId" value={storyId} />
-        <input ref={statusInputRef} type="hidden" name="writingStatus" defaultValue={writingStatus} />
+        <input
+          ref={statusInputRef}
+          type="hidden"
+          name="writingStatus"
+          defaultValue={writingStatus}
+        />
       </form>
 
       <DropdownMenu>
@@ -53,14 +61,21 @@ export function WritingStatusForm({
             className="flex min-h-11 w-full items-center justify-between gap-3 rounded-full border px-4 text-left text-sm font-extrabold outline-none transition-colors disabled:opacity-60"
             style={{
               borderColor: "var(--kd-border)",
-              background: "color-mix(in srgb, var(--kd-surface) 74%, transparent)",
+              background:
+                "color-mix(in srgb, var(--kd-surface) 74%, transparent)",
               color: "var(--kd-text)",
             }}
             aria-label="Tiến trình sáng tác"
             title={meta.description}
           >
-            <span className="truncate">{isPending ? "Đang lưu..." : meta.label}</span>
-            <ChevronDown className="shrink-0" size={16} style={{ color: "var(--kd-text-muted)" }} />
+            <span className="truncate">
+              {isPending ? "Đang lưu..." : meta.label}
+            </span>
+            <ChevronDown
+              className="shrink-0"
+              size={16}
+              style={{ color: "var(--kd-text-muted)" }}
+            />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -89,15 +104,22 @@ export function WritingStatusForm({
                   className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
                   style={{
                     background: selected ? "var(--kd-binding)" : "transparent",
-                    color: selected ? "var(--kd-accent-foreground)" : "var(--kd-text-muted)",
+                    color: selected
+                      ? "var(--kd-accent-foreground)"
+                      : "var(--kd-text-muted)",
                     border: selected ? "none" : "1px solid var(--kd-border)",
                   }}
                 >
                   {selected ? <Check size={13} /> : null}
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-extrabold">{option.label}</span>
-                  <span className="mt-0.5 block text-xs leading-5" style={{ color: "var(--kd-text-muted)" }}>
+                  <span className="block text-sm font-extrabold">
+                    {option.label}
+                  </span>
+                  <span
+                    className="mt-0.5 block text-xs leading-5"
+                    style={{ color: "var(--kd-text-muted)" }}
+                  >
                     {option.description}
                   </span>
                 </span>
