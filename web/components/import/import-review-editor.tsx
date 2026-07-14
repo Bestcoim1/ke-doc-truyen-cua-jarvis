@@ -508,11 +508,11 @@ export function ImportReviewEditor({
     if (!selectedId) return null;
 
     // Find in sections
-    let parentSectionId: string | null = null;
-    let sectionIndex = -1;
-    let chapterIndex = -1;
-    let siblingsCount = 0;
-    let depth = 0;
+    const parentSectionId: string | null = null;
+    const sectionIndex = -1;
+    const chapterIndex = -1;
+    const siblingsCount = 0;
+    const depth = 0;
 
     type NodeInfo =
       | {

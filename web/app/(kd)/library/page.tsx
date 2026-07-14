@@ -296,6 +296,14 @@ function StoryCard({
               <RefreshCw size={14} />
               Cập nhật bản thảo
             </Link>
+            <a
+              href={`/api/export/epub?storyId=${story.id}`}
+              download
+              className="text-xs font-bold transition-colors hover:text-blue-600"
+              style={{ color: "var(--kd-text-muted)" }}
+            >
+              Tải EPUB
+            </a>
             <ArchiveStoryButton storyId={story.id} />
           </>
         ) : (

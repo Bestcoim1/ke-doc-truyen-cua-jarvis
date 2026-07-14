@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Archive, BookOpen, FileClock, ShieldCheck } from "lucide-react";
 
 import { LogoutButton } from "@/components/logout-button";
+import { ProfileForm } from "@/components/settings/profile-form";
 import { AppThemeControl } from "@/components/settings/app-theme-control";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -101,6 +102,12 @@ export default async function SettingsPage() {
             </p>
           </div>
           <LogoutButton />
+        </div>
+        <div className="mt-6 border-t pt-6" style={{ borderColor: "var(--kd-border)" }}>
+          <ProfileForm
+            initialDisplayName={user?.user_metadata?.display_name || ""}
+            initialAvatarUrl={user?.user_metadata?.avatar_url || ""}
+          />
         </div>
       </section>
 

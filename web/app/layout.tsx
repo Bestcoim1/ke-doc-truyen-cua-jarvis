@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { Suspense } from "react";
 import "./globals.css";
 import { APP_BRANDING } from "@/lib/branding";
+import { PwaRegistrar } from "@/components/pwa-registrar";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -93,6 +94,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <NonceThemeProvider>{children}</NonceThemeProvider>
         </Suspense>
+        <PwaRegistrar />
       </body>
     </html>
   );

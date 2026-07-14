@@ -6,35 +6,42 @@ import { LogoutButton } from "./logout-button";
 export async function AuthButton() {
   const supabase = await createClient();
 
-  // You can also use getUser() which will be slower.
-  const { data } = await supabase.auth.getClaims();
+  // Dùng getUser() thay vì getClaims() để lấy user_metadata (display_name, avatar_url)
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const user = data?.claims;
+  if (!user) {
+    return (
+      <div className="flex gap-2">
+        <Button asChild size="sm" variant={"outline"}>
+          <Link href="/auth/login">Đăng nhập</Link>
+        </Button>
+        <Button asChild size="sm" variant={"default"}>
+          <Link href="/auth/sign-up">Đăng ký</Link>
+        </Button>
+      </div>
+    );
+  }
 
-  return user ? (
-    // min-w-0 lets this shrink inside the header's flex row instead of
-    // forcing an overflow — a flex child defaults to min-width: auto,
-    // which ignores the parent's available space. The greeting is hidden
-    // below sm: a full email address has no room next to the brand name on
-    // a phone-width header, and being logged in is already obvious from
-    // seeing the Library.
+  const displayName = user.user_metadata?.display_name || user.email;
+  const avatarUrl = user.user_metadata?.avatar_url;
+
+  return (
     <div className="flex min-w-0 items-center gap-2">
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={displayName}
+          className="h-8 w-8 rounded-full object-cover border"
+          style={{ borderColor: "var(--kd-border)" }}
+        />
+      ) : null}
       <span
-        className="hidden truncate text-sm sm:inline"
+        className="hidden truncate text-sm sm:inline font-semibold"
         style={{ color: "var(--kd-text-muted)" }}
       >
-        Xin chào, {user.email}!
+        Xin chào, {displayName}!
       </span>
       <LogoutButton />
-    </div>
-  ) : (
-    <div className="flex gap-2">
-      <Button asChild size="sm" variant={"outline"}>
-        <Link href="/auth/login">Đăng nhập</Link>
-      </Button>
-      <Button asChild size="sm" variant={"default"}>
-        <Link href="/auth/sign-up">Đăng ký</Link>
-      </Button>
     </div>
   );
 }
