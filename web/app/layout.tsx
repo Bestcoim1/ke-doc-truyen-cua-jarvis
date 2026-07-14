@@ -13,6 +13,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: "Kệ Đọc",
   description: "Bản đọc riêng tư cho bản thảo của tác giả và dịch giả.",
+  // iOS Safari needs these beyond the manifest.ts convention (which handles
+  // <link rel="manifest">, app/icon.tsx and app/apple-icon.tsx automatically)
+  // to launch standalone (no browser chrome) from "Add to Home Screen"
+  // instead of opening as a bookmark.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Kệ Đọc",
+  },
 };
 
 // viewportFit "cover" is what makes env(safe-area-inset-*) resolve to real
