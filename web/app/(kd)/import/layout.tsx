@@ -13,7 +13,7 @@ export default function ImportLayout({ children }: { children: React.ReactNode }
         className="flex items-center justify-between px-4 py-4 sm:px-6"
         style={{ borderBottom: "1px solid var(--kd-border)" }}
       >
-        <Link href="/library" className="text-lg font-bold">
+        <Link href="/library" className="shrink-0 whitespace-nowrap text-lg font-bold">
           {APP_BRANDING.name}
         </Link>
         {isSupabaseConfigured ? (

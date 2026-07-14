@@ -12,8 +12,16 @@ export async function AuthButton() {
   const user = data?.claims;
 
   return user ? (
-    <div className="flex items-center gap-4">
-      Xin chào, {user.email}!
+    // min-w-0 lets this shrink inside the header's flex row instead of
+    // forcing an overflow — a flex child defaults to min-width: auto,
+    // which ignores the parent's available space. The greeting is hidden
+    // below sm: a full email address has no room next to the brand name on
+    // a phone-width header, and being logged in is already obvious from
+    // seeing the Library.
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="hidden truncate text-sm sm:inline" style={{ color: "var(--kd-text-muted)" }}>
+        Xin chào, {user.email}!
+      </span>
       <LogoutButton />
     </div>
   ) : (
