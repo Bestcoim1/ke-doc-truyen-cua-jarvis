@@ -10,9 +10,6 @@ npm ci
 npm run dev
 ```
 
-`.env.local` đang bật `NEXT_PUBLIC_KEDOC_DEMO_MODE=true`, chỉ để kiểm thử UI
-không cần tài khoản Supabase. Demo mode không được bật khi deploy.
-
 ## Kết nối Supabase
 
 1. Tạo Supabase project.
@@ -124,3 +121,61 @@ bằng Supabase CLI, seed 3 account test + fixture, rồi chạy `test:integrati
 (RLS/RPC) và `test:e2e` (smoke + journey). Tách riêng để một flake ở đây
 không chặn gate nhanh. DB cục bộ dùng xong huỷ nên credential test trong
 workflow không phải secret.
+
+## Deploy production (Vercel)
+
+Chuẩn bị cho Slice 5 (pilot thật) — cần một domain thật để dùng trên điện
+thoại, không chỉ `npm run dev` trên máy.
+
+1. **Supabase project**: dùng project hosted đã có sẵn, hoặc tạo mới nếu
+   muốn tách biệt dev/prod dữ liệu. `NEXT_PUBLIC_SUPABASE_URL` trong
+   `.env.local` cục bộ thường trỏ vào **Supabase local** (`127.0.0.1:54321`
+   từ `supabase start`) — kiểm tra kỹ trước khi copy giá trị này sang Vercel,
+   nếu không production sẽ cố kết nối tới `127.0.0.1` của chính trình duyệt
+   người dùng (không lỗi rõ ràng, chỉ âm thầm không kết nối được).
+   Đảm bảo đã chạy hết migration bằng một trong hai cách:
+   - `supabase link` + `supabase db push` (cần đăng nhập CLI).
+   - Hoặc nối toàn bộ file trong `supabase/migrations/` theo thứ tự thành
+     một script, bọc `begin; ... commit;`, rồi paste vào Supabase Studio >
+     SQL Editor > Run một lần. Cách này **không** ghi vào bảng lịch sử
+     migration của Supabase CLI (dashboard sẽ hiện "No migrations") — vô hại
+     cho ứng dụng, chỉ ảnh hưởng nếu sau này muốn dùng `supabase db push`
+     trên project đó (CLI sẽ không biết các migration này đã áp dụng).
+2. **Import project vào Vercel** từ repo GitHub này. Vì app nằm trong
+   `/web`, đặt **Root Directory = `web`** trong Vercel project settings —
+   bước hay bị bỏ sót vì repo có `/src` (prototype cũ) ở gốc.
+3. **Environment Variables** trên Vercel (Project Settings > Environment
+   Variables), áp cho Production (và Preview nếu muốn):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+   **Không** đặt `SUPABASE_SERVICE_ROLE_KEY` trên Vercel — key này chỉ dùng
+   cho `scripts/seed-fixtures.mts` chạy cục bộ, ứng dụng deploy không cần và
+   không nên có quyền service-role.
+4. **Supabase Auth > URL Configuration**: thêm redirect URL production —
+   `https://<domain-that-vercel-gives-you>/auth/confirm` (route xác nhận
+   email/PKCE thật sự dùng, không phải `/auth/callback`). Thiếu bước này thì
+   link xác nhận email sẽ đưa người dùng về `localhost`.
+5. **Deploy.** Next.js build tự chạy `next build`; các security header
+   (CSP/HSTS, `next.config.ts` + `proxy.ts`) và `viewport-fit=cover`
+   (`app/layout.tsx`) đã có sẵn trong code, không cần cấu hình thêm trên
+   Vercel.
+
+   ⚠️ **Không bật lại `cacheComponents` trong `next.config.ts`** trừ khi xử
+   lý lại toàn bộ CSP. Từng bật trong production và gây lỗi nghiêm trọng:
+   Vercel edge cache một số trang (`/auth/login`, `/auth/sign-up`, ...) ở
+   dạng tĩnh, trong khi middleware CSP tạo nonce mới mỗi request — nonce
+   trong `<script>` của HTML cache không bao giờ khớp nonce trong response
+   header, trình duyệt âm thầm chặn toàn bộ JavaScript. Hậu quả: trang
+   render bình thường nhưng **không nút nào phản hồi** — không lỗi, không
+   redirect, không submit được form. Xem comment trong `next.config.ts` để
+   biết chi tiết.
+6. **Xác minh sau deploy** — đối chiếu với DoD ở §18 spec:
+   - Đăng nhập được, Library trống/riêng tư đúng tài khoản.
+   - Import một bản thảo thật (paste hoặc DOCX) → review → mở Reader trong
+     dưới 2 phút.
+   - Mở trên điện thoại thật: thấy hierarchy, mở TOC, an toàn vùng viền nếu
+     máy có notch.
+   - Đổi font/line-height/theme, đóng mở lại app → về đúng đoạn.
+   - (Tuỳ chọn) Trỏ smoke E2E vào domain thật để xác nhận nhanh:
+     `PLAYWRIGHT_BASE_URL=https://<domain> npm run test:e2e:smoke`.
