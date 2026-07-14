@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronRight, ChevronDown, FileText, Folder, MoreHorizontal } from "lucide-react";
 
 import { CancelJobButton } from "@/components/import/cancel-job-button";
 import { useDraftHistory } from "@/components/import/use-draft-history";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { reviewImportDraft } from "@/lib/import/actions";
 import {
   changeSectionType,
@@ -68,14 +70,14 @@ function ChapterEditor({
 }: ChapterEditorProps) {
   const [splitOpen, setSplitOpen] = useState(false);
   const blocks = useMemo(
-    () => (splitOpen ? buildTextBlocks(chapter.contentText) : []),
-    [splitOpen, chapter.contentText],
+    () => buildTextBlocks(chapter.contentText),
+    [chapter.contentText],
   );
   const isEmpty = !chapter.contentText.trim();
 
   return (
-    <article className="rounded-lg border p-3" style={{ borderColor: "var(--kd-border)" }}>
-      <label className="sr-only" htmlFor={`chapter-${chapter.id}`}>
+    <article className="rounded-lg border p-4 sm:p-6" style={{ borderColor: "var(--kd-border)", background: "var(--kd-surface)" }}>
+      <label className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--kd-text-muted)" }}>
         Tên chapter
       </label>
       <Input
@@ -83,10 +85,10 @@ function ChapterEditor({
         value={chapter.title}
         maxLength={200}
         onChange={(event) => onRename(event.target.value)}
-        className="h-10"
+        className="mt-2 h-10 font-bold"
       />
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
         <span style={{ color: "var(--kd-text-muted)" }}>
           {chapter.wordCount.toLocaleString("vi-VN")} từ
         </span>
@@ -94,13 +96,13 @@ function ChapterEditor({
         {isEmpty ? <Badge variant="destructive">Chapter rỗng</Badge> : null}
       </div>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-        <label className="grid gap-1 text-xs">
-          <span style={{ color: "var(--kd-text-muted)" }}>Chuyển tới section</span>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <label className="grid gap-1.5 text-xs">
+          <span style={{ color: "var(--kd-text-muted)" }}>Thuộc section</span>
           <select
             value={currentSectionId}
             onChange={(event) => onMove(event.target.value)}
-            className="h-10 min-w-0 rounded-md border bg-transparent px-2 text-sm"
+            className="h-10 min-w-0 rounded-md border bg-transparent px-3 text-sm"
           >
             {sectionOptions.map((option) => (
               <option key={option.id} value={option.id}>
@@ -109,69 +111,68 @@ function ChapterEditor({
             ))}
           </select>
         </label>
+        
+        <div className="flex flex-col gap-1.5 justify-end">
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              disabled={isFirst}
+              onClick={() => onReorder("up")}
+            >
+              ▲ Lên
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              disabled={isLast}
+              onClick={() => onReorder("down")}
+            >
+              ▼ Xuống
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="self-end"
           disabled={!canMerge}
           onClick={onMerge}
         >
           Gộp với chương trước
         </Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => setSplitOpen((open) => !open)}>
+          {splitOpen ? "Đóng tách chương" : "Tách chương"}
+        </Button>
         <Button
           type="button"
           variant="destructive"
           size="sm"
-          className="self-end"
           onClick={onDelete}
         >
           Xóa chapter
         </Button>
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={isFirst}
-          onClick={() => onReorder("up")}
-          aria-label="Chuyển chương lên trên"
-        >
-          ▲ Lên
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={isLast}
-          onClick={() => onReorder("down")}
-          aria-label="Chuyển chương xuống dưới"
-        >
-          ▼ Xuống
-        </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setSplitOpen((open) => !open)}>
-          {splitOpen ? "Đóng tách chương" : "Tách chương"}
-        </Button>
-      </div>
-
-      {splitOpen ? (
-        <div
-          className="mt-3 max-h-64 overflow-y-auto rounded-lg border p-2"
-          style={{ borderColor: "var(--kd-border)" }}
-        >
-          {blocks.length < 2 ? (
-            <p className="p-2 text-xs" style={{ color: "var(--kd-text-muted)" }}>
-              Chương chỉ có một đoạn, không thể tách.
-            </p>
+      <div className="mt-6 border-t pt-4" style={{ borderColor: "var(--kd-border)" }}>
+        <h3 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--kd-text-muted)" }}>Nội dung</h3>
+        <div className="max-h-96 overflow-y-auto rounded-lg border p-3 font-serif text-sm leading-relaxed" style={{ borderColor: "var(--kd-border)", background: "var(--kd-bg)" }}>
+          {blocks.length === 0 ? (
+            <p className="p-2 text-xs italic" style={{ color: "var(--kd-text-muted)" }}>Không có nội dung.</p>
           ) : (
             blocks.map((block, index) => (
               <div key={index}>
-                {index > 0 ? (
+                {splitOpen && index > 0 ? (
                   <button
                     type="button"
-                    className="my-1 w-full rounded border border-dashed py-1 text-center text-xs hover:bg-accent"
+                    className="my-2 w-full rounded border border-dashed py-1.5 text-center text-xs hover:bg-accent font-sans"
                     style={{ borderColor: "var(--kd-border)", color: "var(--kd-text-muted)" }}
                     onClick={() => {
                       onSplit(index);
@@ -181,153 +182,157 @@ function ChapterEditor({
                     Tách chương tại đây
                   </button>
                 ) : null}
-                <p className="truncate px-1 py-1 text-xs">
+                <p className={`px-1 py-1 ${block.type === "scene_break" ? "text-center" : ""}`}>
                   {block.type === "scene_break" ? `· ${block.text} ·` : block.text}
                 </p>
               </div>
             ))
           )}
         </div>
-      ) : null}
+      </div>
     </article>
   );
 }
 
 type SectionEditorProps = {
   section: ReviewSection;
-  sectionOptions: SectionOption[];
-  mergeableChapterIds: Set<string>;
   depth: number;
   isFirst: boolean;
   isLast: boolean;
-  onRenameSection: (sectionId: string, title: string) => void;
-  onChangeType: (sectionId: string, type: DraftSectionType) => void;
-  onReorderSection: (sectionId: string, direction: "up" | "down") => void;
-  onRenameChapter: (chapterId: string, title: string) => void;
-  onMoveChapter: (chapterId: string, targetSectionId: string) => void;
-  onMergeChapter: (chapterId: string) => void;
-  onDeleteChapter: (chapterId: string) => void;
-  onReorderChapter: (chapterId: string, direction: "up" | "down") => void;
-  onSplitChapter: (chapterId: string, blockIndex: number) => void;
+  onRenameSection: (title: string) => void;
+  onChangeType: (type: DraftSectionType) => void;
+  onReorderSection: (direction: "up" | "down") => void;
 };
 
 function SectionEditor({
   section,
-  sectionOptions,
-  mergeableChapterIds,
   depth,
   isFirst,
   isLast,
   onRenameSection,
   onChangeType,
   onReorderSection,
-  onRenameChapter,
-  onMoveChapter,
-  onMergeChapter,
-  onDeleteChapter,
-  onReorderChapter,
-  onSplitChapter,
 }: SectionEditorProps) {
   return (
-    <section
-      className="rounded-xl border p-3 sm:p-4"
-      style={{
-        background: "var(--kd-surface)",
-        borderColor: "var(--kd-border)",
-        marginLeft: depth ? "0.75rem" : undefined,
-      }}
-    >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <select
-          value={section.type}
-          onChange={(event) => onChangeType(section.id, event.target.value as DraftSectionType)}
-          className="h-10 w-fit shrink-0 rounded-md border bg-transparent px-2 text-sm"
-        >
-          {SECTION_TYPE_OPTIONS.filter((option) => depth === 0 || !option.rootOnly).map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <label className="sr-only" htmlFor={`section-${section.id}`}>
-          Tên section
+    <section className="rounded-lg border p-4 sm:p-6" style={{ background: "var(--kd-surface)", borderColor: "var(--kd-border)" }}>
+      <label className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--kd-text-muted)" }}>
+        Tên section
+      </label>
+      <Input
+        id={`section-${section.id}`}
+        value={section.title}
+        maxLength={200}
+        onChange={(event) => onRenameSection(event.target.value)}
+        className="mt-2 h-10 font-bold"
+      />
+      
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <label className="grid gap-1.5 text-xs">
+          <span style={{ color: "var(--kd-text-muted)" }}>Loại section</span>
+          <select
+            value={section.type}
+            onChange={(event) => onChangeType(event.target.value as DraftSectionType)}
+            className="h-10 min-w-0 rounded-md border bg-transparent px-3 text-sm"
+          >
+            {SECTION_TYPE_OPTIONS.filter((option) => depth === 0 || !option.rootOnly).map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </label>
-        <Input
-          id={`section-${section.id}`}
-          value={section.title}
-          maxLength={200}
-          onChange={(event) => onRenameSection(section.id, event.target.value)}
-          className="h-10 flex-1 font-semibold"
-        />
-        <div className="flex shrink-0 gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={isFirst}
-            onClick={() => onReorderSection(section.id, "up")}
-            aria-label="Chuyển section lên trên"
-          >
-            ▲
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={isLast}
-            onClick={() => onReorderSection(section.id, "down")}
-            aria-label="Chuyển section xuống dưới"
-          >
-            ▼
-          </Button>
+        
+        <div className="flex flex-col gap-1.5 justify-end">
+          <span className="text-xs" style={{ color: "var(--kd-text-muted)" }}>Sắp xếp</span>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              disabled={isFirst}
+              onClick={() => onReorderSection("up")}
+            >
+              ▲ Lên
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              disabled={isLast}
+              onClick={() => onReorderSection("down")}
+            >
+              ▼ Xuống
+            </Button>
+          </div>
         </div>
       </div>
-
-      <div className="mt-3 flex flex-col gap-3">
-        {section.chapters.map((chapter, index) => (
-          <ChapterEditor
-            key={chapter.id}
-            chapter={chapter}
-            sectionOptions={sectionOptions}
-            currentSectionId={section.id}
-            isFirst={index === 0}
-            isLast={index === section.chapters.length - 1}
-            canMerge={mergeableChapterIds.has(chapter.id)}
-            onRename={(title) => onRenameChapter(chapter.id, title)}
-            onMove={(targetSectionId) => onMoveChapter(chapter.id, targetSectionId)}
-            onMerge={() => onMergeChapter(chapter.id)}
-            onDelete={() => onDeleteChapter(chapter.id)}
-            onReorder={(direction) => onReorderChapter(chapter.id, direction)}
-            onSplit={(blockIndex) => onSplitChapter(chapter.id, blockIndex)}
-          />
-        ))}
+      
+      <div className="mt-4 flex flex-wrap gap-2 text-xs" style={{ color: "var(--kd-text-muted)" }}>
+        <span>Bao gồm {section.chapters.length} chương trực tiếp và {section.children.length} section con.</span>
       </div>
+    </section>
+  );
+}
 
-      {section.children.length > 0 ? (
-        <div className="mt-3 flex flex-col gap-3">
-          {section.children.map((child, index) => (
-            <SectionEditor
-              key={child.id}
-              section={child}
-              sectionOptions={sectionOptions}
-              mergeableChapterIds={mergeableChapterIds}
-              depth={depth + 1}
-              isFirst={index === 0}
-              isLast={index === section.children.length - 1}
-              onRenameSection={onRenameSection}
-              onChangeType={onChangeType}
-              onReorderSection={onReorderSection}
-              onRenameChapter={onRenameChapter}
-              onMoveChapter={onMoveChapter}
-              onMergeChapter={onMergeChapter}
-              onDeleteChapter={onDeleteChapter}
-              onReorderChapter={onReorderChapter}
-              onSplitChapter={onSplitChapter}
-            />
+function OutlineNode({ 
+  node, 
+  selectedId, 
+  onSelect,
+  isChapter = false,
+}: { 
+  node: ReviewSection | ReviewChapter; 
+  selectedId: string | null; 
+  onSelect: (id: string) => void;
+  isChapter?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const isSelected = node.id === selectedId;
+  const hasChildren = !isChapter && ('children' in node) && (node.children.length > 0 || node.chapters.length > 0);
+
+  return (
+    <div className="outline-node">
+      <div 
+        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors ${isSelected ? 'bg-accent text-accent-foreground font-medium' : 'hover:bg-accent/50'}`}
+        onClick={() => onSelect(node.id)}
+      >
+        <div 
+          className="w-4 h-4 flex shrink-0 items-center justify-center cursor-pointer opacity-70 hover:opacity-100"
+          onClick={(e) => {
+            if (hasChildren) {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }
+          }}
+        >
+          {hasChildren ? (expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />) : null}
+        </div>
+        
+        {isChapter ? (
+          <FileText size={14} className="shrink-0 opacity-60" />
+        ) : (
+          <Folder size={14} className="shrink-0 opacity-60" />
+        )}
+        
+        <span className="truncate flex-1">{node.title || (isChapter ? "Chương rỗng" : "Section rỗng")}</span>
+        
+        {isChapter && ('contentText' in node) && !node.contentText.trim() ? (
+          <div className="w-2 h-2 rounded-full bg-destructive shrink-0" title="Chương rỗng" />
+        ) : null}
+      </div>
+      
+      {hasChildren && expanded && !isChapter && ('children' in node) && (
+        <div className="ml-4 pl-2 border-l border-border mt-1 space-y-0.5">
+          {node.chapters.map(ch => (
+            <OutlineNode key={ch.id} node={ch} selectedId={selectedId} onSelect={onSelect} isChapter />
+          ))}
+          {node.children.map(sec => (
+            <OutlineNode key={sec.id} node={sec} selectedId={selectedId} onSelect={onSelect} />
           ))}
         </div>
-      ) : null}
-    </section>
+      )}
+    </div>
   );
 }
 
@@ -341,11 +346,20 @@ export function ImportReviewEditor({
   const { draft, pendingOps, canUndo, canRedo, apply, undo, redo, reset } =
     useDraftHistory(initialDraft);
   const [state, formAction, isPending] = useActionState(reviewImportDraft, INITIAL_STATE);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Ref mirror so the effect below can read the latest draft on a
-  // successful save without needing `draft` (which changes on every
-  // keystroke) in its dependency array. Updated in an effect, not during
-  // render — refs must never be written while rendering.
+  // Initialize selectedId
+  useEffect(() => {
+    if (!selectedId && draft.sections.length > 0) {
+      const firstChapter = flattenReviewChapters(draft.sections)[0]?.chapter;
+      if (firstChapter) {
+        setSelectedId(firstChapter.id);
+      } else {
+        setSelectedId(draft.sections[0].id);
+      }
+    }
+  }, [draft.sections, selectedId]);
+
   const draftRef = useRef(draft);
   useEffect(() => {
     draftRef.current = draft;
@@ -358,20 +372,51 @@ export function ImportReviewEditor({
   }, [state.message, reset]);
 
   const sectionOptions = useMemo(() => flattenSectionOptions(draft.sections), [draft.sections]);
+  const chaptersArray = useMemo(() => flattenReviewChapters(draft.sections), [draft.sections]);
   const mergeableChapterIds = useMemo(
-    () =>
-      new Set(
-        flattenReviewChapters(draft.sections)
-          .slice(1)
-          .map((entry) => entry.chapter.id),
-      ),
-    [draft.sections],
+    () => new Set(chaptersArray.slice(1).map((entry) => entry.chapter.id)),
+    [chaptersArray],
   );
   const emptyChapters = useMemo(
-    () =>
-      flattenReviewChapters(draft.sections).filter(({ chapter }) => !chapter.contentText.trim()),
-    [draft.sections],
+    () => chaptersArray.filter(({ chapter }) => !chapter.contentText.trim()),
+    [chaptersArray],
   );
+
+  const selectedNodeInfo = useMemo(() => {
+    if (!selectedId) return null;
+    
+    // Find in sections
+    let parentSectionId: string | null = null;
+    let sectionIndex = -1;
+    let chapterIndex = -1;
+    let siblingsCount = 0;
+    let depth = 0;
+    
+    type NodeInfo = 
+      | { type: "section"; section: ReviewSection; isFirst: boolean; isLast: boolean; depth: number }
+      | { type: "chapter"; chapter: ReviewChapter; sectionId: string; isFirst: boolean; isLast: boolean }
+      | null;
+
+    function traverse(sections: ReviewSection[], currentDepth: number, parentId: string | null): NodeInfo {
+      for (let i = 0; i < sections.length; i++) {
+        const sec = sections[i];
+        if (sec.id === selectedId) {
+          return { type: "section" as const, section: sec, isFirst: i === 0, isLast: i === sections.length - 1, depth: currentDepth };
+        }
+        for (let j = 0; j < sec.chapters.length; j++) {
+          const ch = sec.chapters[j];
+          if (ch.id === selectedId) {
+            return { type: "chapter" as const, chapter: ch, sectionId: sec.id, isFirst: j === 0, isLast: j === sec.chapters.length - 1 };
+          }
+        }
+        const found = traverse(sec.children, currentDepth + 1, sec.id);
+        if (found) return found;
+      }
+      return null;
+    }
+    
+    return traverse(draft.sections, 0, null);
+  }, [draft.sections, selectedId]);
 
   const structureJson = useMemo(() => JSON.stringify(toStructure(draft)), [draft]);
   const contentOpsJson = useMemo(() => JSON.stringify(pendingOps), [pendingOps]);
@@ -386,6 +431,7 @@ export function ImportReviewEditor({
         (current) => mergeChapterWithPrevious(current, chapterId),
         { type: "merge", keepChapterId: previous.id, mergedChapterId: chapterId },
       );
+      setSelectedId(previous.id);
     },
     [draft.sections, apply],
   );
@@ -401,165 +447,146 @@ export function ImportReviewEditor({
     [apply],
   );
 
-  // The form only wraps its hidden inputs — CancelJobButton (its own
-  // <form>) sits among the visible content below, and nested <form>s are
-  // invalid HTML (browsers silently mis-parse it, which surfaces as a
-  // React hydration error). Save/Commit reference this form by id via the
-  // `form` attribute instead of physically nesting inside it.
   const formId = `review-form-${jobId}`;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 h-[calc(100vh-140px)]">
       <form id={formId} action={formAction}>
         <input type="hidden" name="jobId" value={jobId} />
         <input type="hidden" name="structure" value={structureJson} />
         <input type="hidden" name="contentOps" value={contentOpsJson} />
       </form>
 
-      <div>
-        <p className="text-sm" style={{ color: "var(--kd-text-muted)" }}>
-          Bản review
-        </p>
-        <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">{draft.title}</h1>
-        {draft.description ? (
-          <p className="mt-2 max-w-2xl text-sm" style={{ color: "var(--kd-text-muted)" }}>
-            {draft.description}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!canUndo}
-          onClick={undo}
-        >
-          Hoàn tác
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!canRedo}
-          onClick={redo}
-        >
-          Làm lại
-        </Button>
-      </div>
-
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {[
-          ["Section", draft.stats.sectionCount],
-          ["Chapter", draft.stats.chapterCount],
-          ["Từ", draft.stats.wordCount.toLocaleString("vi-VN")],
-          ["Cảnh báo", draft.warnings.length],
-        ].map(([label, value]) => (
-          <div
-            key={label}
-            className="rounded-xl border p-3"
-            style={{ background: "var(--kd-surface)", borderColor: "var(--kd-border)" }}
-          >
-            <dt className="text-xs" style={{ color: "var(--kd-text-muted)" }}>
-              {label}
-            </dt>
-            <dd className="mt-1 text-xl font-bold">{value}</dd>
+      {/* Header Info */}
+      <div className="flex-shrink-0 flex justify-between items-start gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold sm:text-3xl font-display">{draft.title}</h1>
+          <div className="mt-1 flex items-center gap-3 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+            <span>{draft.stats.sectionCount} Section</span>
+            <span>•</span>
+            <span>{draft.stats.chapterCount} Chương</span>
+            <span>•</span>
+            <span>{draft.stats.wordCount.toLocaleString("vi-VN")} Từ</span>
           </div>
-        ))}
-      </dl>
-
-      {draft.warnings.length > 0 ? (
-        <aside className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
-          <h2 className="font-semibold">Cần kiểm tra</h2>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-            {draft.warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        </aside>
-      ) : null}
-
-      <div className="flex flex-col gap-3">
-        {draft.sections.map((section, index) => (
-          <SectionEditor
-            key={section.id}
-            section={section}
-            sectionOptions={sectionOptions}
-            mergeableChapterIds={mergeableChapterIds}
-            depth={0}
-            isFirst={index === 0}
-            isLast={index === draft.sections.length - 1}
-            onRenameSection={(sectionId, title) =>
-              apply((current) => renameSection(current, sectionId, title))
-            }
-            onChangeType={(sectionId, type) =>
-              apply((current) => changeSectionType(current, sectionId, type))
-            }
-            onReorderSection={(sectionId, direction) =>
-              apply((current) => reorderSection(current, sectionId, direction))
-            }
-            onRenameChapter={(chapterId, title) =>
-              apply((current) => renameChapter(current, chapterId, title))
-            }
-            onMoveChapter={(chapterId, targetSectionId) =>
-              apply((current) => moveChapter(current, chapterId, targetSectionId))
-            }
-            onMergeChapter={applyMerge}
-            onDeleteChapter={(chapterId) =>
-              apply((current) => deleteChapter(current, chapterId))
-            }
-            onReorderChapter={(chapterId, direction) =>
-              apply((current) => reorderChapter(current, chapterId, direction))
-            }
-            onSplitChapter={applySplit}
-          />
-        ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" disabled={!canUndo} onClick={undo}>Hoàn tác</Button>
+          <Button type="button" variant="outline" size="sm" disabled={!canRedo} onClick={redo}>Làm lại</Button>
+        </div>
       </div>
 
-      {draft.stats.chapterCount === 0 ? (
-        <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-          Cần giữ lại ít nhất một chapter để commit.
-        </p>
-      ) : null}
-      {emptyChapters.length > 0 ? (
-        <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-          Còn {emptyChapters.length} chapter rỗng (
-          {emptyChapters.map(({ chapter }) => chapter.title).join(", ")}) — xóa hoặc gộp trước
-          khi commit.
-        </p>
-      ) : null}
-      {state.error ? (
-        <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-          {state.error}
-        </p>
-      ) : null}
-      {state.message ? (
-        <p role="status" className="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-800">
-          {state.message}
-        </p>
+      {draft.warnings.length > 0 || emptyChapters.length > 0 || state.error || draft.stats.chapterCount === 0 ? (
+        <div className="flex-shrink-0 space-y-2">
+          {draft.stats.chapterCount === 0 ? (
+            <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-2 text-sm text-red-700">Cần giữ lại ít nhất một chapter để commit.</p>
+          ) : null}
+          {emptyChapters.length > 0 ? (
+            <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-2 text-sm text-red-700">
+              Còn {emptyChapters.length} chapter rỗng — xóa hoặc gộp trước khi commit.
+            </p>
+          ) : null}
+          {state.error ? (
+            <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-2 text-sm text-red-700">{state.error}</p>
+          ) : null}
+          {draft.warnings.length > 0 ? (
+            <aside className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-950">
+              <h2 className="font-semibold text-sm">Cần kiểm tra</h2>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-xs">
+                {draft.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+              </ul>
+            </aside>
+          ) : null}
+        </div>
       ) : null}
 
+      {/* Main 2-column layout */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
+        {/* Left Column: Outline Tree */}
+        <div className="rounded-xl border flex flex-col min-h-0 bg-background" style={{ borderColor: "var(--kd-border)" }}>
+          <div className="p-3 border-b text-sm font-semibold flex items-center justify-between" style={{ borderColor: "var(--kd-border)", background: "var(--kd-surface)" }}>
+            <span>Cấu trúc truyện</span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            {draft.sections.map(sec => (
+              <OutlineNode key={sec.id} node={sec} selectedId={selectedId} onSelect={setSelectedId} />
+            ))}
+          </div>
+        </div>
+
+        {/* Right Column: Detail View */}
+        <div className="rounded-xl min-h-0 overflow-y-auto">
+          {selectedNodeInfo ? (
+            selectedNodeInfo.type === "chapter" ? (
+              <ChapterEditor
+                chapter={selectedNodeInfo.chapter}
+                sectionOptions={sectionOptions}
+                currentSectionId={selectedNodeInfo.sectionId}
+                isFirst={selectedNodeInfo.isFirst}
+                isLast={selectedNodeInfo.isLast}
+                canMerge={mergeableChapterIds.has(selectedNodeInfo.chapter.id)}
+                onRename={(title) => apply((current) => renameChapter(current, selectedNodeInfo.chapter.id, title))}
+                onMove={(targetSectionId) => apply((current) => moveChapter(current, selectedNodeInfo.chapter.id, targetSectionId))}
+                onMerge={() => applyMerge(selectedNodeInfo.chapter.id)}
+                onDelete={() => {
+                  apply((current) => deleteChapter(current, selectedNodeInfo.chapter.id));
+                  setSelectedId(null);
+                }}
+                onReorder={(direction) => apply((current) => reorderChapter(current, selectedNodeInfo.chapter.id, direction))}
+                onSplit={(blockIndex) => applySplit(selectedNodeInfo.chapter.id, blockIndex)}
+              />
+            ) : (
+              <SectionEditor
+                section={selectedNodeInfo.section}
+                depth={selectedNodeInfo.depth}
+                isFirst={selectedNodeInfo.isFirst}
+                isLast={selectedNodeInfo.isLast}
+                onRenameSection={(title) => apply((current) => renameSection(current, selectedNodeInfo.section.id, title))}
+                onChangeType={(type) => apply((current) => changeSectionType(current, selectedNodeInfo.section.id, type))}
+                onReorderSection={(direction) => apply((current) => reorderSection(current, selectedNodeInfo.section.id, direction))}
+              />
+            )
+          ) : (
+            <div className="h-full flex items-center justify-center text-sm" style={{ color: "var(--kd-text-muted)" }}>
+              Chọn một mục ở cột bên trái để chỉnh sửa.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky Bottom Bar */}
       <div
-        className="sticky bottom-0 -mx-4 flex flex-col-reverse gap-2 border-t px-4 py-3 backdrop-blur sm:mx-0 sm:flex-row sm:items-center sm:justify-end sm:rounded-xl sm:border"
-        style={{ background: "color-mix(in srgb, var(--kd-bg) 92%, transparent)" }}
+        className="flex-shrink-0 flex items-center justify-between border-t px-4 py-3 sm:rounded-xl sm:border"
+        style={{ background: "var(--kd-surface)", borderColor: "var(--kd-border)" }}
       >
-        <CancelJobButton jobId={jobId} />
-        <Button asChild type="button" variant="ghost">
-          <Link href="/library">Về thư viện</Link>
-        </Button>
-        <Button type="submit" form={formId} name="intent" value="save" variant="outline" disabled={isPending}>
-          {isPending ? "Đang xử lý…" : "Lưu bản nháp"}
-        </Button>
-        <Button
-          type="submit"
-          form={formId}
-          name="intent"
-          value="commit"
-          disabled={isPending || draft.stats.chapterCount === 0 || emptyChapters.length > 0}
-        >
-          {isPending ? "Đang xử lý…" : "Commit vào kệ đọc"}
-        </Button>
+        <div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="ghost" size="sm">
+                <MoreHorizontal size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <div className="px-2 py-1">
+                <CancelJobButton jobId={jobId} />
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Button asChild type="button" variant="outline">
+            <Link href="/library">Lưu bản nháp</Link>
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            name="intent"
+            value="commit"
+            disabled={isPending || draft.stats.chapterCount === 0 || emptyChapters.length > 0}
+          >
+            {isPending ? "Đang xử lý…" : "Xác nhận lưu"}
+          </Button>
+        </div>
       </div>
     </div>
   );
