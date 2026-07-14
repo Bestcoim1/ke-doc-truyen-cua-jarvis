@@ -60,7 +60,7 @@ async function LibraryContent({ searchParams }: LibraryPageProps) {
           <p className="text-sm font-semibold" style={{ color: "var(--kd-gilt)" }}>
             Không gian bản thảo cá nhân
           </p>
-          <h1 className="mt-2 text-4xl font-extrabold tracking-tight sm:text-5xl">Thư viện truyện</h1>
+          <h1 className="mt-2 text-4xl font-extrabold font-display tracking-tight sm:text-5xl">Thư viện truyện</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6" style={{ color: "var(--kd-text-muted)" }}>
             Theo dõi chỗ đang đọc và cả nhịp sáng tác của từng tác phẩm trong cùng một kệ.
           </p>
@@ -186,10 +186,10 @@ function StoryCard({ story, status }: { story: LibraryStory; status: "active" | 
           <div className="min-w-0 flex-1">
             {status === "active" ? (
               <Link href={`/read/${story.id}`} className="block">
-                <h2 className="line-clamp-2 text-xl font-extrabold leading-tight">{story.title}</h2>
+                <h2 className="line-clamp-2 text-xl font-extrabold font-display leading-tight">{story.title}</h2>
               </Link>
             ) : (
-              <h2 className="line-clamp-2 text-xl font-extrabold leading-tight">{story.title}</h2>
+              <h2 className="line-clamp-2 text-xl font-extrabold font-display leading-tight">{story.title}</h2>
             )}
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--kd-text-muted)" }}>
               <span>{story.chapterCount} chương</span>

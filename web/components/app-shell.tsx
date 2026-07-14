@@ -10,7 +10,10 @@ import { isSupabaseConfigured } from "@/lib/utils";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-[100dvh] pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-0">
+    <div 
+      className="min-h-[100dvh] border-l-[6px] pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-0"
+      style={{ borderLeftColor: "var(--kd-binding)" }}
+    >
       <header
         className="sticky top-0 z-30 border-b backdrop-blur-xl"
         style={{
@@ -34,7 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <BookOpen size={18} />
             </span>
-            <span className="truncate text-base font-extrabold tracking-tight">{APP_BRANDING.name}</span>
+            <span className="truncate text-base font-extrabold font-display tracking-tight">{APP_BRANDING.name}</span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
             <AppTopNav />

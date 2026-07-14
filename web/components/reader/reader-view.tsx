@@ -340,10 +340,10 @@ export function ReaderView({
           <ArrowLeft size={18} />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-xs" style={{ color: "var(--kd-text-muted)" }}>
+          <div className="truncate text-xs font-display" style={{ color: "var(--kd-text-muted)" }}>
             {[storyTitle, ...chapter.sectionPath].join(" · ")}
           </div>
-          <div className="truncate text-sm font-bold">{chapter.chapterTitle}</div>
+          <div className="truncate text-sm font-bold font-display">{chapter.chapterTitle}</div>
         </div>
         <button
           onClick={() => openOverlay("toc")}
@@ -388,7 +388,7 @@ export function ReaderView({
       <main
         ref={containerRef}
         aria-label={chapter.chapterTitle}
-        className="flex-1 overflow-y-auto px-5 py-5"
+        className="flex-1 overflow-y-auto px-5 py-5 font-serif"
         style={{
           fontSize: `${FONT_SIZE_STEPS[settings.fontSizeStep]}px`,
           lineHeight: settings.lineHeight,

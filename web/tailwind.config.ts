@@ -11,6 +11,10 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        serif: ["var(--font-source-serif)"],
+        display: ["var(--font-fraunces)"],
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

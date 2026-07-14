@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Fraunces, Source_Serif_4 } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { headers } from "next/headers";
 import { Suspense } from "react";
@@ -47,6 +47,19 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  display: "swap",
+  subsets: ["latin", "vietnamese"],
+  axes: ["SOFT", "WONK", "opsz"],
+});
+
+const sourceSerif4 = Source_Serif_4({
+  variable: "--font-source-serif",
+  display: "swap",
+  subsets: ["latin", "vietnamese"],
+});
+
 // headers() is per-request data — under cacheComponents it must sit behind
 // a Suspense boundary so routes can still prerender a static shell instead
 // of failing the build. Reading it here (instead of splitting into its own
@@ -74,7 +87,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${geistSans.className} antialiased`}>
+      <body className={`${geistSans.className} ${fraunces.variable} ${sourceSerif4.variable} antialiased`}>
         <Suspense fallback={null}>
           <NonceThemeProvider>{children}</NonceThemeProvider>
         </Suspense>
