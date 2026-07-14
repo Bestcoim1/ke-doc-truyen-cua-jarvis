@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import "./globals.css";
+import { APP_BRANDING } from "@/lib/branding";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -11,8 +12,8 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Kệ Đọc",
-  description: "Bản đọc riêng tư cho bản thảo của tác giả và dịch giả.",
+  title: APP_BRANDING.defaultPageTitle,
+  description: APP_BRANDING.description,
   // iOS Safari needs these beyond the manifest.ts convention (which handles
   // <link rel="manifest">, app/icon.tsx and app/apple-icon.tsx automatically)
   // to launch standalone (no browser chrome) from "Add to Home Screen"
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Kệ Đọc",
+    title: APP_BRANDING.shortName,
   },
 };
 

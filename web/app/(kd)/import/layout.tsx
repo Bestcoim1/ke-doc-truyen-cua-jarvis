@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { AuthButton } from "@/components/auth-button";
 import { EnvVarWarning } from "@/components/env-var-warning";
+import { APP_BRANDING } from "@/lib/branding";
 import { isSupabaseConfigured } from "@/lib/utils";
 
 export default function ImportLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +14,7 @@ export default function ImportLayout({ children }: { children: React.ReactNode }
         style={{ borderBottom: "1px solid var(--kd-border)" }}
       >
         <Link href="/library" className="shrink-0 whitespace-nowrap text-lg font-bold">
-          Kệ Đọc
+          {APP_BRANDING.name}
         </Link>
         {isSupabaseConfigured ? (
           <Suspense fallback={null}>
