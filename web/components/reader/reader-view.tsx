@@ -13,7 +13,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, List } from "lucide-react";
 
 import type { Block, ReadingSettings } from "@/lib/reader/types";
 import { FONT_SIZE_STEPS } from "@/lib/reader/types";
-import { extractFingerprintFromAnchorId } from "@/lib/reader/anchors";
+import { extractFingerprintFromAnchorId } from "@/lib/reader/anchor-utils";
 import { updateReadingSettings } from "@/lib/reader/actions";
 import type { ResumeFallbackMethod } from "@/lib/reader/resume-fallback";
 import type { ChapterRow, SectionRow } from "@/lib/reader/tree";

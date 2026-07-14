@@ -79,8 +79,7 @@ export async function GET(req: NextRequest) {
       htmlContent = "<p><i>(Nội dung trống)</i></p>";
     }
 
-    // @ts-expect-error fallback
-    const entryTitle = "title" in entry ? entry.title : "Chương";
+    const entryTitle = "title" in entry ? String((entry as any).title) : "Chương";
 
     return {
       title: entryTitle,
