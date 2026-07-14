@@ -14,6 +14,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: APP_BRANDING.defaultPageTitle,
   description: APP_BRANDING.description,
+  // iOS Safari needs these beyond the manifest.ts convention (which handles
+  // <link rel="manifest">, app/icon.tsx and app/apple-icon.tsx automatically)
+  // to launch standalone (no browser chrome) from "Add to Home Screen"
+  // instead of opening as a bookmark.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_BRANDING.shortName,
+  },
 };
 
 // viewportFit "cover" is what makes env(safe-area-inset-*) resolve to real
