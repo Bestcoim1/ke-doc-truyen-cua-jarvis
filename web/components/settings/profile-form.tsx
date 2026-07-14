@@ -2,10 +2,10 @@
 
 import { useActionState, useEffect } from "react";
 import { updateProfile, updatePassword } from "@/app/(kd)/settings/actions";
+import type { FormState } from "@/app/(kd)/settings/actions";
 import { Button } from "@/components/ui/button";
 
-const INITIAL_PROFILE_STATE = { error: undefined, success: undefined };
-const INITIAL_PASSWORD_STATE = { error: undefined, success: undefined };
+const INITIAL_STATE: FormState = {};
 
 export function ProfileForm({
   initialDisplayName,
@@ -16,14 +16,12 @@ export function ProfileForm({
 }) {
   const [profileState, profileAction, profilePending] = useActionState(
     updateProfile,
-    // @ts-expect-error initial state
-    INITIAL_PROFILE_STATE
+    INITIAL_STATE
   );
   
   const [passwordState, passwordAction, passwordPending] = useActionState(
     updatePassword,
-    // @ts-expect-error initial state
-    INITIAL_PASSWORD_STATE
+    INITIAL_STATE
   );
 
   return (

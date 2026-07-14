@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function updateProfile(prevState: any, formData: FormData) {
+export type FormState = { error?: string; success?: boolean };
+
+export async function updateProfile(prevState: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
   const displayName = formData.get("displayName") as string;
   const avatarUrl = formData.get("avatarUrl") as string;
@@ -23,7 +25,7 @@ export async function updateProfile(prevState: any, formData: FormData) {
   return { success: true };
 }
 
-export async function updatePassword(prevState: any, formData: FormData) {
+export async function updatePassword(prevState: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
   const password = formData.get("password") as string;
 
