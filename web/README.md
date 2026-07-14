@@ -127,9 +127,20 @@ workflow không phải secret.
 Chuẩn bị cho Slice 5 (pilot thật) — cần một domain thật để dùng trên điện
 thoại, không chỉ `npm run dev` trên máy.
 
-1. **Supabase project**: dùng project đã cấu hình trong `.env.local` (hoặc
-   tạo project riêng cho production nếu muốn tách biệt dev/prod dữ liệu).
-   Đảm bảo đã chạy hết migration (`supabase db push` hoặc SQL Editor).
+1. **Supabase project**: dùng project hosted đã có sẵn, hoặc tạo mới nếu
+   muốn tách biệt dev/prod dữ liệu. `NEXT_PUBLIC_SUPABASE_URL` trong
+   `.env.local` cục bộ thường trỏ vào **Supabase local** (`127.0.0.1:54321`
+   từ `supabase start`) — kiểm tra kỹ trước khi copy giá trị này sang Vercel,
+   nếu không production sẽ cố kết nối tới `127.0.0.1` của chính trình duyệt
+   người dùng (không lỗi rõ ràng, chỉ âm thầm không kết nối được).
+   Đảm bảo đã chạy hết migration bằng một trong hai cách:
+   - `supabase link` + `supabase db push` (cần đăng nhập CLI).
+   - Hoặc nối toàn bộ file trong `supabase/migrations/` theo thứ tự thành
+     một script, bọc `begin; ... commit;`, rồi paste vào Supabase Studio >
+     SQL Editor > Run một lần. Cách này **không** ghi vào bảng lịch sử
+     migration của Supabase CLI (dashboard sẽ hiện "No migrations") — vô hại
+     cho ứng dụng, chỉ ảnh hưởng nếu sau này muốn dùng `supabase db push`
+     trên project đó (CLI sẽ không biết các migration này đã áp dụng).
 2. **Import project vào Vercel** từ repo GitHub này. Vì app nằm trong
    `/web`, đặt **Root Directory = `web`** trong Vercel project settings —
    bước hay bị bỏ sót vì repo có `/src` (prototype cũ) ở gốc.
@@ -149,6 +160,16 @@ thoại, không chỉ `npm run dev` trên máy.
    (CSP/HSTS, `next.config.ts` + `proxy.ts`) và `viewport-fit=cover`
    (`app/layout.tsx`) đã có sẵn trong code, không cần cấu hình thêm trên
    Vercel.
+
+   ⚠️ **Không bật lại `cacheComponents` trong `next.config.ts`** trừ khi xử
+   lý lại toàn bộ CSP. Từng bật trong production và gây lỗi nghiêm trọng:
+   Vercel edge cache một số trang (`/auth/login`, `/auth/sign-up`, ...) ở
+   dạng tĩnh, trong khi middleware CSP tạo nonce mới mỗi request — nonce
+   trong `<script>` của HTML cache không bao giờ khớp nonce trong response
+   header, trình duyệt âm thầm chặn toàn bộ JavaScript. Hậu quả: trang
+   render bình thường nhưng **không nút nào phản hồi** — không lỗi, không
+   redirect, không submit được form. Xem comment trong `next.config.ts` để
+   biết chi tiết.
 6. **Xác minh sau deploy** — đối chiếu với DoD ở §18 spec:
    - Đăng nhập được, Library trống/riêng tư đúng tài khoản.
    - Import một bản thảo thật (paste hoặc DOCX) → review → mở Reader trong
