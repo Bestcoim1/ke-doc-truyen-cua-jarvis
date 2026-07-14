@@ -450,6 +450,7 @@ export type Database = {
           title: string
           updated_at: string
           visibility: Database["public"]["Enums"]["story_visibility"]
+          writing_status: Database["public"]["Enums"]["story_writing_status"]
         }
         Insert: {
           created_at?: string
@@ -461,6 +462,7 @@ export type Database = {
           title: string
           updated_at?: string
           visibility?: Database["public"]["Enums"]["story_visibility"]
+          writing_status?: Database["public"]["Enums"]["story_writing_status"]
         }
         Update: {
           created_at?: string
@@ -472,6 +474,7 @@ export type Database = {
           title?: string
           updated_at?: string
           visibility?: Database["public"]["Enums"]["story_visibility"]
+          writing_status?: Database["public"]["Enums"]["story_writing_status"]
         }
         Relationships: []
       }
@@ -592,6 +595,13 @@ export type Database = {
       section_type: "volume" | "arc" | "part"
       story_status: "active" | "archived" | "deleting"
       story_visibility: "private"
+      story_writing_status:
+        | "idea"
+        | "outlining"
+        | "drafting"
+        | "revising"
+        | "completed"
+        | "paused"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -738,6 +748,14 @@ export const Constants = {
       section_type: ["volume", "arc", "part"],
       story_status: ["active", "archived", "deleting"],
       story_visibility: ["private"],
+      story_writing_status: [
+        "idea",
+        "outlining",
+        "drafting",
+        "revising",
+        "completed",
+        "paused",
+      ],
     },
   },
 } as const

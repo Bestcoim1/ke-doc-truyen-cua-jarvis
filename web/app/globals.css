@@ -86,21 +86,27 @@
  * (FR-11), independent of the app's light/dark mode.
  */
 :root {
-  --kd-bg: #eee6d3;
-  --kd-surface: #fffdf8;
+  --kd-bg: #f2eadc;
+  --kd-surface: #fffaf0;
+  --kd-surface-raised: #fffdf8;
   --kd-text: #241f1a;
-  --kd-text-muted: #8b7e6a;
-  --kd-accent: #a23b2e;
+  --kd-text-muted: #7d715f;
+  --kd-binding: #29483f;
+  --kd-gilt: #b98532;
+  --kd-accent: #8f3f31;
   --kd-accent-foreground: #fdf8ed;
-  --kd-border: rgba(140, 120, 90, 0.18);
+  --kd-border: rgba(110, 90, 58, 0.18);
 }
 
 .dark {
-  --kd-bg: #1c1712;
-  --kd-surface: #241f1a;
+  --kd-bg: #17140f;
+  --kd-surface: #211d16;
+  --kd-surface-raised: #2a241b;
   --kd-text: #f2ece0;
   --kd-text-muted: #a89a7e;
-  --kd-accent: #d97a5f;
+  --kd-binding: #7ba091;
+  --kd-gilt: #d8a14d;
+  --kd-accent: #d77b61;
   --kd-accent-foreground: #241f1a;
   --kd-border: rgba(210, 190, 150, 0.16);
 }

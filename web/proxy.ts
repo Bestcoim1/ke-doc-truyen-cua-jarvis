@@ -17,14 +17,16 @@ const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
 export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isProd = process.env.NODE_ENV === "production";
+  const devScriptDirectives = isProd ? "" : " 'unsafe-eval'";
+  const devConnectDirectives = isProd ? "" : " ws://localhost:* http://localhost:*";
 
   const csp = [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${devScriptDirectives}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' blob: data:`,
     `font-src 'self'`,
-    `connect-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
+    `connect-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""}${devConnectDirectives}`,
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,
