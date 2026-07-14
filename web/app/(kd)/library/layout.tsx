@@ -15,7 +15,7 @@ export default function LibraryLayout({
         className="flex items-center justify-between px-5 py-4"
         style={{ borderBottom: "1px solid var(--kd-border)" }}
       >
-        <span className="text-lg font-bold">Kệ Đọc</span>
+        <span className="shrink-0 whitespace-nowrap text-lg font-bold">Kệ Đọc</span>
         {isSupabaseConfigured ? (
           <Suspense>
             <AuthButton />

@@ -17,5 +17,9 @@ export function LogoutButton() {
     router.refresh();
   };
 
-  return <Button onClick={logout}>Đăng xuất</Button>;
+  return (
+    <Button size="sm" onClick={logout}>
+      Đăng xuất
+    </Button>
+  );
 }
