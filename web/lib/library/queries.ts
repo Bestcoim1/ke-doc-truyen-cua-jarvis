@@ -18,6 +18,7 @@ type StoryListRow = {
   last_read_at: string | null;
   updated_at: string;
   writing_status?: WritingStatus | null;
+  cover_image_url?: string | null;
 };
 
 export type LibraryStory = {
@@ -26,6 +27,7 @@ export type LibraryStory = {
   lastReadAt: string | null;
   chapterCount: number;
   writingStatus: WritingStatus;
+  coverImageUrl: string | null;
   progress: {
     currentOrdinal: number;
     totalChapters: number;
@@ -51,7 +53,7 @@ async function getStoryRows(
 ): Promise<{ stories: StoryListRow[] | null; error: string | null }> {
   const withWritingStatus = await supabase
     .from("stories")
-    .select("id, title, last_read_at, updated_at, writing_status")
+    .select("id, title, last_read_at, updated_at, writing_status, cover_image_url")
     .eq("owner_id", ownerId)
     .eq("status", status)
     .order("last_read_at", { ascending: false, nullsFirst: false })
@@ -73,7 +75,7 @@ async function getStoryRows(
   });
   const withoutWritingStatus = await supabase
     .from("stories")
-    .select("id, title, last_read_at, updated_at")
+    .select("id, title, last_read_at, updated_at, cover_image_url")
     .eq("owner_id", ownerId)
     .eq("status", status)
     .order("last_read_at", { ascending: false, nullsFirst: false })
@@ -185,6 +187,7 @@ export async function getLibraryStories(
       lastReadAt: story.last_read_at,
       chapterCount: flat.length,
       writingStatus: story.writing_status ?? DEFAULT_WRITING_STATUS,
+      coverImageUrl: story.cover_image_url ?? null,
       progress:
         ordinal >= 0 && flat.length > 0
           ? {

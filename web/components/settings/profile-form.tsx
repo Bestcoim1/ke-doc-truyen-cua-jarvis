@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { updateProfile, updatePassword } from "@/app/(kd)/settings/actions";
 import type { FormState } from "@/app/(kd)/settings/actions";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,17 @@ export function ProfileForm({
     updatePassword,
     INITIAL_STATE
   );
+
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarPreview(URL.createObjectURL(file));
+    } else {
+      setAvatarPreview(null);
+    }
+  };
 
   return (
     <div className="grid gap-6 sm:grid-cols-2">
@@ -47,21 +58,35 @@ export function ProfileForm({
         </div>
         
         <div>
-          <label className="block text-sm font-bold mb-1" htmlFor="avatarUrl">
-            Link ảnh đại diện (URL)
+          <label className="block text-sm font-bold mb-3">
+            Ảnh đại diện
           </label>
-          <input
-            id="avatarUrl"
-            name="avatarUrl"
-            defaultValue={initialAvatarUrl}
-            placeholder="https://example.com/avatar.jpg"
-            className="w-full rounded-xl border px-3 py-2 text-sm"
-            style={{
-              borderColor: "var(--kd-border)",
-              background: "var(--kd-bg)",
-              color: "var(--kd-text)",
-            }}
-          />
+          <div className="flex items-center gap-4">
+            {/* Preview */}
+            <div 
+              className="h-16 w-16 shrink-0 rounded-full bg-cover bg-center border shadow-sm"
+              style={{ 
+                backgroundImage: `url(${avatarPreview || initialAvatarUrl || '/placeholder.svg'})`,
+                borderColor: "var(--kd-border)"
+              }}
+            />
+            <div className="flex flex-col gap-2 flex-1">
+              <input
+                id="avatarFile"
+                name="avatarFile"
+                type="file"
+                accept="image/png, image/jpeg, image/webp, image/gif"
+                onChange={handleAvatarChange}
+                className="text-xs file:mr-3 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+              />
+              <input
+                id="avatarUrl"
+                name="avatarUrl"
+                type="hidden"
+                value={initialAvatarUrl}
+              />
+            </div>
+          </div>
         </div>
 
         <Button

@@ -439,6 +439,7 @@ export type Database = {
       stories: {
         Row: {
           created_at: string;
+          cover_image_url: string | null;
           description: string | null;
           id: string;
           last_read_at: string | null;
@@ -451,6 +452,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          cover_image_url?: string | null;
           description?: string | null;
           id?: string;
           last_read_at?: string | null;
@@ -463,6 +465,7 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          cover_image_url?: string | null;
           description?: string | null;
           id?: string;
           last_read_at?: string | null;

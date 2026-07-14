@@ -8,6 +8,7 @@ import { DeleteStoryButton } from "@/components/library/delete-story-button";
 import { LibrarySkeleton } from "@/components/library/library-skeleton";
 import { RestoreStoryButton } from "@/components/library/restore-story-button";
 import { WritingStatusForm } from "@/components/library/writing-status-form";
+import { StoryCoverUpload } from "@/components/library/story-cover-upload";
 import { Button } from "@/components/ui/button";
 import { getLibraryStories, type LibraryStory } from "@/lib/library/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -210,19 +211,7 @@ function StoryCard({
     >
       <div className="p-5">
         <div className="flex items-start gap-4">
-          <div
-            aria-hidden
-            className="flex h-14 w-12 shrink-0 items-center justify-center rounded-xl border shadow-sm"
-            style={{
-              background:
-                "linear-gradient(160deg, var(--kd-binding), color-mix(in srgb, var(--kd-binding) 55%, #000))",
-              borderColor:
-                "color-mix(in srgb, var(--kd-gilt) 45%, transparent)",
-              color: "var(--kd-accent-foreground)",
-            }}
-          >
-            <BookOpen size={22} />
-          </div>
+          <StoryCoverUpload storyId={story.id} initialCoverUrl={story.coverImageUrl} />
           <div className="min-w-0 flex-1">
             {status === "active" ? (
               <Link href={`/read/${story.id}`} className="block">

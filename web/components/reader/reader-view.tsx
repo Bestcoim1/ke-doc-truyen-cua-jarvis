@@ -41,6 +41,7 @@ function scrollAnchorToFocusLine(container: HTMLElement, anchorId: string) {
 export function ReaderView({
   storyId,
   storyTitle,
+  coverImageUrl,
   chapter,
   prevChapterId,
   nextChapterEntry,
@@ -54,6 +55,7 @@ export function ReaderView({
 }: {
   storyId: string;
   storyTitle: string;
+  coverImageUrl?: string | null;
   chapter: {
     chapterId: string;
     chapterTitle: string;
@@ -351,8 +353,22 @@ export function ReaderView({
       data-kd-theme={settings.theme}
       style={{ background: "var(--kd-bg)", color: "var(--kd-text)" }}
     >
+      {coverImageUrl && (
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `url(${coverImageUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(60px)",
+            opacity: settings.theme === "dark" ? 0.35 : 0.2,
+            zIndex: 0
+          }}
+        />
+      )}
+
       <header
-        className="flex flex-shrink-0 items-center gap-2 border-b px-3 py-3"
+        className="relative z-10 flex flex-shrink-0 items-center gap-2 border-b px-3 py-3"
         style={{
           borderColor: "var(--kd-border)",
           background: "var(--kd-surface)",
@@ -431,7 +447,7 @@ export function ReaderView({
       <main
         ref={containerRef}
         aria-label={chapter.chapterTitle}
-        className="flex-1 overflow-y-auto px-5 py-5 font-serif"
+        className="relative z-10 flex-1 overflow-y-auto px-5 py-5 font-serif"
         style={{
           fontSize: `${FONT_SIZE_STEPS[settings.fontSizeStep]}px`,
           lineHeight: settings.lineHeight,
@@ -474,7 +490,7 @@ export function ReaderView({
       </main>
 
       <footer
-        className="flex flex-shrink-0 items-center justify-between border-t px-3 py-3"
+        className="relative z-10 flex flex-shrink-0 items-center justify-between border-t px-3 py-3"
         style={{
           borderColor: "var(--kd-border)",
           background: "var(--kd-surface)",

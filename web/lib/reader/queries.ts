@@ -10,17 +10,18 @@ export type { ChapterRow, SectionRow, TocNode } from "./tree";
 
 export async function getStoryForReader(
   supabase: SupabaseClient<Database>,
-  ownerId: string,
+  userId: string,
   storyId: string,
-) {
+): Promise<{ id: string; title: string; coverImageUrl: string | null } | null> {
   const { data, error } = await supabase
     .from("stories")
-    .select("id, title")
+    .select("id, title, cover_image_url")
     .eq("id", storyId)
-    .eq("owner_id", ownerId)
-    .maybeSingle();
-  if (error) logEvent("reader.story_query_error", { code: error.code });
-  return data;
+    .eq("owner_id", userId)
+    .single();
+
+  if (error || !data) return null;
+  return { id: data.id, title: data.title, coverImageUrl: data.cover_image_url };
 }
 
 export async function getSectionsAndChapters(

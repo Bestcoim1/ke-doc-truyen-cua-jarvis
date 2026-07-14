@@ -152,6 +152,7 @@ async function ReaderChapterContent({ params }: ReaderChapterPageProps) {
     <ReaderView
       storyId={storyId}
       storyTitle={story.title}
+      coverImageUrl={story.coverImageUrl}
       chapter={{
         chapterId: entry.chapterId,
         chapterTitle: entry.chapterTitle,
