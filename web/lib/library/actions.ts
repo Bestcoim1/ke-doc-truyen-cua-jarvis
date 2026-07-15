@@ -210,7 +210,7 @@ export async function uploadStoryCover(storyId: string, formData: FormData) {
 
   const { error: updateError } = await supabase
     .from("stories")
-    .update({ cover_image_url: coverImageUrl } as any)
+    .update({ cover_image_url: coverImageUrl })
     .eq("id", storyId)
     .eq("owner_id", user.id);
 

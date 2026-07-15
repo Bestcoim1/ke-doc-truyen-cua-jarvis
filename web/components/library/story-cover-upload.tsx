@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
+import { useState, useRef, useTransition, useEffect } from "react";
 import { BookOpen, Upload, Loader2 } from "lucide-react";
 import { uploadStoryCover } from "@/lib/library/actions";
 
@@ -15,6 +15,11 @@ export function StoryCoverUpload({
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Sync state if props change (e.g. from revalidation)
+  useEffect(() => {
+    setCoverUrl(initialCoverUrl);
+  }, [initialCoverUrl]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -24,15 +29,20 @@ export function StoryCoverUpload({
     setCoverUrl(objectUrl);
 
     startTransition(async () => {
-      const formData = new FormData();
-      formData.append("coverFile", file);
-      
-      const result = await uploadStoryCover(storyId, formData);
-      if (result.error) {
-        alert(result.error);
+      try {
+        const formData = new FormData();
+        formData.append("coverFile", file);
+        
+        const result = await uploadStoryCover(storyId, formData);
+        if (result.error) {
+          alert(result.error);
+          setCoverUrl(initialCoverUrl); // revert
+        } else if (result.coverImageUrl) {
+          setCoverUrl(result.coverImageUrl);
+        }
+      } catch (err: any) {
+        alert("Lỗi khi tải ảnh: " + (err.message || "Unknown error"));
         setCoverUrl(initialCoverUrl); // revert
-      } else if (result.coverImageUrl) {
-        setCoverUrl(result.coverImageUrl);
       }
     });
   };
