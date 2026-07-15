@@ -132,7 +132,7 @@ export async function remapReadingProgressAfterReimport(
       p_paragraph_anchor_id: resolved.anchorId,
       p_paragraph_fingerprint: resolved.fingerprint,
       p_paragraph_ordinal: resolved.ordinal,
-      p_paragraph_offset_ratio: null,
+      p_paragraph_offset_ratio: 0,
       p_chapter_progress_pct: resolved.progressPct,
       p_write_id: crypto.randomUUID(),
       p_observed_at: new Date().toISOString(),
