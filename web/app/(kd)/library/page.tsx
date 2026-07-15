@@ -202,7 +202,7 @@ function StoryCard({
 
   return (
     <li
-      className="group/card relative flex flex-col overflow-hidden rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+      className="group/card relative flex flex-col overflow-hidden rounded-3xl border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
       style={{
         background:
           "linear-gradient(145deg, var(--kd-surface-raised), color-mix(in srgb, var(--kd-surface) 86%, var(--kd-gilt)))",
@@ -212,14 +212,14 @@ function StoryCard({
     >
       {/* Invisible link overlay covering the whole card */}
       {status === "active" && (
-        <Link href={`/read/${story.id}`} className="absolute inset-0 z-0 rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-primary">
+        <Link href={`/read/${story.id}`} className="absolute inset-0 z-10 rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-primary">
           <span className="sr-only">Đọc {story.title}</span>
         </Link>
       )}
 
-      <div className="relative z-10 flex flex-col flex-1 p-5 pointer-events-none">
+      <div className="relative z-0 flex flex-col flex-1 p-5 pointer-events-none">
         <div className="flex items-start gap-4">
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto relative z-20">
             <StoryCoverIcon storyId={story.id} initialCoverUrl={story.coverImageUrl} />
           </div>
           <div className="min-w-0 flex-1">
@@ -251,7 +251,7 @@ function StoryCard({
         </div>
 
         {status === "active" ? (
-          <div className="mt-5 pointer-events-auto">
+          <div className="mt-5 pointer-events-auto relative z-20">
             <WritingStatusForm
               storyId={story.id}
               writingStatus={story.writingStatus}
