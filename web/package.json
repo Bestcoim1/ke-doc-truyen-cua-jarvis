@@ -6,7 +6,7 @@
     "node": ">=20.9.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
@@ -36,6 +36,7 @@
     "clsx": "^2.1.1",
     "epub-gen-memory": "^1.1.2",
     "fast-xml-parser": "^5.10.0",
+    "idb-keyval": "^6.3.0",
     "js-sha256": "^0.11.1",
     "jszip": "^3.10.1",
     "lucide-react": "^1.24.0",

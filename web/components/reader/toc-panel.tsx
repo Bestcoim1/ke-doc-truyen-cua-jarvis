@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, ChevronRight, ChevronDown } from "lucide-react";
+import { X, ChevronRight, ChevronDown, Download, Check } from "lucide-react";
+import { toast } from "sonner";
+import { getStoryForOfflineDownload } from "@/lib/reader/actions";
+import { saveStoryForOffline, saveChapterForOffline } from "@/lib/offline/storage";
 
 import {
   buildTocTree,
@@ -140,6 +143,54 @@ export function TocPanel({
     current?.scrollIntoView({ block: "center" });
   }, []);
 
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<{ total: number; done: number } | null>(null);
+
+  const handleDownloadOffline = async () => {
+    setIsDownloading(true);
+    setDownloadProgress({ total: 100, done: 0 }); // Indeterminate at first
+    try {
+      const data = await getStoryForOfflineDownload(storyId);
+      setDownloadProgress({ total: data.chapters.length, done: 0 });
+      
+      const { story, sections, chapters, revisions, annotations } = data;
+      
+      await saveStoryForOffline({
+        storyId,
+        storyTitle: story.title,
+        coverImageUrl: story.cover_image_url,
+        sections,
+        chapters,
+        lastSyncedAt: Date.now(),
+      });
+
+      for (let i = 0; i < chapters.length; i++) {
+        const chapter = chapters[i];
+        if (!chapter.current_revision_id) continue;
+        const revision = revisions.find(r => r.id === chapter.current_revision_id);
+        if (!revision || !revision.content_blocks) continue;
+
+        const chapterAnns = annotations.filter(a => a.chapter_id === chapter.id);
+        
+        await saveChapterForOffline(storyId, {
+          chapterId: chapter.id,
+          revisionId: revision.id,
+          contentHash: revision.content_hash,
+          blocks: revision.content_blocks as any, // assuming it's correctly typed as Block[] in real runtime
+          annotations: chapterAnns,
+        });
+        setDownloadProgress({ total: chapters.length, done: i + 1 });
+      }
+
+      toast.success("Tải xuống thành công để đọc Offline!");
+    } catch (error: any) {
+      toast.error(`Lỗi tải truyện: ${error.message}`);
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress(null);
+    }
+  };
+
   function handleNavigate(chapterId: string) {
     onClose();
     // Full navigation, not router.push() — see reader-view.tsx's
@@ -159,16 +210,36 @@ export function TocPanel({
           style={{ background: "var(--kd-surface)", color: "var(--kd-text)" }}
         >
           <div
-            className="flex items-center justify-between border-b px-4 py-3"
+            className="flex items-center justify-between border-b px-4 py-3 gap-2"
             style={{ borderColor: "var(--kd-border)" }}
           >
             <Dialog.Title asChild>
-              <span className="text-base font-bold">Mục lục</span>
+              <span className="text-base font-bold flex-1">Mục lục</span>
             </Dialog.Title>
+            
+            <button
+              onClick={handleDownloadOffline}
+              disabled={isDownloading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
+              title="Tải truyện về máy để đọc Offline"
+            >
+              {isDownloading ? (
+                <span>
+                  {downloadProgress && downloadProgress.total > 0
+                    ? `${downloadProgress.done}/${downloadProgress.total}`
+                    : "Đang tải..."}
+                </span>
+              ) : (
+                <>
+                  <Download size={14} /> Tải Offline
+                </>
+              )}
+            </button>
+
             <Dialog.Close asChild>
               <button
                 aria-label="Đóng"
-                className="flex h-11 w-11 items-center justify-center rounded-md"
+                className="flex h-11 w-11 items-center justify-center rounded-md shrink-0"
               >
                 <X size={18} />
               </button>

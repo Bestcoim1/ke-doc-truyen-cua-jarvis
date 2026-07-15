@@ -12,6 +12,7 @@ import {
   getReadingSettings,
   getSectionsAndChapters,
   getStoryForReader,
+  getChapterAnnotations,
 } from "@/lib/reader/queries";
 import {
   resolveResumeAnchor,
@@ -118,11 +119,12 @@ async function ReaderChapterContent({ params }: ReaderChapterPageProps) {
   const chapterRow = chapters.find((c) => c.id === chapterId);
   if (!chapterRow?.current_revision_id) notFound();
 
-  const [content, progress, readStates, settings] = await Promise.all([
+  const [content, progress, readStates, settings, annotations] = await Promise.all([
     getChapterRevisionContent(supabase, chapterRow.current_revision_id),
     getReadingProgress(supabase, userId, storyId),
     getChapterReadStates(supabase, userId, storyId),
     getReadingSettings(supabase, userId),
+    getChapterAnnotations(supabase, userId, chapterId),
   ]);
   if (!content) notFound();
 
@@ -170,6 +172,7 @@ async function ReaderChapterContent({ params }: ReaderChapterPageProps) {
       tocSections={sections}
       tocChapters={chapters}
       tocReadStates={Object.fromEntries(readStates)}
+      initialAnnotations={annotations}
     />
   );
 }

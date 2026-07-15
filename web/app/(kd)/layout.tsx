@@ -1,4 +1,5 @@
 import { Be_Vietnam_Pro, Noto_Serif } from "next/font/google";
+import { OfflineSyncManager } from "@/components/offline-sync-manager";
 
 const beVietnamPro = Be_Vietnam_Pro({
   variable: "--font-kd-sans",
@@ -27,6 +28,7 @@ export default function KdLayout({ children }: { children: React.ReactNode }) {
       className={`kd-shell ${beVietnamPro.variable} ${notoSerif.variable}`}
       style={{ fontFamily: "var(--font-kd-sans)" }}
     >
+      <OfflineSyncManager />
       {children}
     </div>
   );

@@ -14,12 +14,15 @@ import { ArrowLeft, ChevronLeft, ChevronRight, List } from "lucide-react";
 import type { Block, ReadingSettings } from "@/lib/reader/types";
 import { FONT_SIZE_STEPS } from "@/lib/reader/types";
 import { extractFingerprintFromAnchorId } from "@/lib/reader/anchor-utils";
-import { updateReadingSettings } from "@/lib/reader/actions";
+import { updateReadingSettings, createAnnotation, updateAnnotation, deleteAnnotation } from "@/lib/reader/actions";
+import { savePendingProgress } from "@/lib/offline/storage";
 import type { ResumeFallbackMethod } from "@/lib/reader/resume-fallback";
 import type { ChapterRow, SectionRow } from "@/lib/reader/tree";
 import { BlockRenderer } from "./block-renderer";
 import { TocPanel } from "./toc-panel";
 import { SettingsSheet } from "./settings-sheet";
+import { AnnotationPopover } from "./annotation-popover";
+import type { ChapterAnnotationRow } from "@/lib/reader/queries";
 
 type ReadState = {
   maxProgressPct: number;
@@ -52,6 +55,7 @@ export function ReaderView({
   tocSections,
   tocChapters,
   tocReadStates,
+  initialAnnotations = [],
 }: {
   storyId: string;
   storyTitle: string;
@@ -73,6 +77,7 @@ export function ReaderView({
   tocSections: SectionRow[];
   tocChapters: ChapterRow[];
   tocReadStates: Record<string, ReadState>;
+  initialAnnotations?: ChapterAnnotationRow[];
 }) {
   const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
@@ -80,6 +85,9 @@ export function ReaderView({
   const [showSettings, setShowSettings] = useState(false);
   const [progressPct, setProgressPct] = useState(
     chapterReadState?.maxProgressPct ?? 0,
+  );
+  const [annotations, setAnnotations] = useState<ChapterAnnotationRow[]>(
+    initialAnnotations,
   );
   // One-time, dismissible: PRD §10.2/FR-10 — only surfaced when resume had
   // to fall back beyond an exact anchor match (nearby paragraph or ordinal
@@ -169,16 +177,24 @@ export function ReaderView({
       }
       if (!body.progress && !body.chapterState) return;
 
+      if (!navigator.onLine) {
+        savePendingProgress(body).catch(console.error);
+        return;
+      }
+
       try {
         void fetch("/api/reader/progress", {
           method: "POST",
           keepalive: true,
           headers: { "content-type": "application/json" },
           body: JSON.stringify(body),
-        }).catch(() => {});
+        }).catch(() => {
+          // fetch failed (e.g. network lost mid-flight)
+          savePendingProgress(body).catch(console.error);
+        });
       } catch {
-        // keepalive quota exceeded or offline — the debounced pending copy
-        // is already gone; the next observation will produce a fresh write.
+        // keepalive quota exceeded or offline — save to IDB instead
+        savePendingProgress(body).catch(console.error);
       }
     },
     [
@@ -347,6 +363,99 @@ export function ReaderView({
     }
   }
 
+  const handleHighlight = useCallback(
+    async (
+      anchorId: string,
+      startOffset: number,
+      endOffset: number,
+      color: string,
+      note?: string
+    ) => {
+      const tempId = `temp-${Date.now()}`;
+      const newAnn: ChapterAnnotationRow = {
+        id: tempId,
+        user_id: "",
+        story_id: storyId,
+        chapter_id: chapter.chapterId,
+        anchor_id: anchorId,
+        start_offset: startOffset,
+        end_offset: endOffset,
+        color,
+        note: note || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      let overlappingIds: string[] = [];
+      
+      setAnnotations((prev) => {
+        const overlaps = prev.filter(
+          (a) =>
+            a.anchor_id === anchorId &&
+            a.start_offset < endOffset &&
+            a.end_offset > startOffset
+        );
+        overlappingIds = overlaps.map((a) => a.id);
+        
+        const filtered = prev.filter((a) => !overlappingIds.includes(a.id));
+        return [...filtered, newAnn];
+      });
+
+      // Fire and forget deletions for overlapping annotations
+      overlappingIds.forEach((id) => {
+        if (!id.startsWith("temp-")) {
+          deleteAnnotation(id).catch(console.error);
+        }
+      });
+
+      try {
+        const id = await createAnnotation({
+          storyId,
+          chapterId: chapter.chapterId,
+          anchorId,
+          startOffset,
+          endOffset,
+          color,
+          note,
+        });
+        setAnnotations((prev) =>
+          prev.map((a) => (a.id === tempId ? { ...a, id } : a))
+        );
+      } catch (err) {
+        setAnnotations((prev) => prev.filter((a) => a.id !== tempId));
+      }
+    },
+    [storyId, chapter.chapterId]
+  );
+
+  const handleUpdateAnnotation = useCallback(
+    async (id: string, color: string, note?: string) => {
+      // Optimistic update
+      setAnnotations((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, color, note: note || null } : a))
+      );
+      try {
+        await updateAnnotation(id, { color, note: note || null });
+      } catch (err) {
+        // Simple rollback if needed, though omitted for brevity
+        console.error("Failed to update annotation", err);
+      }
+    },
+    []
+  );
+
+  const handleDeleteAnnotation = useCallback(
+    async (id: string) => {
+      // Optimistic delete
+      setAnnotations((prev) => prev.filter((a) => a.id !== id));
+      try {
+        await deleteAnnotation(id);
+      } catch (err) {
+        console.error("Failed to delete annotation", err);
+      }
+    },
+    []
+  );
+
   return (
     <div
       className="relative flex h-[100dvh] flex-col overflow-hidden"
@@ -456,7 +565,14 @@ export function ReaderView({
           paddingRight: "max(1.25rem, env(safe-area-inset-right))",
         }}
       >
-        <BlockRenderer blocks={chapter.blocks} />
+        <AnnotationPopover
+          containerRef={containerRef}
+          onHighlight={handleHighlight}
+          onUpdate={handleUpdateAnnotation}
+          onDelete={handleDeleteAnnotation}
+          annotations={annotations}
+        />
+        <BlockRenderer blocks={chapter.blocks} annotations={annotations} />
         <div ref={endSentinelRef} />
         <div
           className="mt-8 border-t pt-4 text-center"

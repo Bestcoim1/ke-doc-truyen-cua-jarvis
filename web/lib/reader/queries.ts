@@ -137,10 +137,28 @@ export async function getReadingSettings(
   if (!data) return DEFAULT_READING_SETTINGS;
 
   return {
-    fontSizeStep: data.font_size_step,
-    lineHeight: Number(data.line_height),
-    theme: data.theme,
+    fontSizeStep: data?.font_size_step ?? 1,
+    lineHeight: data?.line_height ?? 1.7,
+    theme: data?.theme ?? "light",
   };
+}
+
+export type ChapterAnnotationRow = Database["public"]["Tables"]["chapter_annotations"]["Row"];
+
+export async function getChapterAnnotations(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  chapterId: string,
+): Promise<ChapterAnnotationRow[]> {
+  const { data, error } = await supabase
+    .from("chapter_annotations")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("chapter_id", chapterId);
+  if (error) {
+    logEvent("reader.annotations_query_error", { code: error.code });
+  }
+  return data ?? [];
 }
 
 export function blockPlainText(block: Block): string {
