@@ -3,6 +3,7 @@ import { Geist, Fraunces, Source_Serif_4 } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { headers } from "next/headers";
 import { Suspense } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { APP_BRANDING } from "@/lib/branding";
 import { PwaRegistrar } from "@/components/pwa-registrar";
@@ -95,6 +96,7 @@ export default function RootLayout({
           <NonceThemeProvider>{children}</NonceThemeProvider>
         </Suspense>
         <PwaRegistrar />
+        <SpeedInsights />
       </body>
     </html>
   );
