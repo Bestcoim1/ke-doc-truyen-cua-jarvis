@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const COVER_COLORS = [
   { value: "#3b82f6", label: "Xanh dương" },
@@ -43,12 +44,12 @@ export function StoryCoverIcon({
       try {
         const result = await updateStoryCoverColor(storyId, color);
         if (result.error) {
-          alert(result.error);
+          toast.error(result.error);
           setOptimisticColor(null);
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        alert("Lỗi khi cập nhật màu: " + msg);
+        toast.error("Lỗi khi cập nhật màu: " + msg);
         setOptimisticColor(null);
       }
     });
