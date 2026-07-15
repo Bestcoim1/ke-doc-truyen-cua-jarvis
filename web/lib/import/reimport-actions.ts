@@ -169,6 +169,144 @@ export async function createPasteReimportJob(
   redirect(`/import/review/${job.id}`);
 }
 
+export async function createGoogleDocsReimportJob(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const storyId = formString(formData, "storyId");
+  const url = formString(formData, "url").trim();
+
+  if (!UUID_RE.test(storyId)) {
+    return { error: "Tác phẩm không hợp lệ.", message: null };
+  }
+
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  const docId = match ? match[1] : null;
+  if (!docId) {
+    return { error: "Đường link Google Docs không hợp lệ.", message: null };
+  }
+
+  const { supabase, userId } = await requireUser(
+    `/import/reimport/${storyId}/new`,
+  );
+
+  const { data: story } = await supabase
+    .from("stories")
+    .select("id, title, status")
+    .eq("id", storyId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  if (!story || story.status !== "active") {
+    return { error: "Không tìm thấy tác phẩm này để cập nhật.", message: null };
+  }
+
+  const quotaError = await assertUnderJobQuota(supabase, userId);
+  if (quotaError) return { error: quotaError, message: null };
+
+  let buffer: Buffer;
+  try {
+    const response = await fetch(`https://docs.google.com/document/export?format=docx&id=${docId}`);
+    if (!response.ok) {
+      throw new Error("Không thể tải tài liệu. Hãy chắc chắn bạn đã cấp quyền 'Bất kỳ ai có liên kết đều có thể xem'.");
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    buffer = Buffer.from(arrayBuffer);
+    if (buffer.length > MAX_UPLOAD_BYTES) {
+      return { error: `File Google Docs vượt quá giới hạn ${Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))}MB.`, message: null };
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Lỗi khi tải tài liệu từ Google Docs.", message: null };
+  }
+
+  const sourceHash = createHash("sha256").update(buffer).digest("hex");
+  const storagePath = `${userId}/${crypto.randomUUID()}.docx`;
+
+  const { data: job, error: insertError } = await supabase
+    .from("import_jobs")
+    .insert({
+      owner_id: userId,
+      story_id: storyId,
+      source_type: "docx",
+      source_filename: `Google Docs: ${story.title}`.slice(0, 255),
+      source_hash: sourceHash,
+      parser_version: DOCX_PARSER_VERSION,
+      status: "parsing",
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !job) {
+    logEvent("reimport.job_create_error", {
+      code: insertError?.code ?? "missing_row",
+    });
+    return {
+      error: "Chưa thể tạo bản review. Vui lòng thử lại sau.",
+      message: null,
+    };
+  }
+
+  const { error: uploadError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(storagePath, buffer, {
+      contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    logEvent("reimport.upload_error", { code: uploadError.name });
+    await supabase
+      .from("import_jobs")
+      .update({ status: "failed", error_message: "upload_failed" })
+      .eq("id", job.id);
+    return {
+      error: "Không thể tải file lên. Vui lòng thử lại.",
+      message: null,
+    };
+  }
+
+  let draft: ImportDraft;
+  try {
+    draft = await parseDocxDraft(buffer, { title: story.title });
+    if (draft.stats.chapterCount === 0) {
+      throw new Error("Không tìm thấy nội dung chương để review.");
+    }
+  } catch (error) {
+    await deleteStorageObjectSafely(supabase, storagePath);
+    const message = error instanceof Error ? error.message : "Không thể xử lý file này.";
+    await supabase
+      .from("import_jobs")
+      .update({ status: "failed", error_message: message })
+      .eq("id", job.id);
+    return { error: message, message: null };
+  }
+
+  const { error: finalizeError } = await supabase
+    .from("import_jobs")
+    .update({
+      status: "needs_review",
+      draft_json: draft,
+      warnings: draft.warnings,
+    })
+    .eq("id", job.id);
+
+  if (finalizeError) {
+    logEvent("reimport.job_create_error", { code: finalizeError.code });
+    return {
+      error: "Chưa thể lưu bản review. Vui lòng thử lại sau.",
+      message: null,
+    };
+  }
+
+  await deleteStorageObjectSafely(supabase, storagePath);
+
+  logEvent("reimport.job_created", {
+    storyId,
+    chapterCount: draft.stats.chapterCount,
+    sourceType: "google_docs",
+  });
+  redirect(`/import/review/${job.id}`);
+}
+
 /** File-upload counterpart to createPasteReimportJob — mirrors createFileImport's upload/parse/cleanup lifecycle exactly, just targeting an existing story instead of creating a new one. */
 export async function createFileReimportJob(
   _previousState: ActionState,
