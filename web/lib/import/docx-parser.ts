@@ -90,10 +90,7 @@ async function readZipEntry(
   });
 }
 
-const HEADING_STYLE_LEVELS: Record<string, 1 | 2> = {
-  Heading1: 1,
-  Heading2: 2,
-};
+
 
 /** Recursively concatenates run text (w:t), tabs and line breaks, in document order. */
 function extractParagraphText(node: XmlNode): string {
@@ -144,8 +141,14 @@ function extractParagraphs(
     if (pPr) {
       const pStyle = findFirst(childArray(pPr, "w:pPr"), "w:pStyle");
       const styleId = pStyle?.[":@"]?.["@_w:val"];
-      if (typeof styleId === "string")
-        headingHint = HEADING_STYLE_LEVELS[styleId];
+      if (typeof styleId === "string") {
+        const normalized = styleId.toLowerCase().replace(/[\s\-_]/g, "");
+        if (normalized.match(/^(heading1|title|tiêuđề1|h1)$/)) {
+          headingHint = 1;
+        } else if (normalized.match(/^(heading2|subtitle|tiêuđề2|h2)$/)) {
+          headingHint = 2;
+        }
+      }
     }
     paragraphs.push({ text: extractParagraphText(node).trim(), headingHint });
   }

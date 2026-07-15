@@ -12,10 +12,12 @@ const NO_CHAPTER_HEADING_WARNING =
 const NUMBERED_TITLE_SUFFIX = "(?:\\s*[:._\\-–—]\\s*.*|\\s+.*)?";
 const ROMAN_INDEX =
   "(?=[ivxlcdm]+(?:\\s|[:._\\-–—]|$))m{0,3}(?:cm|cd|d?c{0,3})(?:xc|xl|l?x{0,3})(?:ix|iv|v?i{0,3})";
-const INDEX_TOKEN = `(?:\\d+(?:\\.\\d+)*|${ROMAN_INDEX})`;
+const VI_NUMBER_WORDS = "mười|một|hai|ba|bốn|năm|sáu|bảy|tám|chín|mươi|lăm|lẻ|linh|trăm|ngàn|nghìn|triệu|tỉ|tỷ|mốt|rưỡi|tư";
+const VI_INDEX = `(?:(?:${VI_NUMBER_WORDS})(?:\\s+(?:${VI_NUMBER_WORDS}))*)`;
+const INDEX_TOKEN = `(?:\\d+(?:\\.\\d+)*|${ROMAN_INDEX}|${VI_INDEX})`;
 
 const SECTION_HEADER_PATTERN = new RegExp(
-  `^(?:hồi|phần|quyển|arc|part|volume)\\s+${INDEX_TOKEN}${NUMBERED_TITLE_SUFFIX}$`,
+  `^(?:hồi|phần|quyển|tập|arc|part|volume)\\s+${INDEX_TOKEN}${NUMBERED_TITLE_SUFFIX}$`,
   "iu",
 );
 
