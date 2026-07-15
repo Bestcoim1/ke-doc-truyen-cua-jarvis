@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       p_paragraph_anchor_id: progress.paragraphAnchorId,
       p_paragraph_fingerprint: progress.paragraphFingerprint,
       p_paragraph_ordinal: progress.paragraphOrdinal,
-      p_paragraph_offset_ratio: progress.paragraphOffsetRatio,
+      p_paragraph_offset_ratio: progress.paragraphOffsetRatio ?? 0,
       p_chapter_progress_pct: progress.chapterProgressPct,
       p_write_id: progress.writeId,
       p_observed_at: progress.observedAt,
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
       p_anchor_id: chapterState.anchorId,
       p_progress_pct: chapterState.progressPct,
       p_mark_completed: chapterState.markCompleted,
-      p_completion_method: chapterState.completionMethod,
+      p_completion_method: chapterState.completionMethod as any,
     });
     if (error) {
       logEvent("reader.chapter_progress_error", { code: error.code });
