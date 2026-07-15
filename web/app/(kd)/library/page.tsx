@@ -8,7 +8,7 @@ import { DeleteStoryButton } from "@/components/library/delete-story-button";
 import { LibrarySkeleton } from "@/components/library/library-skeleton";
 import { RestoreStoryButton } from "@/components/library/restore-story-button";
 import { WritingStatusForm } from "@/components/library/writing-status-form";
-import { StoryCoverUpload } from "@/components/library/story-cover-upload";
+import { StoryCoverIcon } from "@/components/library/story-cover-icon";
 import { Button } from "@/components/ui/button";
 import { getLibraryStories, type LibraryStory } from "@/lib/library/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -202,28 +202,30 @@ function StoryCard({
 
   return (
     <li
-      className="overflow-hidden rounded-3xl border"
+      className="group/card relative flex flex-col overflow-hidden rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
       style={{
         background:
           "linear-gradient(145deg, var(--kd-surface-raised), color-mix(in srgb, var(--kd-surface) 86%, var(--kd-gilt)))",
         borderColor: "var(--kd-border)",
+        boxShadow: "0 4px 20px -5px color-mix(in srgb, var(--kd-gilt) 20%, transparent)",
       }}
     >
-      <div className="p-5">
+      {/* Invisible link overlay covering the whole card */}
+      {status === "active" && (
+        <Link href={`/read/${story.id}`} className="absolute inset-0 z-0 rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-primary">
+          <span className="sr-only">Đọc {story.title}</span>
+        </Link>
+      )}
+
+      <div className="relative z-10 flex flex-col flex-1 p-5 pointer-events-none">
         <div className="flex items-start gap-4">
-          <StoryCoverUpload storyId={story.id} initialCoverUrl={story.coverImageUrl} />
+          <div className="pointer-events-auto">
+            <StoryCoverIcon storyId={story.id} initialCoverUrl={story.coverImageUrl} />
+          </div>
           <div className="min-w-0 flex-1">
-            {status === "active" ? (
-              <Link href={`/read/${story.id}`} className="block">
-                <h2 className="line-clamp-2 text-xl font-extrabold font-display leading-tight">
-                  {story.title}
-                </h2>
-              </Link>
-            ) : (
-              <h2 className="line-clamp-2 text-xl font-extrabold font-display leading-tight">
-                {story.title}
-              </h2>
-            )}
+            <h2 className="line-clamp-2 text-xl font-extrabold font-display leading-tight transition-colors group-hover/card:text-primary">
+              {story.title}
+            </h2>
             <div
               className="mt-2 flex flex-wrap items-center gap-2 text-xs"
               style={{ color: "var(--kd-text-muted)" }}
@@ -249,7 +251,7 @@ function StoryCard({
         </div>
 
         {status === "active" ? (
-          <div className="mt-5">
+          <div className="mt-5 pointer-events-auto">
             <WritingStatusForm
               storyId={story.id}
               writingStatus={story.writingStatus}
@@ -257,7 +259,7 @@ function StoryCard({
           </div>
         ) : (
           <div
-            className="mt-5 inline-flex rounded-full border px-3 py-1 text-xs font-bold"
+            className="mt-5 inline-flex w-fit rounded-full border px-3 py-1 text-xs font-bold"
             style={{
               borderColor: "var(--kd-border)",
               color: "var(--kd-text-muted)",
@@ -269,7 +271,7 @@ function StoryCard({
       </div>
 
       <div
-        className="flex flex-wrap items-center gap-3 border-t px-5 py-3 text-xs"
+        className="relative z-10 pointer-events-auto flex flex-wrap items-center gap-3 border-t px-5 py-3 text-xs"
         style={{
           borderColor: "var(--kd-border)",
           background: "color-mix(in srgb, var(--kd-surface) 72%, transparent)",

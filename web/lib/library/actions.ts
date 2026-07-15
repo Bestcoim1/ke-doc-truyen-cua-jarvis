@@ -187,35 +187,19 @@ export async function updateStoryWritingStatus(
   return { error: null, message: "Đã cập nhật tiến trình sáng tác." };
 }
 
-export async function uploadStoryCover(storyId: string, formData: FormData) {
+export async function updateStoryCoverColor(storyId: string, color: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
-  const coverFile = formData.get("coverFile") as File | null;
-  if (!coverFile || coverFile.size === 0) return { error: "No file provided" };
-  if (coverFile.size > 5242880) return { error: "File too large. Max 5MB." };
-
-  const ext = coverFile.name.split('.').pop() || 'jpg';
-  const filePath = `${user.id}/covers/${storyId}_${Date.now()}.${ext}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('media')
-    .upload(filePath, coverFile, { upsert: true });
-
-  if (uploadError) return { error: "Upload failed: " + uploadError.message };
-
-  const { data: publicUrlData } = supabase.storage.from('media').getPublicUrl(filePath);
-  const coverImageUrl = publicUrlData.publicUrl;
-
   const { error: updateError } = await supabase
     .from("stories")
-    .update({ cover_image_url: coverImageUrl })
+    .update({ cover_image_url: color })
     .eq("id", storyId)
     .eq("owner_id", user.id);
 
   if (updateError) return { error: "Database update failed: " + updateError.message };
 
   revalidatePath("/library");
-  return { success: true, coverImageUrl };
+  return { success: true };
 }
