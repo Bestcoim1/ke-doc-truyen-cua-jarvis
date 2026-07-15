@@ -234,12 +234,21 @@ export async function parseDocxDraft(
 ): Promise<ImportDraft> {
   const paragraphs = await extractDocxParagraphs(buffer);
 
+  const hasHeading2 = paragraphs.some((p) => p.headingHint === 2);
+
   const lines: LogicalLine[] = [];
   for (const paragraph of paragraphs) {
     paragraph.text.split("\n").forEach((segment, index) => {
+      let hint = index === 0 ? paragraph.headingHint : undefined;
+      // Nếu file DOCX chỉ dùng Heading 1 mà không dùng Heading 2,
+      // rất có thể người dùng đang dùng Heading 1 để làm Chương (Chapter).
+      // Ta sẽ tự động chuyển nó thành level 2 (Chapter) để tránh bị coi là Phần/Quyển (Section).
+      if (hint === 1 && !hasHeading2) {
+        hint = 2;
+      }
       lines.push({
         text: segment,
-        headingHint: index === 0 ? paragraph.headingHint : undefined,
+        headingHint: hint,
       });
     });
     lines.push({ text: "" });
