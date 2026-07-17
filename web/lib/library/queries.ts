@@ -35,6 +35,24 @@ export type LibraryStory = {
   } | null;
 };
 
+export type ChapterOrderItem = {
+  id: string;
+  title: string;
+};
+
+export type ChapterOrderSection = {
+  id: string;
+  title: string;
+  path: string[];
+  chapters: ChapterOrderItem[];
+};
+
+export type ChapterOrderStory = {
+  id: string;
+  title: string;
+  sections: ChapterOrderSection[];
+};
+
 function isMissingWritingStatusError(
   error: { code?: string; message?: string } | null,
 ) {
@@ -200,4 +218,89 @@ export async function getLibraryStories(
   });
 
   return { stories, error: null };
+}
+
+export async function getChapterOrderStory(
+  supabase: SupabaseClient<Database>,
+  storyId: string,
+  ownerId: string,
+): Promise<ChapterOrderStory | null> {
+  const { data: story } = await supabase
+    .from("stories")
+    .select("id, title, status")
+    .eq("id", storyId)
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+  if (!story || story.status !== "active") return null;
+
+  const [{ data: sections, error: sectionsError }, { data: chapters, error: chaptersError }] =
+    await Promise.all([
+      supabase
+        .from("sections")
+        .select("id, parent_section_id, title, sort_order")
+        .eq("story_id", storyId)
+        .eq("is_active", true),
+      supabase
+        .from("chapters")
+        .select("id, section_id, title, sort_order")
+        .eq("story_id", storyId)
+        .eq("is_active", true),
+    ]);
+
+  if (sectionsError || chaptersError) {
+    logEvent("library.chapter_order_query_error", {
+      code: sectionsError?.code ?? chaptersError?.code ?? "unknown",
+    });
+    return null;
+  }
+
+  const compareNodes = <T extends { id: string; sort_order: number; title: string }>(
+    left: T,
+    right: T,
+  ) =>
+    left.sort_order - right.sort_order ||
+    left.title.localeCompare(right.title, "vi") ||
+    left.id.localeCompare(right.id);
+
+  const childrenByParent = new Map<string | null, typeof sections>();
+  for (const section of sections ?? []) {
+    const group = childrenByParent.get(section.parent_section_id) ?? [];
+    group.push(section);
+    childrenByParent.set(section.parent_section_id, group);
+  }
+  const chaptersBySection = new Map<string, typeof chapters>();
+  for (const chapter of chapters ?? []) {
+    if (!chapter.section_id) continue;
+    const group = chaptersBySection.get(chapter.section_id) ?? [];
+    group.push(chapter);
+    chaptersBySection.set(chapter.section_id, group);
+  }
+
+  const result: ChapterOrderSection[] = [];
+  function walk(parentId: string | null, parentPath: string[]) {
+    const childSections = [...(childrenByParent.get(parentId) ?? [])].sort(
+      compareNodes,
+    );
+    for (const section of childSections) {
+      const path = [...parentPath, section.title];
+      const directChapters = [...(chaptersBySection.get(section.id) ?? [])].sort(
+        compareNodes,
+      );
+      if (directChapters.length > 0) {
+        result.push({
+          id: section.id,
+          title: section.title,
+          path,
+          chapters: directChapters.map((chapter) => ({
+            id: chapter.id,
+            title: chapter.title,
+          })),
+        });
+      }
+      walk(section.id, path);
+    }
+  }
+  walk(null, []);
+
+  return { id: story.id, title: story.title, sections: result };
 }

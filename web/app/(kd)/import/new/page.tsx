@@ -33,7 +33,7 @@ async function NewImportContent() {
     <div className="mx-auto w-full max-w-3xl p-4 sm:p-6">
       <div className="mb-6">
         <p className="text-sm" style={{ color: "var(--kd-text-muted)" }}>
-          Import bằng paste text
+          Paste, tải một hoặc nhiều file, hoặc dùng Google Docs
         </p>
         <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl">
           Thêm tác phẩm

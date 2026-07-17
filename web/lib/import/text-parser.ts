@@ -31,7 +31,7 @@ const UNNUMBERED_EXTRA_HEADER_PATTERN =
 
 const SCENE_BREAKS = new Set(["***", "* * *", "—", "---"]);
 
-export type ImportSourceType = "paste" | "txt" | "docx";
+export type ImportSourceType = "paste" | "txt" | "docx" | "batch";
 export type ImportWarning = string;
 export type ImportedHeadingType = "section" | "chapter";
 export type DraftSectionType = "arc" | "part" | "volume";

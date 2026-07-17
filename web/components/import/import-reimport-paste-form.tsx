@@ -5,15 +5,18 @@ import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { createPasteReimportJob } from "@/lib/import/reimport-actions";
+import type { ReimportMode } from "@/lib/import/reimport-mode";
 
 const INITIAL_STATE = { error: null, message: null };
 
 export function ImportReimportPasteForm({
   storyId,
   storyTitle,
+  mode,
 }: {
   storyId: string;
   storyTitle: string;
+  mode: ReimportMode;
 }) {
   const [state, formAction, isPending] = useActionState(
     createPasteReimportJob,
@@ -23,6 +26,7 @@ export function ImportReimportPasteForm({
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="storyId" value={storyId} />
+      <input type="hidden" name="reimportMode" value={mode} />
 
       <div className="grid gap-2">
         <div className="flex items-end justify-between gap-3">
@@ -45,9 +49,9 @@ export function ImportReimportPasteForm({
           className="text-xs leading-5"
           style={{ color: "var(--kd-text-muted)" }}
         >
-          Ở bước sau, hệ thống sẽ so sánh bản này với nội dung hiện tại của tác
-          phẩm — chương nào không đổi sẽ giữ nguyên, chương nào sửa nội dung sẽ
-          có bản mới, chương biến mất sẽ cần bạn xác nhận trước khi lưu trữ.
+          {mode === "append"
+            ? "Ở bước sau, bạn có thể kiểm tra và chỉnh lại thứ tự các chương mới trước khi nối chúng vào cuối tác phẩm. Chương hiện có sẽ không bị thay đổi."
+            : "Ở bước sau, hệ thống sẽ so sánh bản này với nội dung hiện tại của tác phẩm — chương nào không đổi sẽ giữ nguyên, chương nào sửa nội dung sẽ có bản mới, chương biến mất sẽ cần bạn xác nhận trước khi lưu trữ."}
         </p>
       </div>
 
@@ -70,7 +74,11 @@ export function ImportReimportPasteForm({
           <Link href="/library">Hủy</Link>
         </Button>
         <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-          {isPending ? "Đang so sánh…" : "So sánh với bản hiện tại"}
+          {isPending
+            ? "Đang xử lý…"
+            : mode === "append"
+              ? "Review các chương nối tiếp"
+              : "So sánh với bản hiện tại"}
         </Button>
       </div>
     </form>

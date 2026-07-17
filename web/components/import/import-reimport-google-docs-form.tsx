@@ -7,15 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createGoogleDocsReimportJob } from "@/lib/import/reimport-actions";
+import type { ReimportMode } from "@/lib/import/reimport-mode";
 
 const INITIAL_STATE = { error: null, message: null };
 
 export function ImportReimportGoogleDocsForm({
   storyId,
   storyTitle,
+  mode,
 }: {
   storyId: string;
   storyTitle: string;
+  mode: ReimportMode;
 }) {
   const [state, formAction, isPending] = useActionState(
     createGoogleDocsReimportJob,
@@ -25,6 +28,7 @@ export function ImportReimportGoogleDocsForm({
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="storyId" value={storyId} />
+      <input type="hidden" name="reimportMode" value={mode} />
 
       <div className="grid gap-2">
         <div className="flex items-end justify-between gap-3">
@@ -67,7 +71,11 @@ export function ImportReimportGoogleDocsForm({
           <Link href="/library">Hủy</Link>
         </Button>
         <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-          {isPending ? "Đang xử lý…" : "So sánh với bản hiện tại"}
+          {isPending
+            ? "Đang xử lý…"
+            : mode === "append"
+              ? "Review các chương nối tiếp"
+              : "So sánh với bản hiện tại"}
         </Button>
       </div>
     </form>

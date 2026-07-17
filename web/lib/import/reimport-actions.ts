@@ -25,6 +25,7 @@ import {
   MAX_UPLOAD_BYTES,
 } from "./file-validation";
 import { remapReadingProgressAfterReimport } from "./reimport-progress";
+import { parseReimportMode } from "./reimport-mode";
 import { parseStoryText, type ImportDraft } from "./text-parser";
 
 const PARSER_VERSION = "text-paste-v1";
@@ -82,6 +83,7 @@ export async function createPasteReimportJob(
   formData: FormData,
 ): Promise<ActionState> {
   const storyId = formString(formData, "storyId");
+  const reimportMode = parseReimportMode(formString(formData, "reimportMode"));
   const content = formString(formData, "content");
   if (!UUID_RE.test(storyId)) {
     return { error: "Tác phẩm không hợp lệ.", message: null };
@@ -147,6 +149,7 @@ export async function createPasteReimportJob(
       parser_version: PARSER_VERSION,
       status: "needs_review",
       draft_json: draft,
+      mapping_json: { version: 1, mode: reimportMode },
       warnings: draft.warnings,
     })
     .select("id")
@@ -174,6 +177,7 @@ export async function createGoogleDocsReimportJob(
   formData: FormData,
 ): Promise<ActionState> {
   const storyId = formString(formData, "storyId");
+  const reimportMode = parseReimportMode(formString(formData, "reimportMode"));
   const url = formString(formData, "url").trim();
 
   if (!UUID_RE.test(storyId)) {
@@ -231,6 +235,7 @@ export async function createGoogleDocsReimportJob(
       source_hash: sourceHash,
       parser_version: DOCX_PARSER_VERSION,
       status: "parsing",
+      mapping_json: { version: 1, mode: reimportMode },
     })
     .select("id")
     .single();
@@ -313,6 +318,7 @@ export async function createFileReimportJob(
   formData: FormData,
 ): Promise<ActionState> {
   const storyId = formString(formData, "storyId");
+  const reimportMode = parseReimportMode(formString(formData, "reimportMode"));
   const file = formData.get("file");
   if (!UUID_RE.test(storyId)) {
     return { error: "Tác phẩm không hợp lệ.", message: null };
@@ -366,6 +372,7 @@ export async function createFileReimportJob(
       parser_version:
         kind === "docx" ? DOCX_PARSER_VERSION : TXT_PARSER_VERSION,
       status: "parsing",
+      mapping_json: { version: 1, mode: reimportMode },
     })
     .select("id")
     .single();
@@ -585,7 +592,7 @@ export async function reviewReimportDraft(
     }
   }
 
-  const { data, error } = await supabase.rpc("commit_reimport_job", {
+  const { data, error } = await supabase.rpc("commit_reimport_job_v2", {
     p_job_id: jobId,
   });
   const result = Array.isArray(data) ? data[0] : data;

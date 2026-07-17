@@ -608,6 +608,22 @@ export type Database = {
           version_id: string
         }[]
       }
+      commit_reimport_job_v2: {
+        Args: { p_job_id: string }
+        Returns: {
+          chapter_id_pairs: Json
+          story_id: string
+          version_id: string
+        }[]
+      }
+      normalize_reimport_story_order: {
+        Args: { p_story_id: string; p_version_id: string }
+        Returns: undefined
+      }
+      reorder_story_chapters: {
+        Args: { p_sections: Json; p_story_id: string }
+        Returns: number
+      }
       upsert_chapter_progress: {
         Args: {
           p_anchor_id: string
@@ -648,7 +664,7 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
-      import_source_type: "paste" | "txt" | "docx"
+      import_source_type: "paste" | "txt" | "docx" | "batch"
       reading_theme: "light" | "dark" | "sepia"
       section_type: "volume" | "arc" | "part"
       story_status: "active" | "archived" | "deleting"
@@ -801,7 +817,7 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
-      import_source_type: ["paste", "txt", "docx"],
+      import_source_type: ["paste", "txt", "docx", "batch"],
       reading_theme: ["light", "dark", "sepia"],
       section_type: ["volume", "arc", "part"],
       story_status: ["active", "archived", "deleting"],

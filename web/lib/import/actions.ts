@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { logEvent } from "@/lib/telemetry";
 import {
   assertUnderJobQuota,
+  BATCH_PARSER_VERSION,
   countEmptyChapters,
   deleteStorageObjectSafely,
   DOCX_PARSER_VERSION,
@@ -16,6 +17,7 @@ import {
   TXT_PARSER_VERSION,
   UUID_RE,
 } from "./action-helpers";
+import { mergeOrderedImportDrafts } from "./batch-parser";
 import { applyReviewSubmission } from "./draft-validation";
 import { parseDocxDraft } from "./docx-parser";
 import {
@@ -28,6 +30,8 @@ import { parseStoryText, type ImportDraft } from "./text-parser";
 
 const PARSER_VERSION = "text-paste-v1";
 const MAX_PASTE_CHARACTERS = 5_000_000;
+const MAX_BATCH_FILES = 20;
+const MAX_BATCH_UPLOAD_BYTES = MAX_UPLOAD_BYTES;
 
 type ActionState = {
   error: string | null;
@@ -229,7 +233,14 @@ export async function createFileImport(
 ): Promise<ActionState> {
   const title = formString(formData, "title").trim();
   const description = formString(formData, "description").trim();
-  const file = formData.get("file");
+  const batchValues = formData.getAll("files");
+  const legacyFile = formData.get("file");
+  const fileValues =
+    batchValues.length > 0
+      ? batchValues
+      : legacyFile instanceof File
+        ? [legacyFile]
+        : [];
 
   if (!title || title.length > 200) {
     return { error: "Tên tác phẩm phải có từ 1 đến 200 ký tự.", message: null };
@@ -237,20 +248,32 @@ export async function createFileImport(
   if (description.length > 5_000) {
     return { error: "Mô tả quá dài.", message: null };
   }
-  if (!(file instanceof File) || file.size === 0) {
+  if (
+    fileValues.length === 0 ||
+    fileValues.some((value) => !(value instanceof File) || value.size === 0)
+  ) {
     return {
-      error: "Hãy chọn file TXT hoặc DOCX trước khi tải lên.",
+      error: "Hãy chọn ít nhất một file TXT hoặc DOCX trước khi tải lên.",
       message: null,
     };
   }
-  if (file.size > MAX_UPLOAD_BYTES) {
+  if (fileValues.length > MAX_BATCH_FILES) {
     return {
-      error: `File vượt quá giới hạn ${Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024))}MB.`,
+      error: `Mỗi lần chỉ có thể nhập tối đa ${MAX_BATCH_FILES} file.`,
       message: null,
     };
   }
-  const kind = detectUploadKind(file.name);
-  if (!kind) {
+  const files = fileValues as File[];
+  const totalBytes = files.reduce((total, file) => total + file.size, 0);
+  if (totalBytes > MAX_BATCH_UPLOAD_BYTES) {
+    return {
+      error: `Tổng dung lượng các file vượt quá ${Math.floor(MAX_BATCH_UPLOAD_BYTES / (1024 * 1024))}MB.`,
+      message: null,
+    };
+  }
+
+  const kinds = files.map((file) => detectUploadKind(file.name));
+  if (kinds.some((kind) => !kind)) {
     return { error: "Chỉ hỗ trợ file .txt hoặc .docx.", message: null };
   }
 
@@ -258,9 +281,28 @@ export async function createFileImport(
   const quotaError = await assertUnderJobQuota(supabase, userId);
   if (quotaError) return { error: quotaError, message: null };
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const sourceHash = createHash("sha256").update(buffer).digest("hex");
-  const storagePath = `${userId}/${crypto.randomUUID()}.${kind}`;
+  const sources = await Promise.all(
+    files.map(async (file, index) => ({
+      file,
+      kind: kinds[index]!,
+      buffer: Buffer.from(await file.arrayBuffer()),
+      storagePath: `${userId}/${crypto.randomUUID()}.${kinds[index]}`,
+    })),
+  );
+  const sourceHasher = createHash("sha256");
+  for (const source of sources) {
+    sourceHasher.update(source.file.name, "utf8");
+    sourceHasher.update("\0");
+    sourceHasher.update(String(source.buffer.length), "utf8");
+    sourceHasher.update("\0");
+    sourceHasher.update(source.buffer);
+  }
+  const sourceHash = sourceHasher.digest("hex");
+  const isBatch = sources.length > 1;
+  const sourceType = isBatch ? "batch" : sources[0].kind;
+  const sourceFilename = isBatch
+    ? sources.map(({ file }) => file.name).join(" · ").slice(0, 255)
+    : sources[0].file.name.slice(0, 255);
 
   // Job row + storage upload happen before parsing so a crash mid-parse
   // leaves a recoverable trace (status stays 'parsing') instead of losing
@@ -270,11 +312,14 @@ export async function createFileImport(
     .from("import_jobs")
     .insert({
       owner_id: userId,
-      source_type: kind,
-      source_filename: file.name.slice(0, 255),
+      source_type: sourceType,
+      source_filename: sourceFilename,
       source_hash: sourceHash,
-      parser_version:
-        kind === "docx" ? DOCX_PARSER_VERSION : TXT_PARSER_VERSION,
+      parser_version: isBatch
+        ? BATCH_PARSER_VERSION
+        : sources[0].kind === "docx"
+          ? DOCX_PARSER_VERSION
+          : TXT_PARSER_VERSION,
       status: "parsing",
     })
     .select("id")
@@ -290,53 +335,82 @@ export async function createFileImport(
     };
   }
 
-  const { error: uploadError } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(storagePath, buffer, {
-      contentType:
-        kind === "docx"
-          ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          : "text/plain",
-      upsert: false,
-    });
+  const uploadedPaths: string[] = [];
+  for (const source of sources) {
+    const { error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(source.storagePath, source.buffer, {
+        contentType:
+          source.kind === "docx"
+            ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            : "text/plain",
+        upsert: false,
+      });
 
-  if (uploadError) {
-    logEvent("import.upload_error", { code: uploadError.name });
-    await supabase
-      .from("import_jobs")
-      .update({ status: "failed", error_message: "upload_failed" })
-      .eq("id", job.id);
-    return {
-      error: "Không thể tải file lên. Vui lòng thử lại.",
-      message: null,
-    };
+    if (uploadError) {
+      logEvent("import.upload_error", { code: uploadError.name });
+      await Promise.all(
+        uploadedPaths.map((path) => deleteStorageObjectSafely(supabase, path)),
+      );
+      await supabase
+        .from("import_jobs")
+        .update({ status: "failed", error_message: "upload_failed" })
+        .eq("id", job.id);
+      return {
+        error: "Không thể tải toàn bộ file lên. Vui lòng thử lại.",
+        message: null,
+      };
+    }
+    uploadedPaths.push(source.storagePath);
   }
 
   let draft: ImportDraft;
   try {
-    if (kind === "txt") {
-      const text = decodeStrictUtf8Text(buffer);
-      if (text.length > MAX_PASTE_CHARACTERS) {
-        throw new Error("Nội dung vượt quá giới hạn 5 triệu ký tự.");
+    const parsedSources = [];
+    for (const source of sources) {
+      const fileTitle = isBatch
+        ? source.file.name.replace(/\.(?:txt|docx)$/iu, "").slice(0, 200)
+        : title;
+      let parsed: ImportDraft;
+      if (source.kind === "txt") {
+        const text = decodeStrictUtf8Text(source.buffer);
+        if (text.length > MAX_PASTE_CHARACTERS) {
+          throw new Error(
+            `File “${source.file.name}” vượt quá giới hạn nội dung.`,
+          );
+        }
+        parsed = parseStoryText(text, {
+          title: fileTitle,
+          description: isBatch ? undefined : description || undefined,
+          sourceType: "txt",
+        });
+      } else {
+        parsed = await parseDocxDraft(source.buffer, {
+          title: fileTitle,
+          description: isBatch ? undefined : description || undefined,
+        });
       }
-      draft = parseStoryText(text, {
-        title,
-        description: description || undefined,
-        sourceType: "txt",
-      });
-    } else {
-      draft = await parseDocxDraft(buffer, {
-        title,
-        description: description || undefined,
-      });
+      parsedSources.push({ filename: source.file.name, draft: parsed });
+    }
+
+    draft = isBatch
+      ? mergeOrderedImportDrafts(parsedSources, {
+          title,
+          description: description || undefined,
+        })
+      : parsedSources[0].draft;
+    if (draft.stats.characterCount > MAX_PASTE_CHARACTERS) {
+      throw new Error("Tổng nội dung vượt quá giới hạn 5 triệu ký tự.");
     }
     if (draft.stats.chapterCount === 0) {
       throw new Error("Không tìm thấy nội dung chapter để review.");
     }
   } catch (error) {
-    await deleteStorageObjectSafely(supabase, storagePath);
+    await Promise.all(
+      uploadedPaths.map((path) => deleteStorageObjectSafely(supabase, path)),
+    );
     const message =
-      error instanceof Error ? error.message : "Không thể xử lý file này.";
+      error instanceof Error ? error.message : "Không thể xử lý các file này.";
     await supabase
       .from("import_jobs")
       .update({ status: "failed", error_message: message })
@@ -354,10 +428,9 @@ export async function createFileImport(
     .eq("id", job.id);
 
   if (finalizeError) {
-    // Don't delete the upload here: draft_json never landed, so the raw
-    // file in storage is the only remaining copy of what the user
-    // submitted. The job stays in 'parsing' — recoverable manually — rather
-    // than being silently and permanently lost.
+    // Don't delete the uploads here: draft_json never landed, so the raw
+    // files in storage are the only remaining copy of what the user
+    // submitted. The job stays in 'parsing' for manual recovery.
     logEvent("import.job_create_error", { code: finalizeError.code });
     return {
       error: "Chưa thể lưu bản review. Vui lòng thử lại sau.",
@@ -365,15 +438,15 @@ export async function createFileImport(
     };
   }
 
-  // The raw upload has nothing left to offer once draft_json holds the
-  // parsed content — delete it now rather than leaving it to a cron job
-  // that doesn't exist yet.
-  await deleteStorageObjectSafely(supabase, storagePath);
+  await Promise.all(
+    uploadedPaths.map((path) => deleteStorageObjectSafely(supabase, path)),
+  );
 
   logEvent("import.job_created", {
     chapterCount: draft.stats.chapterCount,
     sectionCount: draft.stats.sectionCount,
-    sourceType: kind,
+    sourceType,
+    fileCount: sources.length,
   });
   redirect(`/import/review/${job.id}`);
 }

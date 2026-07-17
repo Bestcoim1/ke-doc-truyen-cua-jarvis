@@ -23,6 +23,7 @@ const SOURCE_LABELS = {
   paste: "Paste text",
   txt: "TXT",
   docx: "DOCX",
+  batch: "Nhiều file",
 } as const;
 
 export default function ImportDraftsPage() {

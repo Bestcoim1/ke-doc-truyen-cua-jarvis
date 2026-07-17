@@ -37,6 +37,7 @@ import type {
   OldChapterRef,
   SectionMatch,
 } from "@/lib/import/reimport-match";
+import type { ReimportMode } from "@/lib/import/reimport-mode";
 import {
   changeSectionType,
   deleteChapter,
@@ -493,6 +494,7 @@ export function ImportReimportEditor({
   sectionMatches,
   initialDraft,
   initialManualOverrides,
+  mode,
 }: {
   jobId: string;
   oldChapters: OldChapterRef[];
@@ -501,6 +503,7 @@ export function ImportReimportEditor({
   sectionMatches: SectionMatch[];
   initialDraft: ReviewDraft;
   initialManualOverrides?: Record<string, ManualOverride>;
+  mode: ReimportMode;
 }) {
   const { draft, pendingOps, canUndo, canRedo, apply, undo, redo, reset } =
     useDraftHistory(initialDraft);
@@ -683,11 +686,12 @@ export function ImportReimportEditor({
     () =>
       JSON.stringify({
         version: 1,
+        mode,
         baseTreeToken,
         decisions,
         sections: sectionMatches,
       }),
-    [baseTreeToken, decisions, sectionMatches],
+    [baseTreeToken, decisions, mode, sectionMatches],
   );
 
   const applyMerge = useCallback(
@@ -865,14 +869,24 @@ export function ImportReimportEditor({
       </div>
 
       {/* Summary Badges */}
-      <div className="flex-shrink-0 grid grid-cols-2 gap-2 sm:grid-cols-5 text-center">
-        {[
-          ["Giữ nguyên", summary.primaryCount],
-          ["Gộp", summary.mergedCount],
-          ["Mới", summary.newCount],
-          ["Lưu trữ", summary.archivedCount],
-          ["Không l.quan", summary.unrelatedCount],
-        ].map(([label, value]) => (
+      <div
+        className={`flex-shrink-0 grid grid-cols-2 gap-2 text-center ${
+          mode === "append" ? "sm:grid-cols-2" : "sm:grid-cols-5"
+        }`}
+      >
+        {(mode === "append"
+          ? [
+              ["Chương hiện có được giữ nguyên", oldChapters.length],
+              ["Chương mới sẽ nối tiếp", currentNewChapterIds.size],
+            ]
+          : [
+              ["Giữ nguyên", summary.primaryCount],
+              ["Gộp", summary.mergedCount],
+              ["Mới", summary.newCount],
+              ["Lưu trữ", summary.archivedCount],
+              ["Không l.quan", summary.unrelatedCount],
+            ]
+        ).map(([label, value]) => (
           <div
             key={label}
             className="rounded-lg border p-2"
@@ -891,6 +905,20 @@ export function ImportReimportEditor({
           </div>
         ))}
       </div>
+
+      {mode === "append" ? (
+        <p
+          className="flex-shrink-0 rounded-lg border px-3 py-2 text-sm"
+          style={{
+            borderColor: "var(--kd-border)",
+            background: "var(--kd-surface)",
+            color: "var(--kd-text-muted)",
+          }}
+        >
+          Chế độ nối tiếp: chỉ các chương trong bản review bên dưới được thêm
+          vào cuối tác phẩm. Các chương hiện có không bị ánh xạ, sửa hoặc lưu trữ.
+        </p>
+      ) : null}
 
       {unresolvedOld.length > 0 ||
       emptyChapters.length > 0 ||
@@ -954,7 +982,7 @@ export function ImportReimportEditor({
             </aside>
           ) : null}
 
-          {manuallyDecidedOld.length > 0 ? (
+          {mode === "update" && manuallyDecidedOld.length > 0 ? (
             <aside
               className="rounded-lg border p-3"
               style={{ borderColor: "var(--kd-border)" }}

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logEvent } from "@/lib/telemetry";
+import type { Json } from "@/database.types";
 import { createClient } from "@/lib/supabase/server";
 import {
   WRITING_STATUS_VALUES,
@@ -202,4 +203,57 @@ export async function updateStoryCoverColor(storyId: string, color: string) {
 
   revalidatePath("/library");
   return { success: true };
+}
+
+export async function reorderStoryChapters(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const storyId = formData.get("storyId");
+  const orderRaw = formData.get("order");
+  if (typeof storyId !== "string" || !UUID_RE.test(storyId)) {
+    return { error: "Tác phẩm không hợp lệ.", message: null };
+  }
+  if (typeof orderRaw !== "string" || orderRaw.length > 2_000_000) {
+    return { error: "Thứ tự chương không hợp lệ.", message: null };
+  }
+
+  let order: unknown;
+  try {
+    order = JSON.parse(orderRaw);
+  } catch {
+    return { error: "Thứ tự chương không hợp lệ.", message: null };
+  }
+  if (!Array.isArray(order)) {
+    return { error: "Thứ tự chương không hợp lệ.", message: null };
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub as string | undefined;
+  if (!userId) redirect(`/auth/login?next=/library/${storyId}/chapters`);
+
+  const { data: count, error } = await supabase.rpc("reorder_story_chapters", {
+    p_story_id: storyId,
+    p_sections: order as Json,
+  });
+  if (error) {
+    logEvent("library.chapter_order_update_error", { code: error.code });
+    return {
+      error:
+        error.code === "KD006"
+          ? "Danh sách chương đã thay đổi ở nơi khác. Hãy tải lại trang rồi thử lại."
+          : "Không thể lưu thứ tự chương. Vui lòng thử lại.",
+      message: null,
+    };
+  }
+
+  logEvent("library.chapter_order_updated", {
+    storyId,
+    chapterCount: count ?? 0,
+  });
+  revalidatePath(`/library/${storyId}/chapters`);
+  revalidatePath(`/read/${storyId}`);
+  revalidatePath("/library");
+  return { error: null, message: `Đã lưu thứ tự ${count ?? 0} chương.` };
 }

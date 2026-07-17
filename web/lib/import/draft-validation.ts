@@ -51,7 +51,12 @@ export function normalizeImportDraft(
   const title = requiredString(input.title, "Tên tác phẩm", 200);
   const description = optionalString(input.description, 5_000);
   const sourceType = input.sourceType;
-  if (sourceType !== "paste" && sourceType !== "txt" && sourceType !== "docx") {
+  if (
+    sourceType !== "paste" &&
+    sourceType !== "txt" &&
+    sourceType !== "docx" &&
+    sourceType !== "batch"
+  ) {
     throw new Error("Nguồn import không hợp lệ.");
   }
   if (!Array.isArray(input.sections))

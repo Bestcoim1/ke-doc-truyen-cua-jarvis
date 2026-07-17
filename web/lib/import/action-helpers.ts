@@ -13,6 +13,7 @@ import type { DraftSection } from "./text-parser";
 export const STORAGE_BUCKET = "story-sources";
 export const DOCX_PARSER_VERSION = "docx-heading-v1";
 export const TXT_PARSER_VERSION = "txt-utf8-v1";
+export const BATCH_PARSER_VERSION = "multi-file-v1";
 
 // Deliberately NOT a "use server" file: Next.js requires every export of a
 // "use server" module to be an async function (a plain constant like

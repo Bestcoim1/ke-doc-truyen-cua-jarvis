@@ -6,6 +6,7 @@ import { ImportReviewEditor } from "@/components/import/import-review-editor";
 import { normalizeImportDraft } from "@/lib/import/draft-validation";
 import type { ManualOverride } from "@/lib/import/reimport-decisions";
 import { matchChapters, matchSections } from "@/lib/import/reimport-match";
+import { reimportModeFromMapping } from "@/lib/import/reimport-mode";
 import { getStoryTreeForReimport } from "@/lib/import/reimport-queries";
 import { toReviewDraft } from "@/lib/import/review-draft";
 import { createClient } from "@/lib/supabase/server";
@@ -143,15 +144,27 @@ async function ReviewImportContent({ params }: ReviewPageProps) {
       );
     }
 
-    const { matches } = matchChapters(tree.oldChapters, fullDraft);
+    const reimportMode = reimportModeFromMapping(job.mapping_json);
+    const { matches } =
+      reimportMode === "append"
+        ? { matches: [] }
+        : matchChapters(tree.oldChapters, fullDraft);
     const { matches: sectionMatches } = matchSections(
       tree.oldSections,
       fullDraft,
     );
-    const initialManualOverrides = manualOverridesFromSavedMapping(
-      job.mapping_json,
-      tree.baseTreeToken,
-    );
+    const initialManualOverrides =
+      reimportMode === "append"
+        ? Object.fromEntries(
+            tree.oldChapters.map((chapter) => [
+              chapter.id,
+              { unrelated: true as const },
+            ]),
+          )
+        : manualOverridesFromSavedMapping(
+            job.mapping_json,
+            tree.baseTreeToken,
+          );
 
     return (
       <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
@@ -163,6 +176,7 @@ async function ReviewImportContent({ params }: ReviewPageProps) {
           sectionMatches={sectionMatches}
           baseTreeToken={tree.baseTreeToken}
           initialManualOverrides={initialManualOverrides}
+          mode={reimportMode}
         />
       </div>
     );

@@ -48,22 +48,26 @@ function siblingsOf(
   chaptersBySection: Map<string | null, ChapterRow[]>,
 ) {
   type Node =
-    | { kind: "section"; sortOrder: number; section: SectionRow }
-    | { kind: "chapter"; sortOrder: number; chapter: ChapterRow };
+    | { kind: "section"; sortOrder: number; stableKey: string; section: SectionRow }
+    | { kind: "chapter"; sortOrder: number; stableKey: string; chapter: ChapterRow };
 
   const nodes: Node[] = [
     ...(childSections.get(parentId) ?? []).map((section): Node => ({
       kind: "section",
       sortOrder: section.sort_order,
+      stableKey: `section:${section.id}`,
       section,
     })),
     ...(chaptersBySection.get(parentId) ?? []).map((chapter): Node => ({
       kind: "chapter",
       sortOrder: chapter.sort_order,
+      stableKey: `chapter:${chapter.id}`,
       chapter,
     })),
   ];
-  nodes.sort((a, b) => a.sortOrder - b.sortOrder);
+  nodes.sort(
+    (a, b) => a.sortOrder - b.sortOrder || a.stableKey.localeCompare(b.stableKey),
+  );
   return nodes;
 }
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Archive, BookOpen, Clock3, Plus, RefreshCw } from "lucide-react";
+import { Archive, BookOpen, Clock3, ListOrdered, Plus, RefreshCw } from "lucide-react";
 
 import { ArchiveStoryButton } from "@/components/library/archive-story-button";
 import { DeleteStoryButton } from "@/components/library/delete-story-button";
@@ -217,7 +217,7 @@ function StoryCard({
         </Link>
       )}
 
-      <div className="relative z-0 flex flex-col flex-1 p-5 pointer-events-none">
+      <div className="relative flex flex-1 flex-col p-5 pointer-events-none">
         <div className="flex items-start gap-4">
           <div className="pointer-events-auto relative z-20">
             <StoryCoverIcon storyId={story.id} initialCoverUrl={story.coverImageUrl} />
@@ -286,6 +286,14 @@ function StoryCard({
             >
               <RefreshCw size={14} />
               Cập nhật bản thảo
+            </Link>
+            <Link
+              href={`/library/${story.id}/chapters`}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-bold"
+              style={{ color: "var(--kd-text-muted)" }}
+            >
+              <ListOrdered size={14} />
+              Sắp xếp chương
             </Link>
             <a
               href={`/api/export/epub?storyId=${story.id}`}

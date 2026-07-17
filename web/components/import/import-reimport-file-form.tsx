@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createFileReimportJob } from "@/lib/import/reimport-actions";
+import type { ReimportMode } from "@/lib/import/reimport-mode";
 
 const INITIAL_STATE = { error: null, message: null };
 const MAX_UPLOAD_MB = 15;
@@ -14,9 +15,11 @@ const MAX_UPLOAD_MB = 15;
 export function ImportReimportFileForm({
   storyId,
   storyTitle,
+  mode,
 }: {
   storyId: string;
   storyTitle: string;
+  mode: ReimportMode;
 }) {
   const [state, formAction, isPending] = useActionState(
     createFileReimportJob,
@@ -27,6 +30,7 @@ export function ImportReimportFileForm({
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="storyId" value={storyId} />
+      <input type="hidden" name="reimportMode" value={mode} />
 
       <div className="grid gap-2">
         <div className="flex items-end justify-between gap-3">
@@ -83,7 +87,11 @@ export function ImportReimportFileForm({
           <Link href="/library">Hủy</Link>
         </Button>
         <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-          {isPending ? "Đang xử lý…" : "So sánh với bản hiện tại"}
+          {isPending
+            ? "Đang xử lý…"
+            : mode === "append"
+              ? "Review các chương nối tiếp"
+              : "So sánh với bản hiện tại"}
         </Button>
       </div>
     </form>
