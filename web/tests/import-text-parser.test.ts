@@ -71,7 +71,9 @@ Nội dung hai.`);
 Ngoại truyện: Ngày nghỉ
 Nội dung A.
 Ngoại truyện 2: Chuyến đi
-Nội dung B.`);
+Nội dung B.
+Ngoại truyện gốc 3: Trở về
+Nội dung C.`);
 
     expect(draft.sections[0].type).toBe("part");
     expect(
@@ -79,6 +81,7 @@ Nội dung B.`);
     ).toEqual([
       { title: "Ngoại truyện: Ngày nghỉ", kind: "extra" },
       { title: "Ngoại truyện 2: Chuyến đi", kind: "extra" },
+      { title: "Ngoại truyện gốc 3: Trở về", kind: "extra" },
     ]);
   });
 

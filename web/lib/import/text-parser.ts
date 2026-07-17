@@ -22,7 +22,7 @@ const SECTION_HEADER_PATTERN = new RegExp(
 );
 
 const NUMBERED_CHAPTER_HEADER_PATTERN = new RegExp(
-  `^(?:chương|chapter|chap|ngoại\\s*truyện|extra|side\\s+story)\\s+${INDEX_TOKEN}${NUMBERED_TITLE_SUFFIX}$`,
+  `^(?:chương|chapter|chap|ngoại\\s*truyện(?:\\s+gốc)?|extra|side\\s+story)\\s+${INDEX_TOKEN}${NUMBERED_TITLE_SUFFIX}$`,
   "iu",
 );
 
@@ -451,7 +451,10 @@ export function parseLogicalLines(
     const normalizedLine = logicalLine.text.trim();
     let headingType: ImportedHeadingType | null;
 
-    if (logicalLine.headingHint === 1 || logicalLine.headingHint === 2) {
+    if (
+      normalizedLine &&
+      (logicalLine.headingHint === 1 || logicalLine.headingHint === 2)
+    ) {
       // Trust the source document's own heading style over the text
       // pattern — but still warn if the text doesn't look like a heading
       // we'd otherwise recognize, since the title/kind guess below falls
