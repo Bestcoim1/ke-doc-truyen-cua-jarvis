@@ -13,10 +13,12 @@ export function ImportReimportPasteForm({
   storyId,
   storyTitle,
   mode,
+  appendTargetSectionId,
 }: {
   storyId: string;
   storyTitle: string;
   mode: ReimportMode;
+  appendTargetSectionId: string;
 }) {
   const [state, formAction, isPending] = useActionState(
     createPasteReimportJob,
@@ -27,6 +29,7 @@ export function ImportReimportPasteForm({
     <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="storyId" value={storyId} />
       <input type="hidden" name="reimportMode" value={mode} />
+      <input type="hidden" name="appendTargetSectionId" value={appendTargetSectionId} />
 
       <div className="grid gap-2">
         <div className="flex items-end justify-between gap-3">

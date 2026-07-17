@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { ImportReimportEditor } from "@/components/import/import-reimport-editor";
 import { ImportReviewEditor } from "@/components/import/import-review-editor";
+import { savedAppendSectionMatches } from "@/lib/import/append-target";
 import { normalizeImportDraft } from "@/lib/import/draft-validation";
 import type { ManualOverride } from "@/lib/import/reimport-decisions";
 import { matchChapters, matchSections } from "@/lib/import/reimport-match";
@@ -149,10 +150,15 @@ async function ReviewImportContent({ params }: ReviewPageProps) {
       reimportMode === "append"
         ? { matches: [] }
         : matchChapters(tree.oldChapters, fullDraft);
-    const { matches: sectionMatches } = matchSections(
+    const savedSectionMatches = savedAppendSectionMatches(job.mapping_json);
+    const { matches: automaticallyMatchedSections } = matchSections(
       tree.oldSections,
       fullDraft,
     );
+    const sectionMatches =
+      reimportMode === "append" && savedSectionMatches !== null
+        ? savedSectionMatches
+        : automaticallyMatchedSections;
     const initialManualOverrides =
       reimportMode === "append"
         ? Object.fromEntries(

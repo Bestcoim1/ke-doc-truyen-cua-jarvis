@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { ImportReimportMethodPicker } from "@/components/import/import-reimport-method-picker";
+import { orderAppendSectionOptions } from "@/lib/import/append-target";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/utils";
 
@@ -47,6 +48,21 @@ async function ReimportNewContent({ params }: ReimportNewPageProps) {
 
   if (!story || story.status !== "active") notFound();
 
+  const { data: sectionRows } = await supabase
+    .from("sections")
+    .select("id, parent_section_id, title, type, sort_order")
+    .eq("story_id", storyId)
+    .eq("is_active", true);
+  const sectionOptions = orderAppendSectionOptions(
+    (sectionRows ?? []).map((section) => ({
+      id: section.id,
+      parentSectionId: section.parent_section_id,
+      title: section.title,
+      type: section.type,
+      sortOrder: section.sort_order,
+    })),
+  );
+
   return (
     <div className="mx-auto w-full max-w-3xl p-4 sm:p-6">
       <div className="mb-6">
@@ -74,6 +90,7 @@ async function ReimportNewContent({ params }: ReimportNewPageProps) {
         <ImportReimportMethodPicker
           storyId={story.id}
           storyTitle={story.title}
+          sectionOptions={sectionOptions}
         />
       </div>
     </div>

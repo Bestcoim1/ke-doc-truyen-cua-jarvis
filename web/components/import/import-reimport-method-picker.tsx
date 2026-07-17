@@ -6,6 +6,10 @@ import { ImportReimportFileForm } from "@/components/import/import-reimport-file
 import { ImportReimportGoogleDocsForm } from "@/components/import/import-reimport-google-docs-form";
 import { ImportReimportPasteForm } from "@/components/import/import-reimport-paste-form";
 import { Button } from "@/components/ui/button";
+import {
+  APPEND_NEW_SECTION_VALUE,
+  type AppendSectionOption,
+} from "@/lib/import/append-target";
 import type { ReimportMode } from "@/lib/import/reimport-mode";
 
 type Method = "paste" | "file" | "gdoc";
@@ -13,12 +17,17 @@ type Method = "paste" | "file" | "gdoc";
 export function ImportReimportMethodPicker({
   storyId,
   storyTitle,
+  sectionOptions,
 }: {
   storyId: string;
   storyTitle: string;
+  sectionOptions: AppendSectionOption[];
 }) {
   const [method, setMethod] = useState<Method>("paste");
   const [mode, setMode] = useState<ReimportMode>("append");
+  const [appendTargetSectionId, setAppendTargetSectionId] = useState(
+    sectionOptions.at(-1)?.id ?? APPEND_NEW_SECTION_VALUE,
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -60,6 +69,30 @@ export function ImportReimportMethodPicker({
         </button>
       </fieldset>
 
+      {mode === "append" ? (
+        <label className="grid gap-2 text-sm font-semibold">
+          Nối các chương mới vào
+          <select
+            value={appendTargetSectionId}
+            onChange={(event) => setAppendTargetSectionId(event.target.value)}
+            className="h-11 rounded-md border bg-transparent px-3 text-sm font-normal"
+            style={{ borderColor: "var(--kd-border)" }}
+          >
+            {sectionOptions.map((section) => (
+              <option key={section.id} value={section.id}>
+                {`${"— ".repeat(section.depth)}${section.title}`}
+              </option>
+            ))}
+            <option value={APPEND_NEW_SECTION_VALUE}>
+              Giữ cấu trúc file và tạo phân hồi mới
+            </option>
+          </select>
+          <span className="text-xs font-normal leading-5" style={{ color: "var(--kd-text-muted)" }}>
+            Khi chọn phân hồi có sẵn, mọi chương trong các file sẽ được nối theo thứ tự vào cuối phân hồi đó.
+          </span>
+        </label>
+      ) : null}
+
       <div
         className="flex flex-wrap w-fit gap-1 rounded-lg border p-1"
         style={{ borderColor: "var(--kd-border)" }}
@@ -90,11 +123,26 @@ export function ImportReimportMethodPicker({
         </Button>
       </div>
       {method === "paste" ? (
-        <ImportReimportPasteForm storyId={storyId} storyTitle={storyTitle} mode={mode} />
+        <ImportReimportPasteForm
+          storyId={storyId}
+          storyTitle={storyTitle}
+          mode={mode}
+          appendTargetSectionId={appendTargetSectionId}
+        />
       ) : method === "file" ? (
-        <ImportReimportFileForm storyId={storyId} storyTitle={storyTitle} mode={mode} />
+        <ImportReimportFileForm
+          storyId={storyId}
+          storyTitle={storyTitle}
+          mode={mode}
+          appendTargetSectionId={appendTargetSectionId}
+        />
       ) : (
-        <ImportReimportGoogleDocsForm storyId={storyId} storyTitle={storyTitle} mode={mode} />
+        <ImportReimportGoogleDocsForm
+          storyId={storyId}
+          storyTitle={storyTitle}
+          mode={mode}
+          appendTargetSectionId={appendTargetSectionId}
+        />
       )}
     </div>
   );
