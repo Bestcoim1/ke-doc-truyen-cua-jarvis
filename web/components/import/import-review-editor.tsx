@@ -25,7 +25,6 @@ import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { reviewImportDraft } from "@/lib/import/actions";
@@ -462,19 +461,10 @@ export function ImportReviewEditor({
     reviewImportDraft,
     INITIAL_STATE,
   );
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  // Initialize selectedId
-  useEffect(() => {
-    if (!selectedId && draft.sections.length > 0) {
-      const firstChapter = flattenReviewChapters(draft.sections)[0]?.chapter;
-      if (firstChapter) {
-        setSelectedId(firstChapter.id);
-      } else {
-        setSelectedId(draft.sections[0].id);
-      }
-    }
-  }, [draft.sections, selectedId]);
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    const firstChapter = flattenReviewChapters(initialDraft.sections)[0]?.chapter;
+    return firstChapter?.id ?? initialDraft.sections[0]?.id ?? null;
+  });
 
   const draftRef = useRef(draft);
   useEffect(() => {
@@ -507,13 +497,6 @@ export function ImportReviewEditor({
   const selectedNodeInfo = useMemo(() => {
     if (!selectedId) return null;
 
-    // Find in sections
-    const parentSectionId: string | null = null;
-    const sectionIndex = -1;
-    const chapterIndex = -1;
-    const siblingsCount = 0;
-    const depth = 0;
-
     type NodeInfo =
       | {
           type: "section";
@@ -534,7 +517,6 @@ export function ImportReviewEditor({
     function traverse(
       sections: ReviewSection[],
       currentDepth: number,
-      parentId: string | null,
     ): NodeInfo {
       for (let i = 0; i < sections.length; i++) {
         const sec = sections[i];
@@ -559,13 +541,13 @@ export function ImportReviewEditor({
             };
           }
         }
-        const found = traverse(sec.children, currentDepth + 1, sec.id);
+        const found = traverse(sec.children, currentDepth + 1);
         if (found) return found;
       }
       return null;
     }
 
-    return traverse(draft.sections, 0, null);
+    return traverse(draft.sections, 0);
   }, [draft.sections, selectedId]);
 
   const structureJson = useMemo(

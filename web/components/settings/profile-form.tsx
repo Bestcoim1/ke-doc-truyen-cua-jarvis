@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { updateProfile, updatePassword } from "@/app/(kd)/settings/actions";
 import type { FormState } from "@/app/(kd)/settings/actions";
 import { Button } from "@/components/ui/button";

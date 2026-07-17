@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "./ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "./logout-button";
@@ -28,9 +29,12 @@ export async function AuthButton() {
   return (
     <div className="flex min-w-0 items-center gap-2">
       {avatarUrl ? (
-        <img
+        <Image
           src={avatarUrl}
           alt={displayName}
+          width={32}
+          height={32}
+          unoptimized
           className="h-8 w-8 rounded-full object-cover border"
           style={{ borderColor: "var(--kd-border)" }}
         />

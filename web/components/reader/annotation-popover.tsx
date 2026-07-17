@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Check, Edit2, Trash, X } from "lucide-react";
+import { Check, Edit2, Trash } from "lucide-react";
 import { getSelectionOffsets } from "@/lib/reader/selection";
 
 import type { ChapterAnnotationRow } from "@/lib/reader/queries";

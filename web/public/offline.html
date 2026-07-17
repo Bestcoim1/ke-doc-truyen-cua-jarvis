@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Kệ Đọc — Ngoại tuyến</title>
+    <style>
+      :root { font-family: system-ui, sans-serif; color-scheme: light dark; }
+      body { margin: 0; background: Canvas; color: CanvasText; }
+      header { position: sticky; top: 0; padding: 1rem; border-bottom: 1px solid GrayText; background: Canvas; }
+      main { max-width: 44rem; margin: 0 auto; padding: 1.25rem; }
+      #story { margin: 0; font-size: .8rem; opacity: .7; }
+      #chapter { margin: .25rem 0 0; font-size: 1.1rem; }
+      #content { font-family: Georgia, serif; font-size: 1.2rem; line-height: 1.75; }
+      #content p { white-space: pre-wrap; }
+      #status { text-align: center; opacity: .75; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p id="story">Kệ Đọc — Ngoại tuyến</p>
+      <h1 id="chapter">Đang mở chương đã tải…</h1>
+    </header>
+    <main>
+      <p id="status">Đang đọc dữ liệu ngoại tuyến…</p>
+      <article id="content" hidden></article>
+    </main>
+    <script>
+      const ACTIVE_USER_KEY = "offline:active-user";
+      const USER_KEY_PREFIX = "offline:user:";
+
+      function readKey(key) {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open("keyval-store");
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => {
+            const database = request.result;
+            const transaction = database.transaction("keyval", "readonly");
+            const valueRequest = transaction.objectStore("keyval").get(key);
+            valueRequest.onerror = () => reject(valueRequest.error);
+            valueRequest.onsuccess = () => resolve(valueRequest.result);
+          };
+        });
+      }
+
+      function showError(message) {
+        document.querySelector("#chapter").textContent = "Không thể đọc ngoại tuyến";
+        document.querySelector("#status").textContent = message;
+      }
+
+      async function renderOfflineChapter() {
+        const match = location.pathname.match(/^\/read\/([^/]+)\/([^/]+)/);
+        if (!match) {
+          showError("Hãy kết nối Internet để tiếp tục sử dụng ứng dụng.");
+          return;
+        }
+
+        try {
+          const userId = await readKey(ACTIVE_USER_KEY);
+          if (!userId) {
+            showError("Không có dữ liệu ngoại tuyến cho tài khoản hiện tại.");
+            return;
+          }
+
+          const [, storyId, chapterId] = match;
+          const prefix = `${USER_KEY_PREFIX}${userId}:`;
+          const [story, chapter] = await Promise.all([
+            readKey(`${prefix}story:${storyId}`),
+            readKey(`${prefix}chapter:${storyId}:${chapterId}`),
+          ]);
+
+          if (!story || !chapter) {
+            showError("Chương này chưa được tải để đọc ngoại tuyến.");
+            return;
+          }
+
+          document.querySelector("#story").textContent = story.storyTitle;
+          const chapterInfo = story.chapters?.find((item) => item.id === chapterId);
+          document.querySelector("#chapter").textContent = chapterInfo?.title || "Chương đã tải";
+
+          const content = document.querySelector("#content");
+          for (const block of chapter.blocks || []) {
+            const paragraph = document.createElement("p");
+            paragraph.textContent = typeof block?.text === "string" ? block.text : "";
+            content.appendChild(paragraph);
+          }
+          document.querySelector("#status").hidden = true;
+          content.hidden = false;
+        } catch {
+          showError("Dữ liệu ngoại tuyến bị lỗi hoặc không còn khả dụng.");
+        }
+      }
+
+      renderOfflineChapter();
+    </script>
+  </body>
+</html>

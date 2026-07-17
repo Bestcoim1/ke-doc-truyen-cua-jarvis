@@ -21,6 +21,7 @@ $excludePaths = @(
   'web/.env',
   'web/.env.local',
   'web/.env.*.local',
+  'web/mcp.json',
   'fixtures/private',
   'dist',
   'tmp-export',
@@ -32,8 +33,11 @@ $excludePaths = @(
 function Test-ExcludedPath {
   param([string]$RelativePath)
 
+  # Keep matching stable across Windows and Unix path separators.
+  $normalizedPath = $RelativePath.Replace('\', '/')
+
   foreach ($pattern in $excludePaths) {
-    if ($RelativePath -like $pattern) {
+    if ($normalizedPath -like $pattern) {
       return $true
     }
   }

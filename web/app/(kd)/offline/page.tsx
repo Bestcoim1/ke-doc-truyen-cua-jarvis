@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getOfflineChapter, getOfflineStory, type OfflineChapterData, type OfflineStoryData } from "@/lib/offline/storage";
+import {
+  getActiveOfflineUserId,
+  getOfflineChapter,
+  getOfflineStory,
+  type OfflineChapterData,
+  type OfflineStoryData,
+} from "@/lib/offline/storage";
 import { BlockRenderer } from "@/components/reader/block-renderer";
 
 export default function OfflineFallbackPage() {
@@ -22,9 +28,14 @@ export default function OfflineFallbackPage() {
 
       const [, storyId, chapterId] = match;
       try {
+        const userId = await getActiveOfflineUserId();
+        if (!userId) {
+          setError("No offline data is available for the current account.");
+          return;
+        }
         const [story, chapter] = await Promise.all([
-          getOfflineStory(storyId),
-          getOfflineChapter(storyId, chapterId),
+          getOfflineStory(userId, storyId),
+          getOfflineChapter(userId, storyId, chapterId),
         ]);
 
         if (story && chapter) {
@@ -32,7 +43,7 @@ export default function OfflineFallbackPage() {
         } else {
           setError("This chapter is not available offline.");
         }
-      } catch (e) {
+      } catch {
         setError("Error loading offline content.");
       }
     }

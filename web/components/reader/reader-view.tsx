@@ -42,6 +42,7 @@ function scrollAnchorToFocusLine(container: HTMLElement, anchorId: string) {
 }
 
 export function ReaderView({
+  userId,
   storyId,
   storyTitle,
   coverImageUrl,
@@ -57,6 +58,7 @@ export function ReaderView({
   tocReadStates,
   initialAnnotations = [],
 }: {
+  userId: string;
   storyId: string;
   storyTitle: string;
   coverImageUrl?: string | null;
@@ -178,7 +180,7 @@ export function ReaderView({
       if (!body.progress && !body.chapterState) return;
 
       if (!navigator.onLine) {
-        savePendingProgress(body).catch(console.error);
+        savePendingProgress(userId, body).catch(console.error);
         return;
       }
 
@@ -190,15 +192,16 @@ export function ReaderView({
           body: JSON.stringify(body),
         }).catch(() => {
           // fetch failed (e.g. network lost mid-flight)
-          savePendingProgress(body).catch(console.error);
+          savePendingProgress(userId, body).catch(console.error);
         });
       } catch {
         // keepalive quota exceeded or offline — save to IDB instead
-        savePendingProgress(body).catch(console.error);
+        savePendingProgress(userId, body).catch(console.error);
       }
     },
     [
       storyId,
+      userId,
       chapter.chapterId,
       chapter.revisionId,
       chapter.contentHash,
@@ -420,7 +423,7 @@ export function ReaderView({
         setAnnotations((prev) =>
           prev.map((a) => (a.id === tempId ? { ...a, id } : a))
         );
-      } catch (err) {
+      } catch {
         setAnnotations((prev) => prev.filter((a) => a.id !== tempId));
       }
     },
@@ -636,6 +639,7 @@ export function ReaderView({
 
       {showToc && (
         <TocPanel
+          userId={userId}
           storyId={storyId}
           sections={tocSections}
           chapters={tocChapters}

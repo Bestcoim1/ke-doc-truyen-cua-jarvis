@@ -186,7 +186,9 @@ export async function POST(request: NextRequest) {
       p_anchor_id: chapterState.anchorId,
       p_progress_pct: chapterState.progressPct,
       p_mark_completed: chapterState.markCompleted,
-      p_completion_method: chapterState.completionMethod as any,
+      // The RPC ignores this value unless markCompleted is true, but the
+      // generated signature requires a non-null enum value.
+      p_completion_method: chapterState.completionMethod ?? "reader_end",
     });
     if (error) {
       logEvent("reader.chapter_progress_error", { code: error.code });

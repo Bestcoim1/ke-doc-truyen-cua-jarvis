@@ -152,6 +152,7 @@ async function ReaderChapterContent({ params }: ReaderChapterPageProps) {
 
   return (
     <ReaderView
+      userId={userId}
       storyId={storyId}
       storyTitle={story.title}
       coverImageUrl={story.coverImageUrl}

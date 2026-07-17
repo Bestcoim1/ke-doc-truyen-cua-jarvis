@@ -25,7 +25,6 @@ import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { reviewReimportDraft } from "@/lib/import/reimport-actions";
@@ -639,7 +638,6 @@ export function ImportReimportEditor({
     function traverse(
       sections: ReviewSection[],
       currentDepth: number,
-      parentId: string | null,
     ): NodeInfo {
       for (let i = 0; i < sections.length; i++) {
         const sec = sections[i];
@@ -664,13 +662,13 @@ export function ImportReimportEditor({
             };
           }
         }
-        const found = traverse(sec.children, currentDepth + 1, sec.id);
+        const found = traverse(sec.children, currentDepth + 1);
         if (found) return found;
       }
       return null;
     }
 
-    return traverse(draft.sections, 0, null);
+    return traverse(draft.sections, 0);
   }, [draft.sections, selectedId]);
 
   const structureJson = useMemo(
@@ -733,23 +731,6 @@ export function ImportReimportEditor({
   }
 
   const formId = `reimport-review-form-${jobId}`;
-
-  // Recursive outline function to inject matchBadges cleanly
-  function renderOutlineTree(sections: ReviewSection[]) {
-    return sections.map((sec) => (
-      <div
-        key={sec.id}
-        className="ml-4 pl-2 border-l border-border mt-1 space-y-0.5"
-        style={{ marginLeft: "0", paddingLeft: "0", borderLeft: "none" }}
-      >
-        <OutlineNode
-          node={sec}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-        />
-      </div>
-    ));
-  }
 
   // Inside outline tree, chapters use matchBadge:
   // So we override OutlineNode's rendering slightly if we had to pass matchBadge down,

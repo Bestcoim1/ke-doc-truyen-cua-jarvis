@@ -1,0 +1,7 @@
+-- Hosted migration-history marker.
+--
+-- The hosted project recorded Slice 6 twice: first as 0011 and later under
+-- this timestamp. The schema change itself already lives in
+-- 0011_slice6_media_storage.sql, so this file intentionally has no DDL. It
+-- keeps future local/remote migration comparisons aligned without replaying
+-- the same storage setup on fresh databases.

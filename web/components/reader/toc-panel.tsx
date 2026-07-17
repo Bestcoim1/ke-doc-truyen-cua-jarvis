@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, ChevronRight, ChevronDown, Download, Check } from "lucide-react";
+import { X, ChevronRight, ChevronDown, Download } from "lucide-react";
 import { toast } from "sonner";
 import { getStoryForOfflineDownload } from "@/lib/reader/actions";
 import { saveStoryForOffline, saveChapterForOffline } from "@/lib/offline/storage";
+import { parseChapterContent } from "@/lib/reader/content";
 
 import {
   buildTocTree,
@@ -117,6 +118,7 @@ function nodeContainsChapter(node: TocNode, chapterId: string): boolean {
 }
 
 export function TocPanel({
+  userId,
   storyId,
   sections,
   chapters,
@@ -124,6 +126,7 @@ export function TocPanel({
   readStates,
   onClose,
 }: {
+  userId: string;
   storyId: string;
   sections: SectionRow[];
   chapters: ChapterRow[];
@@ -155,7 +158,7 @@ export function TocPanel({
       
       const { story, sections, chapters, revisions, annotations } = data;
       
-      await saveStoryForOffline({
+      await saveStoryForOffline(userId, {
         storyId,
         storyTitle: story.title,
         coverImageUrl: story.cover_image_url,
@@ -172,19 +175,23 @@ export function TocPanel({
 
         const chapterAnns = annotations.filter(a => a.chapter_id === chapter.id);
         
-        await saveChapterForOffline(storyId, {
+        const content = parseChapterContent(revision.content_blocks);
+        if (!content) continue;
+
+        await saveChapterForOffline(userId, storyId, {
           chapterId: chapter.id,
           revisionId: revision.id,
           contentHash: revision.content_hash,
-          blocks: revision.content_blocks as any, // assuming it's correctly typed as Block[] in real runtime
+          blocks: content.blocks,
           annotations: chapterAnns,
         });
         setDownloadProgress({ total: chapters.length, done: i + 1 });
       }
 
       toast.success("Tải xuống thành công để đọc Offline!");
-    } catch (error: any) {
-      toast.error(`Lỗi tải truyện: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Lỗi tải truyện: ${message}`);
     } finally {
       setIsDownloading(false);
       setDownloadProgress(null);

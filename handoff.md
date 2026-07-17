@@ -8,7 +8,7 @@ Tài liệu này cung cấp toàn bộ ngữ cảnh, tiến độ dự án, các
 - **Tên dự án:** Kẻ Đọc Truyện (Ke-Doc-Truyen-Cua-Jarvis)
 - **Tech Stack:** Next.js 14/15 (App Router), Supabase (Auth, Postgres DB, Storage, RPCs), Tailwind CSS, TypeScript.
 - **Mục tiêu:** Xây dựng một ứng dụng đọc truyện cá nhân với giao diện tuyệt đẹp, hỗ trợ import từ file text/docx, đồng bộ tiến trình đọc (Reading Progress) thông minh (dựa trên hash đoạn văn) và giao diện thư viện quản lý.
-- **Tài khoản Test:** `ancutbangmui1@gmail.com` / `123456`.
+- **Tài khoản Test:** Không lưu thông tin đăng nhập trong repo. Dùng biến môi trường hoặc secret manager cho tài khoản kiểm thử.
 - **Cấu hình:** Hai dự án Supabase đang được sử dụng, project chính hiện tại mang ID `ebygqxzazcgvvbwncsks`. MCP của Supabase đã được cấu hình và các agent skills (`supabase`, `supabase-postgres-best-practices`) đã được cài đặt.
 
 ---

@@ -760,7 +760,7 @@ Nội dung chương bảy, hoàn toàn mới.`,
             .replace(/^p_/, "")
             .split("_")[0],
           p_paragraph_ordinal: 0,
-          p_paragraph_offset_ratio: null,
+          p_paragraph_offset_ratio: 0,
           p_chapter_progress_pct: 100,
           p_write_id: crypto.randomUUID(),
           p_observed_at: new Date(2020, 0, 1).toISOString(),

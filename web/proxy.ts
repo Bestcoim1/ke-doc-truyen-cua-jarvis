@@ -5,6 +5,35 @@ const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
   : "";
 
+export function buildContentSecurityPolicy({
+  nonce,
+  isProd,
+  imageOrigin,
+}: {
+  nonce: string;
+  isProd: boolean;
+  imageOrigin: string;
+}) {
+  const devScriptDirectives = isProd ? "" : " 'unsafe-eval'";
+  const devConnectDirectives = isProd
+    ? ""
+    : " ws://localhost:* http://localhost:*";
+
+  return [
+    `default-src 'self'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${devScriptDirectives}`,
+    `style-src 'self' 'unsafe-inline'`,
+    `img-src 'self' blob: data:${imageOrigin ? ` ${imageOrigin}` : ""}`,
+    `font-src 'self'`,
+    `connect-src 'self'${imageOrigin ? ` ${imageOrigin}` : ""}${devConnectDirectives}`,
+    `object-src 'none'`,
+    `base-uri 'self'`,
+    `form-action 'self'`,
+    `frame-ancestors 'none'`,
+    ...(isProd ? [`upgrade-insecure-requests`] : []),
+  ].join("; ");
+}
+
 /**
  * Nonce-based CSP per Next.js's documented pattern: the nonce is set on the
  * request headers *before* updateSession runs, so its own
@@ -17,24 +46,11 @@ const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
 export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isProd = process.env.NODE_ENV === "production";
-  const devScriptDirectives = isProd ? "" : " 'unsafe-eval'";
-  const devConnectDirectives = isProd
-    ? ""
-    : " ws://localhost:* http://localhost:*";
-
-  const csp = [
-    `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${devScriptDirectives}`,
-    `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' blob: data:`,
-    `font-src 'self'`,
-    `connect-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""}${devConnectDirectives}`,
-    `object-src 'none'`,
-    `base-uri 'self'`,
-    `form-action 'self'`,
-    `frame-ancestors 'none'`,
-    ...(isProd ? [`upgrade-insecure-requests`] : []),
-  ].join("; ");
+  const csp = buildContentSecurityPolicy({
+    nonce,
+    isProd,
+    imageOrigin: supabaseOrigin,
+  });
 
   request.headers.set("x-nonce", nonce);
 
@@ -51,7 +67,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - images - .svg, .png, .jpg, .jpeg, .gif, .webp
-     * - manifest.webmanifest, icon, apple-icon, manifest-icon-192,
+     * - manifest.webmanifest, offline.html, icon, apple-icon, manifest-icon-192,
      *   manifest-icon-512 — PWA manifest + icons (see app/manifest.ts,
      *   app/icon.tsx, app/apple-icon.tsx and the two manifest-icon route
      *   handlers). Browsers/OS fetch these unauthenticated to install the
@@ -60,6 +76,6 @@ export const config = {
      *   resolve to the login page's HTML instead of a PNG).
      * Feel free to modify this pattern to include more paths.
      */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest$|icon$|apple-icon$|manifest-icon-192$|manifest-icon-512$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest$|offline.html$|icon$|apple-icon$|manifest-icon-192$|manifest-icon-512$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

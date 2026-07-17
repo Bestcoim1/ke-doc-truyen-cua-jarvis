@@ -6,6 +6,15 @@ import { getStoryForReader, getSectionsAndChapters, buildFlatChapterList } from 
 import { parseChapterContent } from "@/lib/reader/content";
 import { logEvent } from "@/lib/telemetry";
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
   const storyId = searchParams.get("storyId");
@@ -50,9 +59,9 @@ export async function GET(req: NextRequest) {
     return new Response("Internal Server Error", { status: 500 });
   }
 
-  const revisionsMap = new Map<string, any[]>();
+  const revisionsMap = new Map<string, unknown>();
   for (const rev of revisions || []) {
-    revisionsMap.set(rev.id, rev.content_blocks as any[]);
+    revisionsMap.set(rev.id, rev.content_blocks);
   }
 
   const epubChapters = flatList.map((entry) => {
@@ -62,14 +71,10 @@ export async function GET(req: NextRequest) {
     if (chapter && chapter.current_revision_id) {
       const blocksRaw = revisionsMap.get(chapter.current_revision_id);
       if (blocksRaw) {
-        const parsed = parseChapterContent(blocksRaw as unknown[]);
-        if (parsed && Array.isArray(parsed.blocks)) {
+        const parsed = parseChapterContent(blocksRaw);
+        if (parsed) {
           htmlContent = parsed.blocks
-            .map((b: {text?: string}) => `<p>${(b.text || "").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`)
-            .join("\n");
-        } else if (Array.isArray(parsed)) {
-            htmlContent = parsed
-            .map((b: {text?: string}) => `<p>${(b.text || "").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`)
+            .map((block) => `<p>${escapeHtml(block.text)}</p>`)
             .join("\n");
         }
       }
@@ -79,10 +84,8 @@ export async function GET(req: NextRequest) {
       htmlContent = "<p><i>(Nội dung trống)</i></p>";
     }
 
-    const entryTitle = "title" in entry ? String((entry as any).title) : "Chương";
-
     return {
-      title: entryTitle,
+      title: entry.chapterTitle,
       content: htmlContent,
     };
   });

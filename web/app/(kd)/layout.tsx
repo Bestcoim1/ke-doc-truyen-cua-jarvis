@@ -1,5 +1,7 @@
 import { Be_Vietnam_Pro, Noto_Serif } from "next/font/google";
 import { OfflineSyncManager } from "@/components/offline-sync-manager";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/utils";
 
 const beVietnamPro = Be_Vietnam_Pro({
   variable: "--font-kd-sans",
@@ -22,13 +24,24 @@ const notoSerif = Noto_Serif({
  * Reader's h-[100dvh] overflowed the page by the header's height, pushing
  * the prev/next footer below the fold and creating a nested-scroll trap.
  */
-export default function KdLayout({ children }: { children: React.ReactNode }) {
+export default async function KdLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  let userId: string | null = null;
+  if (isSupabaseConfigured) {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getClaims();
+    userId = (data?.claims?.sub as string | undefined) ?? null;
+  }
+
   return (
     <div
       className={`kd-shell ${beVietnamPro.variable} ${notoSerif.variable}`}
       style={{ fontFamily: "var(--font-kd-sans)" }}
     >
-      <OfflineSyncManager />
+      <OfflineSyncManager userId={userId} />
       {children}
     </div>
   );

@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect } from "react";
-import { getPendingProgressWrites, removePendingProgressWrite } from "@/lib/offline/storage";
+import {
+  getPendingProgressWrites,
+  prepareOfflineStorageForUser,
+  removePendingProgressWrite,
+} from "@/lib/offline/storage";
 
-export function OfflineSyncManager() {
+export function OfflineSyncManager({ userId }: { userId: string | null }) {
   useEffect(() => {
+    if (!userId) return;
+    const activeUserId = userId;
+
     async function sync() {
       if (!navigator.onLine) return;
 
       try {
-        const pendingWrites = await getPendingProgressWrites();
+        await prepareOfflineStorageForUser(activeUserId);
+        const pendingWrites = await getPendingProgressWrites(activeUserId);
         if (pendingWrites.length === 0) return;
 
         console.log(`Syncing ${pendingWrites.length} pending progress writes...`);
@@ -23,12 +31,12 @@ export function OfflineSyncManager() {
             });
 
             if (res.ok) {
-              await removePendingProgressWrite(write.id);
+              await removePendingProgressWrite(activeUserId, write.id);
             } else {
               // If it's a 4xx error (invalid data), we might want to delete it anyway to prevent infinite loops
               if (res.status >= 400 && res.status < 500) {
                 console.warn(`Dropped invalid pending write ${write.id}`);
-                await removePendingProgressWrite(write.id);
+                await removePendingProgressWrite(activeUserId, write.id);
               }
             }
           } catch (err) {
@@ -48,7 +56,7 @@ export function OfflineSyncManager() {
     // Listen for coming online
     window.addEventListener("online", sync);
     return () => window.removeEventListener("online", sync);
-  }, []);
+  }, [userId]);
 
   return null; // This is a logic-only component
 }
