@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useActionState } from "react";
 
 import { deleteStory } from "@/lib/library/actions";
@@ -24,6 +25,7 @@ export function DeleteStoryButton({
   storyId: string;
   storyTitle: string;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, isPending] = useActionState(
     deleteStory,
     INITIAL_STATE,
@@ -31,6 +33,7 @@ export function DeleteStoryButton({
 
   return (
     <form
+      ref={formRef}
       action={formAction}
       className="flex shrink-0 flex-col items-end gap-1"
     >
@@ -58,7 +61,7 @@ export function DeleteStoryButton({
                 Huỷ
               </AlertDialogCancel>
               <AlertDialogAction
-                type="submit"
+                onClick={() => formRef.current?.requestSubmit()}
                 className="bg-red-600 text-white hover:bg-red-700"
               >
                 Xoá vĩnh viễn
@@ -74,3 +77,4 @@ export function DeleteStoryButton({
     </form>
   );
 }
+
