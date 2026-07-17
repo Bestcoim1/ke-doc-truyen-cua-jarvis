@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cancelImportJob } from "@/lib/import/actions";
@@ -19,13 +19,14 @@ import {
 const INITIAL_STATE = { error: null, message: null };
 
 export function CancelJobButton({ jobId }: { jobId: string }) {
+  const formId = useId();
   const [state, formAction, isPending] = useActionState(
     cancelImportJob,
     INITIAL_STATE,
   );
 
   return (
-    <form action={formAction} className="flex flex-col items-end gap-1">
+    <form id={formId} action={formAction} className="flex flex-col items-end gap-1">
       <input type="hidden" name="jobId" value={jobId} />
       <AlertDialog>
         <AlertDialogTrigger asChild>
@@ -51,6 +52,8 @@ export function CancelJobButton({ jobId }: { jobId: string }) {
             </AlertDialogCancel>
             <AlertDialogAction
               type="submit"
+              form={formId}
+              disabled={isPending}
               className="bg-red-600 text-white hover:bg-red-700"
             >
               Hủy bản nháp

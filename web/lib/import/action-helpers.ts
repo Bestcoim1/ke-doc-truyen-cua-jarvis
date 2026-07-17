@@ -4,7 +4,11 @@ import { logEvent } from "@/lib/telemetry";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/database.types";
-import { countActiveImportJobs, MAX_ACTIVE_IMPORT_JOBS } from "./queries";
+import {
+  countActiveImportJobs,
+  MAX_ACTIVE_IMPORT_JOBS,
+  pruneActiveImportJobs,
+} from "./queries";
 import type { DraftSection } from "./text-parser";
 
 // Shared by first-time and re-import file-upload actions — a single
@@ -58,6 +62,16 @@ export async function assertUnderJobQuota(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<string | null> {
+  // Make room for the job about to be created. Older abandoned drafts are
+  // cancelled and stripped of their large draft_json payload automatically.
+  const { error } = await pruneActiveImportJobs(
+    supabase,
+    userId,
+    MAX_ACTIVE_IMPORT_JOBS - 1,
+  );
+  if (error) {
+    return "Chưa thể dọn các bản nháp cũ. Vui lòng thử lại sau.";
+  }
   const activeCount = await countActiveImportJobs(supabase, userId);
   if (activeCount >= MAX_ACTIVE_IMPORT_JOBS) {
     return `Bạn có ${activeCount} bản nháp đang chờ — hãy commit hoặc hủy bớt trước khi tạo bản mới.`;

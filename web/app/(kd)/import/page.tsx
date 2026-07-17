@@ -5,7 +5,11 @@ import { Suspense } from "react";
 import { CancelJobButton } from "@/components/import/cancel-job-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { isCancellableStatus, listImportJobs } from "@/lib/import/queries";
+import {
+  isCancellableStatus,
+  listImportJobs,
+  MAX_ACTIVE_IMPORT_JOBS,
+} from "@/lib/import/queries";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/utils";
 
@@ -69,6 +73,11 @@ async function ImportDraftsContent() {
         </Button>
       </div>
 
+      <p className="mt-3 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+        Chỉ giữ {MAX_ACTIVE_IMPORT_JOBS} bản nháp dang dở gần nhất. Bản cũ hơn
+        sẽ tự động được hủy khi bạn bắt đầu một import mới.
+      </p>
+
       {jobs.length === 0 ? (
         <p className="mt-6 text-sm" style={{ color: "var(--kd-text-muted)" }}>
           Chưa có bản nháp nào. Bắt đầu bằng cách paste nội dung truyện.
@@ -110,13 +119,6 @@ async function ImportDraftsContent() {
                   <Button asChild size="sm">
                     <Link href={`/import/review/${job.id}`}>
                       Tiếp tục review
-                    </Link>
-                  </Button>
-                ) : null}
-                {job.status === "completed" && job.story_id ? (
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/read/${job.story_id}`}>
-                      Mở trong Thư viện
                     </Link>
                   </Button>
                 ) : null}
