@@ -93,6 +93,23 @@ describe("reader domain RLS", () => {
         .eq("story_id", storyId);
       expect(sectionsByB ?? []).toHaveLength(0);
 
+      const { data: updatedSectionsByB } = await clientB
+        .from("sections")
+        .update({ title: "Section bị chiếm quyền" })
+        .eq("id", section!.id)
+        .select("id");
+      expect(updatedSectionsByB ?? []).toHaveLength(0);
+
+      const { data: updatedSectionByA, error: updateSectionByAError } =
+        await clientA
+          .from("sections")
+          .update({ title: "Hồi đã đổi tên" })
+          .eq("id", section!.id)
+          .select("id")
+          .single();
+      expect(updateSectionByAError).toBeNull();
+      expect(updatedSectionByA?.id).toBe(section!.id);
+
       const { data: chaptersByB } = await clientB
         .from("chapters")
         .select("id")

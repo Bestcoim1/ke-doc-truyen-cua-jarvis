@@ -7,8 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  // Preserved from the hosted generator output. The local CLI fallback does
+  // not currently emit its PostgREST version metadata.
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -543,6 +543,48 @@ export type Database = {
         }
         Relationships: []
       }
+      story_relationships: {
+        Row: {
+          created_at: string
+          id: string
+          relationship_type: Database["public"]["Enums"]["story_relationship_type"]
+          source_story_id: string
+          target_story_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          relationship_type: Database["public"]["Enums"]["story_relationship_type"]
+          source_story_id: string
+          target_story_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          relationship_type?: Database["public"]["Enums"]["story_relationship_type"]
+          source_story_id?: string
+          target_story_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_relationships_source_story_id_fkey"
+            columns: ["source_story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_relationships_target_story_id_fkey"
+            columns: ["target_story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_versions: {
         Row: {
           committed_at: string
@@ -667,6 +709,12 @@ export type Database = {
       import_source_type: "paste" | "txt" | "docx" | "batch"
       reading_theme: "light" | "dark" | "sepia"
       section_type: "volume" | "arc" | "part"
+      story_relationship_type:
+        | "sequel"
+        | "spinoff"
+        | "side_story"
+        | "adaptation"
+        | "related"
       story_status: "active" | "archived" | "deleting"
       story_visibility: "private"
       story_writing_status:
@@ -820,6 +868,13 @@ export const Constants = {
       import_source_type: ["paste", "txt", "docx", "batch"],
       reading_theme: ["light", "dark", "sepia"],
       section_type: ["volume", "arc", "part"],
+      story_relationship_type: [
+        "sequel",
+        "spinoff",
+        "side_story",
+        "adaptation",
+        "related",
+      ],
       story_status: ["active", "archived", "deleting"],
       story_visibility: ["private"],
       story_writing_status: [

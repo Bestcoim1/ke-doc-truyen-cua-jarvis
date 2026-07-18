@@ -3,6 +3,7 @@ import { XMLParser } from "fast-xml-parser";
 
 import { looksLikeZip } from "./file-validation";
 import {
+  classifyImportedHeading,
   parseLogicalLines,
   type ImportDraft,
   type LogicalLine,
@@ -18,6 +19,14 @@ export const MAX_ENTRY_BYTES = 20 * 1024 * 1024;
 const MAX_ZIP_ENTRIES = 10_000;
 
 type XmlNode = Record<string, unknown> & { ":@"?: Record<string, unknown> };
+
+type DocxHeadingLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+
+export type ExtractedDocxParagraph = {
+  text: string;
+  headingLevel?: DocxHeadingLevel;
+  isDocumentTitle?: boolean;
+};
 
 function childArray(node: XmlNode, tag: string): XmlNode[] {
   const value = node[tag];
@@ -128,32 +137,210 @@ function extractParagraphText(node: XmlNode): string {
   return text;
 }
 
-function extractParagraphs(
-  bodyChildren: XmlNode[],
-): { text: string; headingHint?: 1 | 2 }[] {
-  const paragraphs: { text: string; headingHint?: 1 | 2 }[] = [];
+function parseParagraphStyle(styleId: string): Pick<
+  ExtractedDocxParagraph,
+  "headingLevel" | "isDocumentTitle"
+> {
+  const normalized = styleId.toLowerCase().replace(/[\s\-_]/g, "");
+  if (/^(?:title|tiêuđề)$/u.test(normalized)) {
+    return { isDocumentTitle: true };
+  }
+
+  const headingMatch = normalized.match(/^(?:heading|tiêuđề|h)([1-9])$/u);
+  if (!headingMatch) return {};
+
+  return { headingLevel: Number(headingMatch[1]) as DocxHeadingLevel };
+}
+
+function extractParagraphs(bodyChildren: XmlNode[]): ExtractedDocxParagraph[] {
+  const paragraphs: ExtractedDocxParagraph[] = [];
 
   for (const node of bodyChildren) {
     if (!("w:p" in node)) continue; // tables, section properties, etc. are out of scope
     const children = childArray(node, "w:p");
     const pPr = findFirst(children, "w:pPr");
-    let headingHint: 1 | 2 | undefined;
+    let paragraphStyle: Pick<
+      ExtractedDocxParagraph,
+      "headingLevel" | "isDocumentTitle"
+    > = {};
     if (pPr) {
       const pStyle = findFirst(childArray(pPr, "w:pPr"), "w:pStyle");
       const styleId = pStyle?.[":@"]?.["@_w:val"];
       if (typeof styleId === "string") {
-        const normalized = styleId.toLowerCase().replace(/[\s\-_]/g, "");
-        if (normalized.match(/^(heading1|title|tiêuđề1|h1)$/)) {
-          headingHint = 1;
-        } else if (normalized.match(/^(heading2|subtitle|tiêuđề2|h2)$/)) {
-          headingHint = 2;
-        }
+        paragraphStyle = parseParagraphStyle(styleId);
       }
     }
-    paragraphs.push({ text: extractParagraphText(node).trim(), headingHint });
+    paragraphs.push({
+      text: extractParagraphText(node).trim(),
+      ...paragraphStyle,
+    });
   }
 
   return paragraphs;
+}
+
+type HeadingPlan = {
+  hintsByParagraph: Map<number, 1 | 2>;
+  sectionDepthByParagraph: Map<number, 0 | 1>;
+  ignoredParagraphs: Set<number>;
+  preferHeadingHints: boolean;
+  documentTitle?: string;
+};
+
+/**
+ * DOCX heading numbers are relative to the author's document, not to our
+ * Story → Section → Chapter model. A common Vietnamese Word layout is:
+ * Heading 1 = document title, Heading 2 = Hồi, Heading 3 = Chương. Scan the
+ * complete heading outline first, infer its chapter tier, and only then map
+ * levels to our two-tier structure.
+ */
+export function inferDocxHeadingPlan(
+  paragraphs: ExtractedDocxParagraph[],
+): HeadingPlan {
+  const hintsByParagraph = new Map<number, 1 | 2>();
+  const sectionDepthByParagraph = new Map<number, 0 | 1>();
+  const ignoredParagraphs = new Set<number>();
+  let documentTitle: string | undefined;
+
+  const headingEntries = paragraphs.flatMap((paragraph, index) => {
+    if (!paragraph.text) return [];
+    if (paragraph.isDocumentTitle) {
+      ignoredParagraphs.add(index);
+      documentTitle ??= paragraph.text;
+      return [];
+    }
+    if (!paragraph.headingLevel) return [];
+    return [
+      {
+        index,
+        level: paragraph.headingLevel,
+        text: paragraph.text,
+        textRole: classifyImportedHeading(paragraph.text),
+      },
+    ];
+  });
+
+  if (headingEntries.length === 0) {
+    return {
+      hintsByParagraph,
+      sectionDepthByParagraph,
+      ignoredParagraphs,
+      preferHeadingHints: false,
+      ...(documentTitle ? { documentTitle } : {}),
+    };
+  }
+
+  const levels = [...new Set(headingEntries.map((entry) => entry.level))].sort(
+    (a, b) => a - b,
+  );
+  const chapterHits = new Map<number, number>();
+  const sectionHits = new Map<number, number>();
+
+  for (const entry of headingEntries) {
+    const bucket =
+      entry.textRole === "chapter"
+        ? chapterHits
+        : entry.textRole === "section"
+          ? sectionHits
+          : null;
+    if (bucket) bucket.set(entry.level, (bucket.get(entry.level) ?? 0) + 1);
+  }
+
+  const rankedChapterLevels = [...chapterHits.entries()].sort(
+    ([levelA, countA], [levelB, countB]) =>
+      countB - countA || levelB - levelA,
+  );
+  let chapterLevel = rankedChapterLevels[0]?.[0];
+
+  if (!chapterLevel) {
+    const deepestLevel = levels.at(-1);
+    if (
+      deepestLevel &&
+      (sectionHits.get(deepestLevel) ?? 0) === 0
+    ) {
+      chapterLevel = deepestLevel;
+    }
+  }
+
+  if (!chapterLevel) {
+    // The file exposes some heading metadata but not a complete hierarchy
+    // (for example Heading 1 for Hồi and plain-text Chương lines). Preserve
+    // keyword fallback while still trusting recognizable styled headings.
+    const sectionLevels = [
+      ...new Set(
+        headingEntries
+          .filter((entry) => entry.textRole === "section")
+          .map((entry) => entry.level),
+      ),
+    ].sort((a, b) => a - b);
+
+    for (const entry of headingEntries) {
+      if (entry.textRole === "section") hintsByParagraph.set(entry.index, 1);
+      if (entry.textRole === "chapter") hintsByParagraph.set(entry.index, 2);
+      if (entry.textRole === "section") {
+        const depth = sectionLevels.indexOf(entry.level);
+        sectionDepthByParagraph.set(entry.index, depth <= 0 ? 0 : 1);
+      }
+    }
+    return {
+      hintsByParagraph,
+      sectionDepthByParagraph,
+      ignoredParagraphs,
+      preferHeadingHints: false,
+      ...(documentTitle ? { documentTitle } : {}),
+    };
+  }
+
+  const recognizedSectionLevels = [...sectionHits.keys()]
+    .filter((level) => level < chapterLevel)
+    .sort((a, b) => a - b);
+  const firstRecognizedSectionLevel = recognizedSectionLevels[0];
+
+  // A single unknown top heading above an explicit Hồi/Phần level is the
+  // document/story title, not another section. This is exactly the shape of
+  // Heading 1 → Heading 2 (Hồi) → Heading 3 (Chương) documents.
+  if (firstRecognizedSectionLevel) {
+    const shallowerEntries = headingEntries.filter(
+      (entry) => entry.level < firstRecognizedSectionLevel,
+    );
+    if (
+      shallowerEntries.length === 1 &&
+      shallowerEntries[0].textRole === null
+    ) {
+      ignoredParagraphs.add(shallowerEntries[0].index);
+      documentTitle ??= shallowerEntries[0].text;
+    }
+  }
+
+  const sectionLevels = [
+    ...new Set(
+      headingEntries
+        .filter(
+          (entry) =>
+            !ignoredParagraphs.has(entry.index) && entry.level < chapterLevel,
+        )
+        .map((entry) => entry.level),
+    ),
+  ].sort((a, b) => a - b);
+
+  for (const entry of headingEntries) {
+    if (ignoredParagraphs.has(entry.index)) continue;
+    if (entry.level < chapterLevel) {
+      hintsByParagraph.set(entry.index, 1);
+      const depth = sectionLevels.indexOf(entry.level);
+      sectionDepthByParagraph.set(entry.index, depth <= 0 ? 0 : 1);
+    } else if (entry.level === chapterLevel) {
+      hintsByParagraph.set(entry.index, 2);
+    }
+  }
+
+  return {
+    hintsByParagraph,
+    sectionDepthByParagraph,
+    ignoredParagraphs,
+    preferHeadingHints: true,
+    ...(documentTitle ? { documentTitle } : {}),
+  };
 }
 
 /**
@@ -163,7 +350,7 @@ function extractParagraphs(
  */
 export async function extractDocxParagraphs(
   buffer: Buffer,
-): Promise<{ text: string; headingHint?: 1 | 2 }[]> {
+): Promise<ExtractedDocxParagraph[]> {
   if (!looksLikeZip(buffer)) {
     throw new Error(
       "File không đúng định dạng DOCX (không phải file ZIP hợp lệ).",
@@ -224,35 +411,40 @@ export async function extractDocxParagraphs(
 /**
  * DOCX equivalent of parseStoryText: each Word paragraph becomes a
  * blank-line-separated "paragraph" (matching the TXT/paste convention
- * buildTextBlocks expects), and Heading 1/2-styled paragraphs are trusted
- * as section/chapter boundaries via LogicalLine.headingHint instead of
- * relying on text-pattern matching alone (see parseLogicalLines).
+ * buildTextBlocks expects). The complete Word heading outline is scanned
+ * before keyword fallback so Heading 1 → Heading 2 → Heading 3 documents can
+ * map cleanly to document title → section → chapter.
  */
 export async function parseDocxDraft(
   buffer: Buffer,
   options: ParseStoryTextOptions = {},
 ): Promise<ImportDraft> {
   const paragraphs = await extractDocxParagraphs(buffer);
-
-  const hasHeading2 = paragraphs.some((p) => p.headingHint === 2);
+  const headingPlan = inferDocxHeadingPlan(paragraphs);
 
   const lines: LogicalLine[] = [];
-  for (const paragraph of paragraphs) {
+  paragraphs.forEach((paragraph, paragraphIndex) => {
+    if (headingPlan.ignoredParagraphs.has(paragraphIndex)) return;
     paragraph.text.split("\n").forEach((segment, index) => {
-      let hint = index === 0 ? paragraph.headingHint : undefined;
-      // Nếu file DOCX chỉ dùng Heading 1 mà không dùng Heading 2,
-      // rất có thể người dùng đang dùng Heading 1 để làm Chương (Chapter).
-      // Ta sẽ tự động chuyển nó thành level 2 (Chapter) để tránh bị coi là Phần/Quyển (Section).
-      if (hint === 1 && !hasHeading2) {
-        hint = 2;
-      }
       lines.push({
         text: segment,
-        headingHint: hint,
+        headingHint:
+          index === 0
+            ? headingPlan.hintsByParagraph.get(paragraphIndex)
+            : undefined,
+        sectionDepth:
+          index === 0
+            ? headingPlan.sectionDepthByParagraph.get(paragraphIndex)
+            : undefined,
       });
     });
     lines.push({ text: "" });
-  }
+  });
 
-  return parseLogicalLines(lines, { ...options, sourceType: "docx" });
+  return parseLogicalLines(lines, {
+    ...options,
+    title: options.title ?? headingPlan.documentTitle,
+    sourceType: "docx",
+    preferHeadingHints: headingPlan.preferHeadingHints,
+  });
 }

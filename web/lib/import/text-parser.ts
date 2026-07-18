@@ -76,6 +76,16 @@ export type ParseStoryTextOptions = {
   sourceType?: ImportSourceType;
 };
 
+export type ParseLogicalLinesOptions = ParseStoryTextOptions & {
+  /**
+   * When a source such as DOCX exposes a complete heading hierarchy, only
+   * explicit heading hints may create section/chapter boundaries. This keeps
+   * prose like “Hồi IV đã bắt đầu” from being mistaken for a heading. Plain
+   * text and incomplete DOCX hierarchies continue to use keyword fallback.
+   */
+  preferHeadingHints?: boolean;
+};
+
 export type BuildImportedStoryInput = {
   title?: string;
   description?: string;
@@ -106,6 +116,8 @@ type PendingChapter = {
 export type LogicalLine = {
   text: string;
   headingHint?: 1 | 2;
+  /** Relative DOCX section tier: 0 = root section, 1 = child section. */
+  sectionDepth?: 0 | 1;
 };
 
 export function classifyImportedHeading(
@@ -339,7 +351,7 @@ export const buildImportDraft = buildImportedStory;
 
 export function parseLogicalLines(
   lines: LogicalLine[],
-  options: ParseStoryTextOptions = {},
+  options: ParseLogicalLinesOptions = {},
 ): ImportDraft {
   const createId = createParseIdFactory();
   const warnings: ImportWarning[] = [];
@@ -348,6 +360,7 @@ export function parseLogicalLines(
   const sourceKeyOccurrences = new Map<string, number>();
 
   let currentVolume: DraftSection | null = null;
+  let currentHeadingRoot: DraftSection | null = null;
   let currentSection: DraftSection | null = null;
   let currentChapter: PendingChapter | null = null;
   let pendingLines: string[] = [];
@@ -359,6 +372,7 @@ export function parseLogicalLines(
   const createSection = (
     title: string,
     type: DraftSectionType,
+    sectionDepth?: 0 | 1,
   ): DraftSection => {
     const section: DraftSection = {
       id: createId("section"),
@@ -367,7 +381,12 @@ export function parseLogicalLines(
       children: [],
       chapters: [],
     };
-    const parent = type === "volume" ? null : currentVolume;
+    const parent =
+      sectionDepth === 1
+        ? currentHeadingRoot
+        : sectionDepth === 0 || type === "volume"
+          ? null
+          : currentVolume;
 
     if (parent) parent.children.push(section);
     else rootSections.push(section);
@@ -379,7 +398,13 @@ export function parseLogicalLines(
       parentPath ? `${parentPath}/${segment}` : segment,
     );
 
-    if (type === "volume") currentVolume = section;
+    if (sectionDepth === 0) {
+      currentHeadingRoot = section;
+      currentVolume = type === "volume" ? section : null;
+    } else if (type === "volume") {
+      currentVolume = section;
+      currentHeadingRoot = section;
+    }
     currentSection = section;
     return section;
   };
@@ -447,6 +472,24 @@ export function parseLogicalLines(
     currentChapter = null;
   };
 
+  const finishPendingSectionContent = () => {
+    if (!currentSection) return;
+    const contentText = contentFromLines(pendingLines);
+    if (!contentText) return;
+
+    currentSection.chapters.push(
+      makeDraftChapter(
+        currentSection,
+        createId("chapter"),
+        currentSection.title,
+        "regular",
+        contentText,
+      ),
+    );
+    pendingLines = [];
+    addWarning(NO_CHAPTER_HEADING_WARNING);
+  };
+
   for (const logicalLine of lines) {
     const normalizedLine = logicalLine.text.trim();
     let headingType: ImportedHeadingType | null;
@@ -465,13 +508,20 @@ export function parseLogicalLines(
           `Tiêu đề “${normalizedLine}” được nhận dạng theo style Heading của file gốc, không theo mẫu Chương/Hồi quen thuộc — hãy kiểm tra lại.`,
         );
       }
+    } else if (options.preferHeadingHints) {
+      headingType = null;
     } else {
       headingType = classifyImportedHeading(normalizedLine);
     }
 
     if (headingType === "section") {
       finishCurrentChapter();
-      createSection(normalizedLine, classifySectionType(normalizedLine));
+      finishPendingSectionContent();
+      createSection(
+        normalizedLine,
+        classifySectionType(normalizedLine),
+        logicalLine.sectionDepth,
+      );
       continue;
     }
 
@@ -502,6 +552,7 @@ export function parseLogicalLines(
   }
 
   finishCurrentChapter();
+  finishPendingSectionContent();
 
   const pendingContent = contentFromLines(pendingLines);
   if (pendingContent) {

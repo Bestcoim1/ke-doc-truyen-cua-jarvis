@@ -205,6 +205,120 @@ export async function updateStoryCoverColor(storyId: string, color: string) {
   return { success: true };
 }
 
+export type UpdateStorySectionInput = {
+  storyId: string;
+  sectionId: string;
+  title: string;
+  parentSectionId: string | null;
+};
+
+export async function updateStorySection(
+  input: UpdateStorySectionInput,
+): Promise<ActionState> {
+  if (!input || typeof input !== "object") {
+    return { error: "Section không hợp lệ.", message: null };
+  }
+
+  const { storyId, sectionId, parentSectionId } = input;
+  const title = typeof input.title === "string" ? input.title.trim() : "";
+  if (
+    !UUID_RE.test(storyId) ||
+    !UUID_RE.test(sectionId) ||
+    title.length === 0 ||
+    title.length > 200 ||
+    (parentSectionId !== null && !UUID_RE.test(parentSectionId)) ||
+    parentSectionId === sectionId
+  ) {
+    return { error: "Tên hoặc section cha không hợp lệ.", message: null };
+  }
+
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub as string | undefined;
+  if (!userId) redirect(`/auth/login?next=/library/${storyId}/chapters`);
+
+  const { data: story, error: storyError } = await supabase
+    .from("stories")
+    .select("id")
+    .eq("id", storyId)
+    .eq("owner_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (storyError || !story) {
+    return { error: "Không tìm thấy tác phẩm để cập nhật.", message: null };
+  }
+
+  const { data: sections, error: sectionsError } = await supabase
+    .from("sections")
+    .select("id, parent_section_id, type")
+    .eq("story_id", storyId)
+    .eq("is_active", true);
+  if (sectionsError) {
+    logEvent("library.section_update_lookup_error", {
+      code: sectionsError.code,
+      storyId,
+      sectionId,
+    });
+    return { error: "Không thể kiểm tra cấu trúc section.", message: null };
+  }
+
+  const target = sections?.find((section) => section.id === sectionId);
+  if (!target) {
+    return { error: "Không tìm thấy section để cập nhật.", message: null };
+  }
+
+  if (parentSectionId !== null) {
+    const parent = sections?.find((section) => section.id === parentSectionId);
+    const targetHasChildren = sections?.some(
+      (section) => section.parent_section_id === sectionId,
+    );
+    if (
+      !parent ||
+      parent.parent_section_id !== null ||
+      target.type === "volume" ||
+      targetHasChildren
+    ) {
+      return {
+        error:
+          "Chỉ có thể đặt một section lá bên trong section cấp gốc.",
+        message: null,
+      };
+    }
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("sections")
+    .update({ title, parent_section_id: parentSectionId })
+    .eq("id", sectionId)
+    .eq("story_id", storyId)
+    .select("id")
+    .maybeSingle();
+  if (updateError || !updated) {
+    logEvent("library.section_update_error", {
+      code: updateError?.code ?? "not_found",
+      storyId,
+      sectionId,
+    });
+    return {
+      error: "Không thể cập nhật section. Vui lòng thử lại.",
+      message: null,
+    };
+  }
+
+  logEvent("library.section_updated", {
+    storyId,
+    sectionId,
+    hasParent: parentSectionId !== null,
+  });
+  revalidatePath(`/library/${storyId}/chapters`);
+  revalidatePath(`/read/${storyId}`);
+  revalidatePath(`/read/${storyId}/graph`);
+  revalidatePath("/library/graphs");
+  revalidatePath("/library");
+  revalidatePath("/search");
+  return { error: null, message: "Đã cập nhật section." };
+}
+
 export async function reorderStoryChapters(
   _previousState: ActionState,
   formData: FormData,

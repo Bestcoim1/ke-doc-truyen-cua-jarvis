@@ -35,6 +35,7 @@ import {
   flattenSectionOptions,
   mergeChapterWithPrevious,
   moveChapter,
+  moveSectionToParent,
   renameChapter,
   renameSection,
   reorderChapter,
@@ -262,23 +263,35 @@ function ChapterEditor({
 
 type SectionEditorProps = {
   section: ReviewSection;
+  sectionOptions: SectionOption[];
+  parentSectionId: string | null;
   depth: number;
   isFirst: boolean;
   isLast: boolean;
   onRenameSection: (title: string) => void;
   onChangeType: (type: DraftSectionType) => void;
+  onMoveSection: (parentSectionId: string | null) => void;
   onReorderSection: (direction: "up" | "down") => void;
 };
 
 function SectionEditor({
   section,
+  sectionOptions,
+  parentSectionId,
   depth,
   isFirst,
   isLast,
   onRenameSection,
   onChangeType,
+  onMoveSection,
   onReorderSection,
 }: SectionEditorProps) {
+  const canChooseParent =
+    section.type !== "volume" && section.children.length === 0;
+  const rootOptions = sectionOptions.filter(
+    (option) => option.depth === 0 && option.id !== section.id,
+  );
+
   return (
     <section
       className="rounded-lg border p-4 sm:p-6"
@@ -321,7 +334,31 @@ function SectionEditor({
           </select>
         </label>
 
-        <div className="flex flex-col gap-1.5 justify-end">
+        <label className="grid gap-1.5 text-xs">
+          <span style={{ color: "var(--kd-text-muted)" }}>Section cha</span>
+          <select
+            value={parentSectionId ?? ""}
+            disabled={!canChooseParent}
+            onChange={(event) =>
+              onMoveSection(event.target.value || null)
+            }
+            className="h-10 min-w-0 rounded-md border bg-transparent px-3 text-sm disabled:opacity-60"
+          >
+            <option value="">Cấp gốc</option>
+            {rootOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.title}
+              </option>
+            ))}
+          </select>
+          {!canChooseParent ? (
+            <span style={{ color: "var(--kd-text-muted)" }}>
+              Section có section con hoặc là Volume phải nằm ở cấp gốc.
+            </span>
+          ) : null}
+        </label>
+
+        <div className="flex flex-col gap-1.5 justify-end sm:col-span-2">
           <span className="text-xs" style={{ color: "var(--kd-text-muted)" }}>
             Sắp xếp
           </span>
@@ -504,6 +541,7 @@ export function ImportReviewEditor({
           isFirst: boolean;
           isLast: boolean;
           depth: number;
+          parentSectionId: string | null;
         }
       | {
           type: "chapter";
@@ -517,6 +555,7 @@ export function ImportReviewEditor({
     function traverse(
       sections: ReviewSection[],
       currentDepth: number,
+      parentSectionId: string | null,
     ): NodeInfo {
       for (let i = 0; i < sections.length; i++) {
         const sec = sections[i];
@@ -527,6 +566,7 @@ export function ImportReviewEditor({
             isFirst: i === 0,
             isLast: i === sections.length - 1,
             depth: currentDepth,
+            parentSectionId,
           };
         }
         for (let j = 0; j < sec.chapters.length; j++) {
@@ -541,13 +581,13 @@ export function ImportReviewEditor({
             };
           }
         }
-        const found = traverse(sec.children, currentDepth + 1);
+        const found = traverse(sec.children, currentDepth + 1, sec.id);
         if (found) return found;
       }
       return null;
     }
 
-    return traverse(draft.sections, 0);
+    return traverse(draft.sections, 0, null);
   }, [draft.sections, selectedId]);
 
   const structureJson = useMemo(
@@ -668,14 +708,28 @@ export function ImportReviewEditor({
             </p>
           ) : null}
           {draft.warnings.length > 0 ? (
-            <aside className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-950">
-              <h2 className="font-semibold text-sm">Cần kiểm tra</h2>
-              <ul className="mt-1 list-disc space-y-1 pl-5 text-xs">
-                {draft.warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            </aside>
+            <details className="group overflow-hidden rounded-lg border border-amber-300 bg-amber-50 text-amber-950">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
+                <span className="text-sm font-semibold">Cần kiểm tra</span>
+                <span className="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-bold tabular-nums">
+                  {draft.warnings.length}
+                </span>
+                <span className="ml-auto text-xs text-amber-800">
+                  Nhấn để xem
+                </span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="size-4 shrink-0 transition-transform group-open:rotate-180"
+                />
+              </summary>
+              <div className="max-h-48 overflow-y-auto border-t border-amber-300 px-3 py-2 overscroll-contain">
+                <ul className="list-disc space-y-1 pl-5 text-xs">
+                  {draft.warnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            </details>
           ) : null}
         </div>
       ) : null}
@@ -756,6 +810,8 @@ export function ImportReviewEditor({
             ) : (
               <SectionEditor
                 section={selectedNodeInfo.section}
+                sectionOptions={sectionOptions}
+                parentSectionId={selectedNodeInfo.parentSectionId}
                 depth={selectedNodeInfo.depth}
                 isFirst={selectedNodeInfo.isFirst}
                 isLast={selectedNodeInfo.isLast}
@@ -770,6 +826,15 @@ export function ImportReviewEditor({
                       current,
                       selectedNodeInfo.section.id,
                       type,
+                    ),
+                  )
+                }
+                onMoveSection={(parentSectionId) =>
+                  apply((current) =>
+                    moveSectionToParent(
+                      current,
+                      selectedNodeInfo.section.id,
+                      parentSectionId,
                     ),
                   )
                 }

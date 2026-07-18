@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Archive, BookOpen, Clock3, ListOrdered, Plus, RefreshCw } from "lucide-react";
+import { Archive, BookOpen, Clock3, ListOrdered, Network, Plus, RefreshCw } from "lucide-react";
 
 import { ArchiveStoryButton } from "@/components/library/archive-story-button";
 import { DeleteStoryButton } from "@/components/library/delete-story-button";
@@ -84,6 +84,16 @@ async function LibraryContent({ searchParams }: LibraryPageProps) {
           </p>
         </div>
         <div className="grid gap-2 sm:flex sm:items-center">
+          <Button
+            asChild
+            variant="outline"
+            className="justify-center rounded-full"
+          >
+            <Link href="/library/graphs">
+              <Network size={16} />
+              Graph View
+            </Link>
+          </Button>
           <Button
             asChild
             variant="outline"
@@ -279,6 +289,17 @@ function StoryCard({
       >
         {status === "active" ? (
           <>
+            <Link
+              href={`/read/${story.id}/graph`}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-bold"
+              style={{
+                background: "var(--kd-bg)",
+                color: "var(--kd-text)",
+              }}
+            >
+              <Network size={14} />
+              Graph
+            </Link>
             <Link
               href={`/import/reimport/${story.id}/new`}
               className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-bold"

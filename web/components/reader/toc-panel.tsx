@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, ChevronRight, ChevronDown, Download } from "lucide-react";
+import { X, ChevronRight, ChevronDown, Download, Network } from "lucide-react";
 import { toast } from "sonner";
 import { getStoryForOfflineDownload } from "@/lib/reader/actions";
 import { saveStoryForOffline, saveChapterForOffline } from "@/lib/offline/storage";
@@ -223,6 +223,14 @@ export function TocPanel({
             <Dialog.Title asChild>
               <span className="text-base font-bold flex-1">Mục lục</span>
             </Dialog.Title>
+            <a
+              href={`/read/${storyId}/graph`}
+              className="flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-semibold hover:bg-primary/10"
+              title="Mở Graph View"
+            >
+              <Network size={14} />
+              Graph
+            </a>
             
             <button
               onClick={handleDownloadOffline}

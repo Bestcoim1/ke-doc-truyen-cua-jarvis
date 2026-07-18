@@ -43,7 +43,10 @@ export type ChapterOrderItem = {
 export type ChapterOrderSection = {
   id: string;
   title: string;
+  type: Database["public"]["Enums"]["section_type"];
   path: string[];
+  parentSectionId: string | null;
+  hasChildren: boolean;
   chapters: ChapterOrderItem[];
 };
 
@@ -237,7 +240,7 @@ export async function getChapterOrderStory(
     await Promise.all([
       supabase
         .from("sections")
-        .select("id, parent_section_id, title, sort_order")
+        .select("id, parent_section_id, type, title, sort_order")
         .eq("story_id", storyId)
         .eq("is_active", true),
       supabase
@@ -286,17 +289,18 @@ export async function getChapterOrderStory(
       const directChapters = [...(chaptersBySection.get(section.id) ?? [])].sort(
         compareNodes,
       );
-      if (directChapters.length > 0) {
-        result.push({
-          id: section.id,
-          title: section.title,
-          path,
-          chapters: directChapters.map((chapter) => ({
-            id: chapter.id,
-            title: chapter.title,
-          })),
-        });
-      }
+      result.push({
+        id: section.id,
+        title: section.title,
+        type: section.type,
+        path,
+        parentSectionId: section.parent_section_id,
+        hasChildren: (childrenByParent.get(section.id)?.length ?? 0) > 0,
+        chapters: directChapters.map((chapter) => ({
+          id: chapter.id,
+          title: chapter.title,
+        })),
+      });
       walk(section.id, path);
     }
   }

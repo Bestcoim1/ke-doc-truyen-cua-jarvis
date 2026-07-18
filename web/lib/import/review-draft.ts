@@ -188,6 +188,97 @@ export function moveChapter(
   return foundTarget ? { ...draft, sections } : draft;
 }
 
+function findSectionLocation(
+  sections: ReviewSection[],
+  sectionId: string,
+  parentSectionId: string | null = null,
+): { section: ReviewSection; parentSectionId: string | null } | null {
+  for (const section of sections) {
+    if (section.id === sectionId) return { section, parentSectionId };
+    const child = findSectionLocation(
+      section.children,
+      sectionId,
+      section.id,
+    );
+    if (child) return child;
+  }
+  return null;
+}
+
+function detachSection(
+  sections: ReviewSection[],
+  sectionId: string,
+): { sections: ReviewSection[]; detached: ReviewSection | null } {
+  let detached: ReviewSection | null = null;
+  const next: ReviewSection[] = [];
+
+  for (const section of sections) {
+    if (section.id === sectionId) {
+      detached = section;
+      continue;
+    }
+
+    if (!detached) {
+      const childResult = detachSection(section.children, sectionId);
+      if (childResult.detached) {
+        detached = childResult.detached;
+        next.push({ ...section, children: childResult.sections });
+        continue;
+      }
+    }
+    next.push(section);
+  }
+
+  return { sections: next, detached };
+}
+
+/**
+ * Moves a section between the root and one root-level parent. Import drafts
+ * intentionally support at most two section levels, matching the database
+ * constraint used when the story is committed.
+ */
+export function moveSectionToParent(
+  draft: ReviewDraft,
+  sectionId: string,
+  parentSectionId: string | null,
+): ReviewDraft {
+  const target = findSectionLocation(draft.sections, sectionId);
+  if (!target || target.parentSectionId === parentSectionId) return draft;
+
+  if (parentSectionId !== null) {
+    const parent = draft.sections.find(
+      (section) => section.id === parentSectionId,
+    );
+    if (
+      !parent ||
+      parent.id === sectionId ||
+      target.section.type === "volume" ||
+      target.section.children.length > 0
+    ) {
+      return draft;
+    }
+  }
+
+  const { sections: withoutTarget, detached } = detachSection(
+    draft.sections,
+    sectionId,
+  );
+  if (!detached) return draft;
+
+  if (parentSectionId === null) {
+    return { ...draft, sections: [...withoutTarget, detached] };
+  }
+
+  return {
+    ...draft,
+    sections: withoutTarget.map((section) =>
+      section.id === parentSectionId
+        ? { ...section, children: [...section.children, detached] }
+        : section,
+    ),
+  };
+}
+
 export function flattenSectionOptions(
   sections: ReviewSection[],
   depth = 0,

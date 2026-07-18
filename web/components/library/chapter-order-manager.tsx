@@ -1,19 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useMemo, useState, useTransition } from "react";
 import {
   ArrowDown,
   ArrowDownToLine,
   ArrowUp,
   ArrowUpToLine,
   GripVertical,
+  Pencil,
   RotateCcw,
   SortAsc,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { reorderStoryChapters } from "@/lib/library/actions";
+import { Input } from "@/components/ui/input";
+import {
+  reorderStoryChapters,
+  updateStorySection,
+} from "@/lib/library/actions";
 import type {
   ChapterOrderItem,
   ChapterOrderStory,
@@ -62,6 +68,7 @@ function compareChapterTitles(left: ChapterOrderItem, right: ChapterOrderItem) {
 }
 
 export function ChapterOrderManager({ story }: { story: ChapterOrderStory }) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     reorderStoryChapters,
     INITIAL_STATE,
@@ -78,7 +85,19 @@ export function ChapterOrderManager({ story }: { story: ChapterOrderStory }) {
     sectionId: string;
     chapterId: string;
   } | null>(null);
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [sectionTitle, setSectionTitle] = useState("");
+  const [parentSectionId, setParentSectionId] = useState<string | null>(null);
+  const [sectionState, setSectionState] = useState<{
+    error: string | null;
+    message: string | null;
+  }>(INITIAL_STATE);
+  const [isSectionPending, startSectionTransition] = useTransition();
   const payload = useMemo(() => serializeOrder(story, orders), [orders, story]);
+  const rootSections = useMemo(
+    () => story.sections.filter((section) => section.parentSectionId === null),
+    [story.sections],
+  );
   const savedPayload = state.message
     ? (submittedPayload ?? initialPayload)
     : initialPayload;
@@ -143,6 +162,37 @@ export function ChapterOrderManager({ story }: { story: ChapterOrderStory }) {
     );
   }
 
+  function openSectionEditor(sectionId: string) {
+    const section = story.sections.find((candidate) => candidate.id === sectionId);
+    if (!section) return;
+    setEditingSectionId(section.id);
+    setSectionTitle(section.title);
+    setParentSectionId(section.parentSectionId);
+    setSectionState(INITIAL_STATE);
+  }
+
+  function closeSectionEditor() {
+    setEditingSectionId(null);
+    setSectionState(INITIAL_STATE);
+  }
+
+  function saveSection() {
+    if (!editingSectionId || !sectionTitle.trim()) return;
+    startSectionTransition(async () => {
+      const result = await updateStorySection({
+        storyId: story.id,
+        sectionId: editingSectionId,
+        title: sectionTitle,
+        parentSectionId,
+      });
+      setSectionState(result);
+      if (!result.error) {
+        setEditingSectionId(null);
+        router.refresh();
+      }
+    });
+  }
+
   return (
     <form
       action={formAction}
@@ -162,7 +212,7 @@ export function ChapterOrderManager({ story }: { story: ChapterOrderStory }) {
             ← Quay lại thư viện
           </Link>
           <h1 className="mt-2 text-3xl font-extrabold font-display sm:text-4xl">
-            Quản lý thứ tự chương
+            Quản lý chương và section
           </h1>
           <p className="mt-2 text-sm" style={{ color: "var(--kd-text-muted)" }}>
             {story.title}
@@ -184,10 +234,29 @@ export function ChapterOrderManager({ story }: { story: ChapterOrderStory }) {
         className="mt-5 rounded-xl border p-3 text-sm leading-6"
         style={{ borderColor: "var(--kd-border)", color: "var(--kd-text-muted)" }}
       >
-        Kéo một chương đến vị trí mới, dùng các nút mũi tên, hoặc chọn nhiều
-        chương để đưa cả nhóm lên đầu/cuối section. Thay đổi chỉ được ghi khi
-        bạn bấm “Lưu thứ tự”.
+        Kéo chương đến vị trí mới hoặc chọn nhiều chương để đưa cả nhóm lên
+        đầu/cuối. Nút “Chỉnh section” cho phép đổi tên và đặt một section lá
+        vào trong section cấp gốc. Thứ tự chương chỉ được ghi khi bạn bấm “Lưu
+        thứ tự”.
       </p>
+
+      {sectionState.error ? (
+        <p
+          role="alert"
+          className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700"
+        >
+          {sectionState.error}
+        </p>
+      ) : null}
+      {sectionState.message ? (
+        <p
+          role="status"
+          className="mt-4 rounded-lg border p-3 text-sm"
+          style={{ borderColor: "var(--kd-border)" }}
+        >
+          {sectionState.message}
+        </p>
+      ) : null}
 
       {story.sections.length === 0 ? (
         <p className="mt-6 rounded-xl border p-6 text-center" style={{ borderColor: "var(--kd-border)" }}>
@@ -224,6 +293,14 @@ export function ChapterOrderManager({ story }: { story: ChapterOrderStory }) {
                       type="button"
                       size="sm"
                       variant="outline"
+                      onClick={() => openSectionEditor(section.id)}
+                    >
+                      <Pencil size={14} /> Chỉnh section
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
                       disabled={selectedCount === 0}
                       onClick={() => moveSelected(section.id, "start")}
                     >
@@ -240,6 +317,72 @@ export function ChapterOrderManager({ story }: { story: ChapterOrderStory }) {
                     </Button>
                   </div>
                 </div>
+
+                {editingSectionId === section.id ? (
+                  <div
+                    className="grid gap-4 border-b px-4 py-4 sm:grid-cols-2"
+                    style={{ borderColor: "var(--kd-border)" }}
+                  >
+                    <label className="grid gap-1.5 text-sm">
+                      <span className="font-semibold">Tên section</span>
+                      <Input
+                        value={sectionTitle}
+                        maxLength={200}
+                        onChange={(event) => setSectionTitle(event.target.value)}
+                        disabled={isSectionPending}
+                      />
+                    </label>
+                    <label className="grid gap-1.5 text-sm">
+                      <span className="font-semibold">Section cha</span>
+                      <select
+                        value={parentSectionId ?? ""}
+                        disabled={
+                          section.hasChildren ||
+                          section.type === "volume" ||
+                          isSectionPending
+                        }
+                        onChange={(event) =>
+                          setParentSectionId(event.target.value || null)
+                        }
+                        className="h-10 min-w-0 rounded-md border bg-transparent px-3 text-sm disabled:opacity-60"
+                      >
+                        <option value="">Cấp gốc</option>
+                        {rootSections
+                          .filter((candidate) => candidate.id !== section.id)
+                          .map((candidate) => (
+                            <option key={candidate.id} value={candidate.id}>
+                              {candidate.title}
+                            </option>
+                          ))}
+                      </select>
+                      {section.hasChildren || section.type === "volume" ? (
+                        <span
+                          className="text-xs"
+                          style={{ color: "var(--kd-text-muted)" }}
+                        >
+                          Section có section con hoặc là Volume phải ở cấp gốc.
+                        </span>
+                      ) : null}
+                    </label>
+                    <div className="flex flex-wrap justify-end gap-2 sm:col-span-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={closeSectionEditor}
+                        disabled={isSectionPending}
+                      >
+                        Hủy
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={saveSection}
+                        disabled={!sectionTitle.trim() || isSectionPending}
+                      >
+                        {isSectionPending ? "Đang lưu…" : "Lưu section"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
 
                 <ol className="divide-y" style={{ borderColor: "var(--kd-border)" }}>
                   {chapters.map((chapter, index) => (
@@ -305,6 +448,14 @@ export function ChapterOrderManager({ story }: { story: ChapterOrderStory }) {
                     </li>
                   ))}
                 </ol>
+                {chapters.length === 0 ? (
+                  <p
+                    className="px-4 py-5 text-center text-sm"
+                    style={{ color: "var(--kd-text-muted)" }}
+                  >
+                    Section này chưa có chương trực tiếp.
+                  </p>
+                ) : null}
               </section>
             );
           })}

@@ -9,6 +9,7 @@ import {
   deleteChapter,
   mergeChapterWithPrevious,
   moveChapter,
+  moveSectionToParent,
   renameChapter,
   renameSection,
   reorderChapter,
@@ -61,6 +62,35 @@ describe("import review draft operations", () => {
 
     const deleted = deleteChapter(moved, movedId);
     expect(deleted.stats.chapterCount).toBe(initial.stats.chapterCount - 1);
+  });
+
+  it("moves leaf sections under a root section and back to the root", () => {
+    const initial = createDraft();
+    const parentId = initial.sections[0].id;
+    const childId = initial.sections[1].id;
+
+    const nested = moveSectionToParent(initial, childId, parentId);
+    expect(nested.sections).toHaveLength(1);
+    expect(nested.sections[0].children.map((section) => section.id)).toEqual([
+      childId,
+    ]);
+
+    const restored = moveSectionToParent(nested, childId, null);
+    expect(restored.sections.map((section) => section.id)).toEqual([
+      parentId,
+      childId,
+    ]);
+    expect(restored.sections[0].children).toHaveLength(0);
+  });
+
+  it("does not create a third section level or nest a section with children", () => {
+    const initial = createDraft();
+    const parentId = initial.sections[0].id;
+    const childId = initial.sections[1].id;
+    const nested = moveSectionToParent(initial, childId, parentId);
+
+    expect(moveSectionToParent(nested, parentId, childId)).toBe(nested);
+    expect(moveSectionToParent(nested, childId, childId)).toBe(nested);
   });
 
   it("merges into the previous reading-order chapter and rebuilds server content", () => {
