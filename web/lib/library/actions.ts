@@ -212,6 +212,188 @@ export type UpdateStorySectionInput = {
   parentSectionId: string | null;
 };
 
+export type DeleteStoryContentInput = {
+  storyId: string;
+  targetId: string;
+};
+
+export type UpdateStoryChapterTitleInput = {
+  storyId: string;
+  chapterId: string;
+  title: string;
+};
+
+function revalidateStoryContent(storyId: string) {
+  revalidatePath(`/library/${storyId}/chapters`);
+  revalidatePath(`/read/${storyId}`);
+  revalidatePath(`/read/${storyId}/graph`);
+  revalidatePath("/library/graphs");
+  revalidatePath("/library");
+  revalidatePath("/search");
+}
+
+async function getActiveOwnedStory(
+  storyId: string,
+): Promise<{
+  supabase: Awaited<ReturnType<typeof createClient>>;
+} | null> {
+  const supabase = await createClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub as string | undefined;
+  if (!userId) redirect(`/auth/login?next=/library/${storyId}/chapters`);
+
+  const { data: story, error } = await supabase
+    .from("stories")
+    .select("id")
+    .eq("id", storyId)
+    .eq("owner_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error || !story) return null;
+  return { supabase };
+}
+
+export async function deleteStoryChapter(
+  input: DeleteStoryContentInput,
+): Promise<ActionState> {
+  if (
+    !input ||
+    typeof input !== "object" ||
+    !UUID_RE.test(input.storyId) ||
+    !UUID_RE.test(input.targetId)
+  ) {
+    return { error: "Chương không hợp lệ.", message: null };
+  }
+
+  const ownedStory = await getActiveOwnedStory(input.storyId);
+  if (!ownedStory) {
+    return { error: "Không tìm thấy tác phẩm để cập nhật.", message: null };
+  }
+
+  const { data: deleted, error } = await ownedStory.supabase
+    .from("chapters")
+    .delete()
+    .eq("id", input.targetId)
+    .eq("story_id", input.storyId)
+    .eq("is_active", true)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !deleted) {
+    logEvent("library.chapter_delete_error", {
+      code: error?.code ?? "not_found",
+      storyId: input.storyId,
+      chapterId: input.targetId,
+    });
+    return {
+      error: "Không thể xoá chương. Vui lòng tải lại trang rồi thử lại.",
+      message: null,
+    };
+  }
+
+  logEvent("library.chapter_deleted", {
+    storyId: input.storyId,
+    chapterId: input.targetId,
+  });
+  revalidateStoryContent(input.storyId);
+  return { error: null, message: "Đã xoá chương." };
+}
+
+export async function updateStoryChapterTitle(
+  input: UpdateStoryChapterTitleInput,
+): Promise<ActionState> {
+  if (!input || typeof input !== "object") {
+    return { error: "Chương không hợp lệ.", message: null };
+  }
+
+  const { storyId, chapterId } = input;
+  const title = typeof input.title === "string" ? input.title.trim() : "";
+  if (
+    !UUID_RE.test(storyId) ||
+    !UUID_RE.test(chapterId) ||
+    title.length === 0 ||
+    title.length > 200
+  ) {
+    return { error: "Tên chương phải có từ 1 đến 200 ký tự.", message: null };
+  }
+
+  const ownedStory = await getActiveOwnedStory(storyId);
+  if (!ownedStory) {
+    return { error: "Không tìm thấy tác phẩm để cập nhật.", message: null };
+  }
+
+  const { data: updated, error } = await ownedStory.supabase
+    .from("chapters")
+    .update({ title })
+    .eq("id", chapterId)
+    .eq("story_id", storyId)
+    .eq("is_active", true)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !updated) {
+    logEvent("library.chapter_title_update_error", {
+      code: error?.code ?? "not_found",
+      storyId,
+      chapterId,
+    });
+    return {
+      error: "Không thể cập nhật tên chương. Vui lòng tải lại trang rồi thử lại.",
+      message: null,
+    };
+  }
+
+  logEvent("library.chapter_title_updated", { storyId, chapterId });
+  revalidateStoryContent(storyId);
+  return { error: null, message: "Đã cập nhật tên chương." };
+}
+
+export async function deleteStorySection(
+  input: DeleteStoryContentInput,
+): Promise<ActionState> {
+  if (
+    !input ||
+    typeof input !== "object" ||
+    !UUID_RE.test(input.storyId) ||
+    !UUID_RE.test(input.targetId)
+  ) {
+    return { error: "Section không hợp lệ.", message: null };
+  }
+
+  const ownedStory = await getActiveOwnedStory(input.storyId);
+  if (!ownedStory) {
+    return { error: "Không tìm thấy tác phẩm để cập nhật.", message: null };
+  }
+
+  const { data, error } = await ownedStory.supabase.rpc(
+    "delete_story_section_preserving_contents",
+    {
+      p_story_id: input.storyId,
+      p_section_id: input.targetId,
+    },
+  );
+
+  if (error || !data) {
+    logEvent("library.section_delete_error", {
+      code: error?.code ?? "not_found",
+      storyId: input.storyId,
+      sectionId: input.targetId,
+    });
+    return {
+      error: "Không thể xoá section. Vui lòng tải lại trang rồi thử lại.",
+      message: null,
+    };
+  }
+
+  logEvent("library.section_deleted", {
+    storyId: input.storyId,
+    sectionId: input.targetId,
+  });
+  revalidateStoryContent(input.storyId);
+  return { error: null, message: "Đã xoá section và giữ lại toàn bộ chương." };
+}
+
 export async function updateStorySection(
   input: UpdateStorySectionInput,
 ): Promise<ActionState> {
@@ -310,12 +492,7 @@ export async function updateStorySection(
     sectionId,
     hasParent: parentSectionId !== null,
   });
-  revalidatePath(`/library/${storyId}/chapters`);
-  revalidatePath(`/read/${storyId}`);
-  revalidatePath(`/read/${storyId}/graph`);
-  revalidatePath("/library/graphs");
-  revalidatePath("/library");
-  revalidatePath("/search");
+  revalidateStoryContent(storyId);
   return { error: null, message: "Đã cập nhật section." };
 }
 

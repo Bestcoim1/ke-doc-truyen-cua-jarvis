@@ -498,12 +498,12 @@ export function ReaderView({
         </button>
         <div className="min-w-0 flex-1">
           <div
-            className="truncate text-xs font-display"
+            className="whitespace-normal break-words text-xs leading-snug font-display"
             style={{ color: "var(--kd-text-muted)" }}
           >
             {[storyTitle, ...chapter.sectionPath].join(" · ")}
           </div>
-          <div className="truncate text-sm font-bold font-display">
+          <div className="whitespace-normal break-words text-sm font-bold leading-snug font-display">
             {chapter.chapterTitle}
           </div>
         </div>

@@ -20,5 +20,9 @@ export default async function ChapterOrderPage({ params }: ChapterOrderPageProps
   const story = await getChapterOrderStory(supabase, storyId, userId);
   if (!story) notFound();
 
-  return <ChapterOrderManager story={story} />;
+  const managerKey = story.sections
+    .flatMap((section) => [section.id, ...section.chapters.map((chapter) => chapter.id)])
+    .join(":");
+
+  return <ChapterOrderManager key={managerKey} story={story} />;
 }

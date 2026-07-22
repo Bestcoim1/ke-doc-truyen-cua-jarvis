@@ -77,7 +77,9 @@ function SectionBranch({
         <span aria-hidden className="text-xs">
           {isCurrent ? "●" : state?.completedContentHash ? "✓" : "○"}
         </span>
-        <span className="flex-1 truncate">{node.title}</span>
+        <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">
+          {node.title}
+        </span>
         <span className="sr-only">{label}</span>
       </button>
     );
@@ -90,8 +92,14 @@ function SectionBranch({
         style={{ color: "var(--kd-text-muted)" }}
         onClick={() => setManuallyExpanded((v) => !(v ?? containsCurrent))}
       >
-        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        {node.title}
+        {expanded ? (
+          <ChevronDown className="shrink-0" size={14} />
+        ) : (
+          <ChevronRight className="shrink-0" size={14} />
+        )}
+        <span className="min-w-0 whitespace-normal break-words text-left leading-snug">
+          {node.title}
+        </span>
       </button>
       {expanded && (
         <div>

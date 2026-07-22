@@ -1,0 +1,868 @@
+# Phụ lục thứ tự lớn-bé và vai vế xưng hô
+
+## I. Nguyên tắc đọc bảng
+
+Bản này không chỉ sắp xếp theo “ai sinh trước ai sinh sau”, vì trong thế giới truyện có ba loại tuổi khác nhau:
+
+1. **Tuổi vũ trụ/siêu hình**: áp dụng cho Vita, Memoro, Glemsel, Yume, thiên thần, ác quỷ.
+2. **Tuổi sinh học/thân xác**: áp dụng cho con người, hoặc thiên thần đang nhập vào thân xác con người.
+3. **Vai vế gia đình trong đời sống**: quan trọng nhất khi viết lời thoại tiếng Việt.
+
+Khi có xung đột giữa các loại tuổi, ưu tiên theo thứ tự sau:
+
+1. Quan hệ gia đình trực tiếp.
+2. Quan hệ vợ chồng/con cái.
+3. Vai vế đã được nhân vật chấp nhận.
+4. Tuổi sinh học bên ngoài.
+5. Tuổi vũ trụ.
+
+Ví dụ: Junovel và Gabriel cổ xưa hơn Erik rất nhiều, nhưng trong gia đình Kolanski, họ là bản thể của vợ Erik. Vì vậy Erik vẫn xưng **anh/em** với Juno và Gabi, tuyệt đối không gọi họ là “chị”.
+
+## II. Tầng Sáng Thế và Bộ Ba Số Phận
+
+### 1. Vita
+
+**Vị trí:** Lớn nhất trong hệ thống đã biết.
+
+Vai vế:
+
+* Mẹ của các thiên thần.
+* Đấng gắn với Sự Sống.
+* Các thiên thần gọi là **Mẹ**, **Mẹ Vita**, hoặc **Người** trong bối cảnh trang trọng.
+
+Cách người khác gọi:
+
+* Thiên thần: Mẹ, Mẹ Vita.
+* Erik/Eve: Mẹ Vita, Vita nếu đã thân và cảnh không quá trang trọng.
+* Bọn trẻ Kolanski: bà Vita hoặc Mẹ Vita, tùy giọng cảnh.
+
+Vita gọi người khác:
+
+* con
+* đứa trẻ của ta
+* tên riêng khi cần nghiêm túc
+
+### 2. Memoro, Glemsel, Yume
+
+Ba người là chị em sinh ba, nhưng để tiện xưng hô tiếng Việt nên khóa theo thứ tự vai vế:
+
+1. **Memoro**: chị cả, Ký Ức.
+2. **Glemsel**: chị giữa, Lãng Quên.
+3. **Yume**: em út, Giấc Mơ.
+
+Đây là thứ tự dùng cho xưng hô, không nhất thiết phải hiểu là chênh nhau nhiều tuổi theo nghĩa sinh học.
+
+#### Memoro
+
+Người khác gọi:
+
+* Memoro
+* chị Memoro
+* dì Memoro
+* dì Memo, nếu thân (thực tế gần như chỉ Aura gọi như vậy)
+* Không dùng "Mẹ Lớn" cho Memoro. Mẹ Lớn là một nhân vật khác có liên quan đến Thư Viện/Mộng Giới, nhưng không phải Memoro.
+
+Memoro gọi Glemsel/Yume:
+
+* Glemsel, Yume
+* em
+* em gái, khi dịu hoặc đau lòng
+
+Memoro gọi thiên thần đời sau:
+
+* em
+* các em
+* tên riêng
+
+Memoro gọi bọn trẻ:
+
+* con
+* cục bột nhỏ
+* Lionel, khi nghiêm hoặc kể chuyện
+
+#### Glemsel
+
+Người khác gọi:
+
+* Glemsel
+* chị Glemsel
+* dì Glemsel
+* dì Glem, nếu trẻ con gọi thân
+* bà chị Lãng Quên, nếu Rueb trêu và muốn sống nguy hiểm
+
+Glemsel gọi Memoro:
+
+* chị
+* chị Memoro
+* Memoro, khi nghiêm túc
+
+Glemsel gọi Yume:
+
+* em
+* Yume
+* em gái
+
+Glemsel gọi bọn trẻ:
+
+* con
+* nhóc con
+* cục bột nhỏ
+* Lionel, khi nói với Lio kiểu nghiêm túc
+
+#### Yume
+
+Người khác gọi:
+
+* Yume
+* chị Yume, nếu là thiên thần trẻ hơn hoặc bọn trẻ đã lớn trong Mộng Giới
+* dì Yume, nếu theo vai vế gia đình Kolanski
+* em Yume, chỉ Memoro/Glemsel hoặc Vita dùng
+
+Yume gọi Memoro/Glemsel:
+
+* chị
+* chị Memoro
+* chị Glemsel
+* tên riêng nếu thân hoặc trong cảnh sâu cảm xúc
+
+Yume gọi bọn trẻ:
+
+* con
+* cục bột nhỏ
+* Lionel
+* tên riêng của từng đứa trẻ, như cách Yume thường gọi đầy đủ tên lũ nhóc
+
+## III. Nhóm thiên thần theo thứ tự vai vế
+
+### 1. Nhóm chị lớn của Eve
+
+Thứ tự xưng hô trong cụm ba bản thể:
+
+1. **Junovel/Juno**: chị cả theo cảm giác thiên thần, Tình Yêu.
+2. **Gabriel/Gabi**: chị giữa hoặc chị thứ, Cuồng Nộ.
+3. **Evelynn/Eve**: em út con người, bản thể đời sống hiện tại.
+
+Cách gọi nội bộ:
+
+* Eve gọi Junovel: chị Juno.
+* Eve gọi Gabriel: chị Gabi.
+* Juno/Gabi gọi Eve: em, Evelynn.
+* Juno và Gabi gọi nhau bằng tên hoặc chị/em tùy cảnh.
+
+Lưu ý lớn: Với Erik và con cái, ba người đều là **mẹ/vợ**, không chia theo tuổi vũ trụ.
+
+### 2. Joy/June
+
+**Vị trí:** Thiên thần Niềm Vui, thuộc thế hệ thiên thần lớn hơn Claire và Zilevo về vai vế. Trong hệ thống thiên thần hiện tại, Joy nên được xem là một trong những người chị lớn của lớp thiên thần đời sau. Vì là mẹ của Happi, trong đời sống gia đình vẫn giữ vai trò “dì/người lớn” với bọn trẻ.
+
+Người khác gọi:
+
+* Joy
+* June
+* chị Joy, chị June
+* dì Joy, dì June, với bọn trẻ
+
+Joy gọi:
+
+* Zilevo: Zile, em
+* Claire: Claire, em
+* Rueb: Rueb, em
+* Elpida/Zetsubou: em
+* bọn trẻ: con, bé yêu, tên riêng
+
+Joy là kiểu người khó đoán, nên với Zyanya có thể dùng thẳng tên “dì Joy” để tăng cảm giác vừa thân vừa nguy hiểm nhẹ.
+
+### 3. Zilevo
+
+**Vị trí đề xuất:** Thiên thần mạnh thuộc thế hệ sau Joy nhưng vẫn lớn hơn Claire, Rueb, Elpida và Zetsubou về vai vế.
+
+Người khác gọi:
+
+* Zilevo
+* Zile
+* chị Zile
+* dì Zile, với bọn trẻ
+
+Zilevo gọi:
+
+* Joy: chị Joy hoặc Joy
+* Claire/Rueb/Elpida/Zetsubou: em
+* nhóc
+* tên riêng
+
+Nếu đứng cạnh Eve/Juno/Gabi, có thể để Zilevo gọi Juno/Gabi bằng tên riêng vì họ ngang tầm hoặc có quan hệ lâu đời.
+
+### 4. Claire/Aelgasa
+
+**Vị trí:** Em gái của nhóm Eve/Juno/Gabi, nhỏ vai hơn Joy và Zilevo, nhưng lớn hơn hoặc chín chắn hơn Rueb và nhóm thiên thần trẻ.
+
+Người khác gọi:
+
+* Claire
+* Aelgasa, khi nhắc thân phận thiên thần
+* chị Claire, với Rueb/Zetsubou/Elpida nếu cần
+* dì Claire, với bọn trẻ
+
+Claire gọi Eve/Juno/Gabi:
+
+* chị Eve
+* chị Juno
+* chị Gabi
+
+Claire gọi:
+
+* Joy: chị Joy
+* Zilevo: chị Zile hoặc Zilevo
+* Rueb: Rueb, em
+* con bé này, khi bất lực
+
+Claire gọi bọn trẻ:
+
+* con
+* các con
+* tên riêng
+
+### 5. Rueb/Hina
+
+**Vị trí:** Thiên thần trẻ hơn Claire, gần nhóm Zetsubou/Elpida về vai vế cảm xúc.
+
+Người khác gọi:
+
+* Rueb
+* Hina, khi ở thân xác/đời sống Carvallo
+* em, từ Claire/Eve/Juno/Gabi
+* dì Rueb, với bọn trẻ
+
+Rueb gọi:
+
+* Eve/Juno/Gabi: chị Eve, chị Juno, chị Gabi
+* Claire: chị Claire
+* Erik: anh Erik hoặc anh rể
+* bọn trẻ: nhóc, cục bột, đệ tử
+
+### 6. Elpida
+
+**Vị trí:** Thiên thần trẻ/nhóm em trai, hợp gọi là chú với bọn trẻ.
+
+Người khác gọi:
+
+* Elpida
+* El
+* chú Elpida, với bọn trẻ
+* chú El, với Milio nếu thân
+
+Elpida gọi:
+
+* Erik: anh Erik
+* Eve/Juno/Gabi/Claire: chị
+* bọn trẻ: con, nhóc, tên riêng
+
+### 7. Zetsubou
+
+**Vị trí:** Đồng trang lứa hoặc gần với Rueb/Elpida, nhưng tính trầm hơn.
+
+Người khác gọi:
+
+* Zetsubou
+* Zetsu
+* chú Zetsu, với bọn trẻ
+
+Zetsubou gọi:
+
+* Erik: anh Erik
+* Eve/Juno/Gabi/Claire: chị
+* Rueb: Rueb hoặc chị/em tùy mức thân, nhưng tốt nhất dùng tên để tránh rối
+
+## IV. Địa Ngục theo vai vế
+
+### 1. Lucifer Morningstar
+
+**Vị trí:** Chúa tể Địa Ngục, cổ xưa, nhưng trong nhà Kolanski được hạ cấp thân thương thành “chú Lucifer”.
+
+Người lớn gọi:
+
+* Lucifer
+* anh Lucifer, nếu Eve/Juno/Gabi/Erik nói thân
+* Chúa tể Địa Ngục, khi trang trọng hoặc trêu
+
+Lucifer gọi:
+
+* Erik: Erik, Kolanski, cậu
+* Eve/Juno/Gabi: Eve, Junovel, Gabriel, em gái nếu trêu
+* Beelzebub: Beel, em
+* bọn trẻ: nhóc con, công chúa nhỏ, Quốc Trưởng nhỏ, cậu bé hộp cá
+
+Bọn trẻ gọi:
+
+* chú Lucifer
+* chú Luci, nếu rất thân
+
+Không để bọn trẻ gọi Lucifer là “ông”, dù tuổi vũ trụ rất lớn. Vai của anh trong gia đình là **chú gây rối cấp Địa Ngục**.
+
+### 2. Lilith
+
+**Vị trí:** Phu Nhân Địa Ngục, vợ Lucifer, quyền lực ngang vai lãnh đạo.
+
+Người lớn gọi:
+
+* Lilith
+* chị Lilith
+* Phu Nhân, khi trang trọng
+
+Lilith gọi:
+
+* Lucifer: anh hoặc Lucifer, tùy cảnh
+* Erik: Erik, Kolanski, cậu
+* Eve/Juno/Gabi: tên riêng hoặc em
+* bọn trẻ: con, nhóc, tên riêng
+
+Bọn trẻ gọi:
+
+* dì Lilith
+
+Charlie gọi:
+
+* mẹ
+* mẹ Lilith, nếu cần phân biệt
+
+### 3. Beelzebub
+
+**Vị trí:** Hoàng tử Địa Ngục, thân với Lucifer, thường gọi Lucifer là anh.
+
+Người khác gọi:
+
+* Beelzebub
+* Beel
+* chị Beel, với Eve/Erik nếu giữ sắc thái thân thiết
+* dì Beel, với bọn trẻ
+
+Beel gọi:
+
+* Lucifer: anh
+* Erik/Eve: Erik, Eve, hai em
+* bọn trẻ: con, nhóc
+
+### 4. Các Hoàng tử Địa Ngục khác
+
+Nhóm này không nên ép vào thứ tự anh chị em quá chặt nếu chưa khóa tuổi cụ thể.
+
+Gợi ý vai vế:
+
+* Asmodeus, Mammon, Paimon, Belphegor, Leviathan, Behemoth: gọi nhau bằng tên hoặc chức danh.
+* Với Erik/Eve: có thể dùng tôi/cậu/cô hoặc anh/chị/em tùy mức thân.
+* Với bọn trẻ Kolanski: mặc định là chú/dì.
+
+Ví dụ:
+
+* dì Belphie
+* dì Leviathan
+* chú Behemoth
+* chú Mammon
+* dì Paimon
+
+Nếu nhân vật quá uy nghi hoặc xa cách, dùng tên/chức danh thay cho xưng hô gia đình.
+
+## V. Gia đình Kolanski, Molina và Santa Luz
+
+### 1. Tầng ông bà/cụ
+
+Thứ tự vai vế lớn nhất trong gia đình người thường:
+
+1. **Anatoly Kolanski**: cụ tổ/ông cố đời trước của nhánh Kolanski.
+2. **Bà Kolanski chưa rõ tên**: cụ bà, nên giữ khoảng trống tử tế nếu viết gia phả.
+3. **Mikhail Kolanski/Robert Cleff**: ông họ/chú ruột của Petri, tầng ông/cụ tùy cách giới thiệu.
+4. **Petri Kolanski**: bố ruột Erik, ông nội ruột của bọn trẻ.
+5. **Emily Kolanski**: mẹ ruột Erik, bà nội ruột của bọn trẻ.
+6. **Sơ Inés**: mẹ nuôi Erik, bà nội Inés của bọn trẻ.
+7. **Ông Molina**: bố Eve, ông ngoại của bọn trẻ.
+8. **Bà Diana Molina**: mẹ Eve, bà ngoại của bọn trẻ.
+
+Cách gọi:
+
+* Erik gọi Petri/Emily: bố/mẹ.
+* Erik gọi Sơ Inés: mẹ.
+* Erik gọi bố mẹ Molina sau cưới: bố/mẹ.
+* Bọn trẻ gọi Petri/Emily: ông nội Petri, bà nội Emily.
+* Bọn trẻ gọi Sơ Inés: bà nội Inés.
+* Bọn trẻ gọi bố mẹ Molina: ông ngoại, bà ngoại.
+
+Nếu cả Emily và Sơ Inés cùng được nhắc trong một cảnh, bắt buộc phân biệt:
+
+* bà nội Emily
+* bà nội Inés
+
+### 2. Tầng cha mẹ chính
+
+Thứ tự tuổi người thường trong gia đình nhỏ:
+
+1. **Erik Kolanski**: lớn hơn Eve khoảng vài tuổi, là bố.
+2. **Evelynn Molina/Kolanski**: mẹ Eve.
+3. **Junovel/Juno**: mẹ Juno, bản thể Tình Yêu.
+4. **Gabriel/Gabi**: mẹ Gabi, bản thể Cuồng Nộ.
+
+Cách dùng đặc biệt:
+
+* Erik và Eve/Juno/Gabi vẫn xưng anh/em.
+* Con cái gọi cả ba là mẹ.
+* Người ngoài nếu không biết siêu nhiên thì chỉ biết Eve là vợ hợp pháp của Erik.
+* Trong gia đình, cả ba đều là mẹ thật.
+
+Thứ tự gọi trong cảnh có cả ba mẹ:
+
+1. mẹ Eve
+2. mẹ Juno
+3. mẹ Gabi
+
+Nhưng nếu cảnh xoay quanh Andrea, ưu tiên mẹ Gabi.
+Nếu cảnh xoay quanh Milio, ưu tiên mẹ Juno.
+Nếu cảnh xoay quanh sự dịu dàng gia đình, ưu tiên mẹ Eve.
+
+### 3. Elise Kolanski
+
+**Vị trí:** Em gái ruột của Erik, cô của bọn trẻ.
+
+Thứ tự:
+
+* Nhỏ hơn Erik.
+* Có thể gần tuổi Eve hoặc nhỏ hơn Eve tùy giai đoạn, nhưng vai vế trong nhà là em gái Erik.
+
+Cách gọi:
+
+* Erik gọi Elise: em, Elise, em gái.
+* Elise gọi Erik: anh, anh hai.
+* Eve gọi Elise: em, Elise, em gái.
+* Elise gọi Eve: chị Eve, chị dâu.
+* Bọn trẻ gọi Elise: cô Elise.
+
+Nếu Leo là người yêu/chồng Elise:
+
+* Erik gọi Leo: Leo, cậu.
+* Bọn trẻ gọi Leo: chú Leo.
+* Elise vẫn là cô Elise, không đổi.
+
+### 4. Nhóm người thân cùng thế hệ Erik/Eve
+
+Nhóm này nên linh hoạt theo tuổi cụ thể từng người, nhưng vai vế chung như sau:
+
+* **Silas**: chú Silas với bọn trẻ, có thể ngang vai người lớn lớn tuổi hơn Erik.
+* **Helen**: cô Helen với bọn trẻ.
+* **Thomas**: chú Thomas với bọn trẻ.
+* **Lylin**: cô Lylin với bọn trẻ.
+* **Julian**: anh Julian/chú Julian tùy tuổi trong cảnh, nhưng ở công ty nên là cấp dưới của Erik.
+* **William Ortega**: chú William với bọn trẻ nếu xuất hiện trong gia đình.
+* **Isabella/Sofia/Leo đồng nghiệp**: cô/chú với bọn trẻ, tên riêng với Erik.
+
+Quy tắc:
+
+* Nếu là bạn/cấp dưới của Erik nhưng đã trưởng thành: bọn trẻ gọi chú/cô.
+* Nếu là thiếu niên hoặc sinh viên trẻ hơn nhiều: bọn trẻ có thể gọi anh/chị.
+
+### 5. Nhóm nhỏ hơn Erik/Eve nhưng lớn hơn bọn trẻ
+
+* **Lalita**: chị Lalita với bọn trẻ.
+* **Kenji**: anh Kenji với bọn trẻ.
+* Các nhân vật thanh thiếu niên từng được Erik/Eve bảo vệ: mặc định là anh/chị với bọn trẻ.
+
+Lalita/Kenji gọi Erik/Eve:
+
+* anh Erik
+* chị Eve
+
+Erik/Eve gọi Lalita/Kenji:
+
+* em
+* tên riêng
+
+## VI. Thứ tự năm đứa trẻ Kolanski
+
+Đây là thứ tự chuẩn, phải giữ nhất quán:
+
+1. **Zyanya “Zya” Kolanski**: 10 tuổi, chị cả.
+2. **Andrea “An” Kolanski**: 7 tuổi, chị hai, sinh trước Milio nửa tiếng.
+3. **Milio “Mil” Kolanski**: 7 tuổi, con trai cả, em song sinh của Andrea.
+4. **Lionel “Lio” Kolanski**: 4 tuổi, cậu tư.
+5. **Aurelia “Aura” Kolanski**: 1 tuổi đến 1 tuổi rưỡi tùy chương, em út.
+
+### Cách gọi nội bộ
+
+Zyanya gọi:
+
+* An
+* Mil
+* Lio
+* Aura
+* các em
+
+Các em gọi Zyanya:
+
+* chị Zya
+* chị
+* Quốc Trưởng, khi trêu hoặc ở lớp
+
+Andrea gọi:
+
+* Zyanya: chị Zya
+* Milio: Mil, em, em trai của chị
+* Lio: Lio, em
+* Aura: Aura, em
+
+Milio gọi:
+
+* Zyanya: chị Zya
+* Andrea: chị An
+* Lio: Lio, em
+* Aura: Aura, em
+
+Lio gọi:
+
+* Zyanya: chị Zya
+* Andrea: chị An
+* Milio: anh Mil
+* Aura: Aura
+
+Aura gọi:
+
+* Zya
+* An
+* Milio/Mi
+* Lio
+* hoặc các dạng nói méo theo tuổi
+
+### Cặp song sinh Andrea/Milio
+
+Quy tắc vàng:
+
+* Andrea là chị.
+* Milio là em.
+* Không để Milio gọi Andrea là “An” quá thường xuyên nếu cảnh gia đình bình thường.
+* Milio gọi **chị An** là chuẩn nhất.
+* Andrea có thể gọi Milio là **Mil**, **em**, hoặc **em trai của chị**.
+
+### Lio và Aura
+
+* Lio là anh của Aura.
+* Aura thích ngồi lên Lio, húc Lio, gọi Lio, bắt nạt Lio bằng quyền lực em út.
+* Lio gọi Aura bằng tên, không cần “em” quá nhiều vì cậu ít nói.
+* Khi cần rõ vai vế, viết: “Aura, em xuống.”
+
+## VII. Nhóm trẻ ngoài nhà Kolanski
+
+### 1. Charlie Morningstar
+
+**Tuổi:** 4 tuổi.
+
+**Vai vế:** Con gái Lucifer và Lilith, bạn/crush trẻ con của Lio.
+
+Thứ tự với nhà Kolanski:
+
+* Cùng tuổi Lio.
+* Nhỏ hơn Zyanya, Andrea, Milio.
+* Lớn hơn Aura.
+
+Cách gọi:
+
+* Charlie gọi Lio: Lio, cậu.
+* Lio gọi Charlie: Charlie, cậu.
+* Charlie gọi Zyanya/Andrea/Milio: chị Zya, chị An, anh Milio nếu đã thân và theo tiếng Việt.
+* Charlie gọi Aura: Aura hoặc em Aura.
+* Aura gọi Charlie: Charlie, Cha, hoặc dạng nói méo.
+
+Không để Charlie gọi Lio là anh hoặc em nếu cùng tuổi. Dùng cậu/tớ hoặc tên riêng là sạch nhất.
+
+### 2. Happi Navarro
+
+**Tuổi:** 7 tuổi.
+
+**Vai vế:** Con gái Alan và Joy/June, học cùng Andrea và Milio.
+
+Thứ tự:
+
+* Cùng tuổi Andrea/Milio.
+* Nhỏ hơn Zyanya.
+* Lớn hơn Lio, Charlie, Aura.
+
+Cách gọi:
+
+* Happi với Milio/Andrea: cậu/tớ hoặc tên riêng.
+* Happi gọi Zyanya: chị Zya nếu thân.
+* Andrea gọi Happi: Happi, cậu.
+* Milio gọi Happi: Happi, cậu.
+* Nếu Happi thích Milio, vẫn giữ giọng trẻ con trong sáng.
+
+## VIII. Bảng thứ tự nhanh theo tầng đời thường
+
+### Tầng ông bà/cụ
+
+1. Anatoly Kolanski
+2. Bà Kolanski chưa rõ tên
+3. Mikhail Kolanski/Robert Cleff
+4. Petri Kolanski
+5. Emily Kolanski
+6. Sơ Inés
+7. Ông Molina
+8. Bà Diana Molina
+9. Silas/Helen, nếu viết như tầng người lớn lớn tuổi hơn Erik
+
+### Tầng bố mẹ/người lớn chính
+
+1. Erik Kolanski
+2. Evelynn Molina/Kolanski
+3. Junovel/Juno
+4. Gabriel/Gabi
+5. Elise Kolanski
+6. Julian
+7. William Ortega
+8. Thomas/Lylin
+9. Lalita/Kenji, nếu đã trưởng thành nhưng vẫn là đàn em của Erik/Eve
+
+### Tầng con cái/trẻ em
+
+1. Zyanya Kolanski
+2. Andrea Kolanski
+3. Milio Kolanski
+4. Happi Navarro
+5. Lionel Kolanski
+6. Charlie Morningstar
+7. Aurelia Kolanski
+
+Nếu Happi sinh trước hoặc sau Andrea/Milio chưa khóa, mặc định xem là bạn cùng tuổi, dùng cậu/tớ.
+Nếu Charlie sinh trước hoặc sau Lio chưa khóa, mặc định xem là bạn cùng tuổi, dùng cậu/tớ.
+
+## IX. Bảng thứ tự nhanh theo tầng siêu nhiên
+
+### Tầng tối cao
+
+1. Vita
+2. Memoro
+3. Glemsel
+4. Yume
+
+Lưu ý: Memoro, Glemsel, Yume là sinh ba, nhưng thứ tự trên dùng cho xưng hô.
+
+### Tầng thiên thần lớn và đặc biệt
+
+1. Junovel/Juno
+2. Gabriel/Gabi
+3. Zilevo
+4. Claire/Aelgasa
+5. Joy/June
+6. Rueb
+7. Elpida
+8. Zetsubou
+
+Thứ tự từ Zilevo trở xuống có thể điều chỉnh nếu sau này khóa thêm canon. Hiện tại nên dùng như bảng làm việc để tránh xung đột xưng hô.
+
+### Tầng Địa Ngục
+
+1. Lucifer
+2. Lilith
+3. Beelzebub
+4. Các Hoàng tử Địa Ngục khác
+5. Charlie Morningstar
+
+Lưu ý: Lilith không nhất thiết “nhỏ hơn” Lucifer theo quyền lực gia đình. Trong đời sống, Lilith ngang vai vợ/chồng với Lucifer. Bảng này chỉ phục vụ cách gọi của người khác.
+
+## X. Các ngoại lệ quan trọng
+
+### 1. Erik không gọi Juno/Gabi là chị
+
+Dù Juno và Gabi cổ xưa hơn Erik, quan hệ hiện tại là vợ chồng thông qua Eve. Erik luôn xưng:
+
+* anh/em
+* anh yêu/em yêu
+* Erik/Gabi/Juno khi nghiêm túc
+
+Không dùng:
+
+* chị Juno
+* chị Gabi
+
+### 2. Bọn trẻ không gọi Juno/Gabi là dì
+
+Eve, Juno, Gabi đều là mẹ.
+
+Đúng:
+
+* mẹ Eve
+* mẹ Juno
+* mẹ Gabi
+
+Sai:
+
+* dì Juno
+* dì Gabi
+
+### 3. Lucifer và Lilith không phải ông/bà của bọn trẻ
+
+Dù cổ xưa, vai trong đời sống là chú/dì.
+
+Đúng:
+
+* chú Lucifer
+* dì Lilith
+
+Sai trong đời thường:
+
+* ông Lucifer
+* bà Lilith
+
+Có thể dùng “ngài Lucifer”, “Phu Nhân Lilith” khi trang trọng.
+
+### 4. Vita có thể là Mẹ hoặc bà
+
+Nếu cảnh thiên giới/trang trọng:
+
+* Mẹ Vita
+* Người
+
+Nếu cảnh gia đình/trẻ con:
+
+* bà Vita
+
+### 5. Memoro là dì Memoro hoặc Mẹ Lớn tùy tuyến
+
+Trong đời thường:
+
+* dì Memoro
+* dì Medo
+
+Trong tuyến Thư Viện/Mộng Giới với Lio:
+
+* Mẹ Lớn
+
+Không trộn bừa hai cách gọi nếu cảnh không chuyển trạng thái.
+
+### 6. Claire là dì với bọn trẻ, em gái với Eve/Juno/Gabi
+
+Đúng:
+
+* bọn trẻ gọi Claire là dì Claire
+* Claire gọi Eve/Juno/Gabi là chị
+* Eve/Juno/Gabi gọi Claire là em
+
+Không để Claire xưng kiểu tình địch với Eve trong giai đoạn hậu chữa lành.
+
+### 7. Andrea luôn là chị của Milio
+
+Dù chỉ hơn nửa tiếng, Andrea rất coi trọng điều này.
+
+Đúng:
+
+* Milio gọi Andrea là chị An.
+* Andrea gọi Milio là em hoặc Mil.
+
+Sai:
+
+* Andrea gọi Milio là anh.
+* Milio gọi Andrea là em.
+
+### 8. Charlie và Lio dùng cậu/tớ
+
+Hai bé cùng tuổi.
+
+Đúng:
+
+* “Lio, cậu muốn chơi chung không?”
+* “Không.”
+* “Vậy lần sau tớ mang thứ khác nhé?”
+
+Sai:
+
+* “Anh Lio”
+* “em Charlie”
+
+Trừ khi sau này một tuyến trưởng thành cố tình đổi xưng hô vì cảm xúc, còn thời bé nên giữ cậu/tớ.
+
+### 9. Julian và Eve cần giữ khoảng cách
+
+Dù thực tại B từng có quan hệ vợ chồng, thực tại AB không nên để Eve và Julian quá mềm trong xưng hô.
+
+Đúng:
+
+* Julian
+* anh Julian, nếu lịch sự và Julian lớn hơn
+* chị Evelynn/cô Evelynn, từ Julian
+
+Tránh:
+
+* Eve và Julian dùng anh/em quá tự nhiên trong cảnh riêng.
+
+## XI. Công thức chọn xưng hô khi viết cảnh mới
+
+Khi viết một cảnh có nhân vật mới, chọn xưng hô theo bốn bước:
+
+1. Nhân vật có thuộc gia đình trực tiếp không?
+
+   * Có: dùng bố/mẹ/con/anh/chị/em/dì/chú/bà/ông.
+   * Không: sang bước 2.
+
+2. Nhân vật có phải thiên thần/ác quỷ cổ xưa không?
+
+   * Có: dùng vai thân mật đã được nhà Kolanski gán, không dùng tuổi vũ trụ.
+   * Ví dụ: Lucifer vẫn là chú, Lilith vẫn là dì.
+
+3. Nhân vật có chênh tuổi rõ trong thân xác con người không?
+
+   * Có: dùng anh/chị/em, chú/cô, bác.
+   * Không: dùng tên riêng hoặc cậu/tớ.
+
+4. Nhân vật đang ở trạng thái cảm xúc nào?
+
+   * Thân: biệt danh, anh yêu, mẹ yêu, cục bột.
+   * Giận: tên đầy đủ.
+   * Sợ mất nhau: tên thật.
+   * Trang trọng: chức danh hoặc tên thiên thần.
+
+## XII. Bảng cực ngắn để tra nhanh
+
+Vita: Mẹ Vita/bà Vita.
+
+Memoro: chị Memoro/dì Memoro/Mẹ Lớn.
+
+Glemsel: chị Glemsel/dì Glemsel.
+
+Yume: em Yume/chị Yume/dì Yume tùy người gọi.
+
+Juno: chị của Eve, mẹ Juno của bọn trẻ, em/vợ của Erik.
+
+Gabi: chị của Eve, mẹ Gabi của bọn trẻ, em/vợ của Erik.
+
+Eve: em của Juno/Gabi, vợ Erik, mẹ Eve.
+
+Claire: em của Eve/Juno/Gabi, dì Claire của bọn trẻ.
+
+Rueb: em của Claire, dì Rueb của bọn trẻ.
+
+Elpida/Zetsubou: chú El, chú Zetsu của bọn trẻ.
+
+Lucifer: chú Lucifer.
+
+Lilith: dì Lilith.
+
+Beelzebub: chị Beel với Erik/Eve, dì Beel với bọn trẻ.
+
+Sơ Inés: mẹ của Erik, mẹ của Eve/Juno/Gabi theo vai con dâu, bà nội Inés của bọn trẻ.
+
+Petri/Emily: bố mẹ ruột Erik, ông bà nội ruột.
+
+Bố mẹ Molina: bố mẹ Eve, ông bà ngoại.
+
+Erik: bố.
+
+Eve/Juno/Gabi: ba mẹ.
+
+Elise: em gái Erik, cô Elise.
+
+Zyanya: chị cả.
+
+Andrea: chị hai, chị của Milio.
+
+Milio: em song sinh của Andrea, anh của Lio/Aura.
+
+Lio: em của Milio, anh của Aura, bạn cùng tuổi Charlie.
+
+Aura: em út, thiên tai phúng phính tối cao.
+
+Charlie: bạn cùng tuổi Lio, con Lucifer/Lilith.
+
+Happi: bạn cùng tuổi Andrea/Milio, con Joy/June.

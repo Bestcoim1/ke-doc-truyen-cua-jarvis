@@ -658,6 +658,10 @@ export type Database = {
           version_id: string
         }[]
       }
+      delete_story_section_preserving_contents: {
+        Args: { p_section_id: string; p_story_id: string }
+        Returns: Json
+      }
       normalize_reimport_story_order: {
         Args: { p_story_id: string; p_version_id: string }
         Returns: undefined
