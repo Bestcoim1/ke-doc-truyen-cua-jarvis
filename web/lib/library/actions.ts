@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { logEvent } from "@/lib/telemetry";
 import type { Json } from "@/database.types";
+import { normalizeStoryTitle } from "@/lib/library/story-title";
 import { createClient } from "@/lib/supabase/server";
 import {
   WRITING_STATUS_VALUES,
@@ -186,6 +187,54 @@ export async function updateStoryWritingStatus(
   revalidatePath("/library");
   revalidatePath("/search");
   return { error: null, message: "Đã cập nhật tiến trình sáng tác." };
+}
+
+export async function renameStory(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const storyId = formData.get("storyId");
+  if (typeof storyId !== "string" || !UUID_RE.test(storyId)) {
+    return { error: "Tác phẩm không hợp lệ.", message: null };
+  }
+
+  const title = normalizeStoryTitle(formData.get("title"));
+  if (!title) {
+    return {
+      error: "Tên tác phẩm phải có từ 1 đến 200 ký tự.",
+      message: null,
+    };
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub as string | undefined;
+  if (!userId) {
+    redirect("/auth/login?next=/library");
+  }
+
+  const { data: updated, error } = await supabase
+    .from("stories")
+    .update({ title })
+    .eq("id", storyId)
+    .eq("owner_id", userId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !updated) {
+    logEvent("library.story_rename_error", {
+      code: error?.code ?? "not_found",
+      storyId,
+    });
+    return {
+      error: "Không thể đổi tên tác phẩm này. Vui lòng thử lại.",
+      message: null,
+    };
+  }
+
+  logEvent("library.story_renamed", { storyId });
+  revalidateStoryContent(storyId);
+  return { error: null, message: "Đã đổi tên tác phẩm." };
 }
 
 export async function updateStoryCoverColor(storyId: string, color: string) {

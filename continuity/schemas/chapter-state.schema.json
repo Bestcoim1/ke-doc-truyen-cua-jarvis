@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.kedoc/continuity/chapter-state.schema.json",
+  "title": "Continuity chapter state",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "chapter_id",
+    "extraction_status",
+    "timeline",
+    "characters",
+    "locations",
+    "items",
+    "relationships",
+    "knowledge_changes",
+    "injuries_and_conditions",
+    "abilities",
+    "world_rules",
+    "plot_threads_opened",
+    "plot_threads_resolved",
+    "promises_and_obligations",
+    "deaths",
+    "reveals",
+    "uncertain_facts"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "chapter_id": {"type": "string", "minLength": 1},
+    "extraction_status": {"enum": ["candidate", "reviewed"]},
+    "source_hash": {"type": "string"},
+    "chapter_hash": {"type": "string"},
+    "provenance": {"type": "object"},
+    "timeline": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "characters": {"type": "object", "additionalProperties": {"type": "object"}},
+    "locations": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "items": {"type": "object", "additionalProperties": {"type": "object"}},
+    "relationships": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "knowledge_changes": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "injuries_and_conditions": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "abilities": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "world_rules": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "plot_threads_opened": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "plot_threads_resolved": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "promises_and_obligations": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "deaths": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "reveals": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "uncertain_facts": {"type": "array", "items": {"$ref": "#/$defs/evidenced"}},
+    "ai_candidate_facts": {"type": "array", "items": {"$ref": "#/$defs/candidateFact"}}
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "required": ["chapter_id", "line_start", "line_end", "source_quote"],
+      "properties": {
+        "chapter_id": {"type": "string"},
+        "source": {"type": "string"},
+        "paragraph": {"type": "integer", "minimum": 1},
+        "line_start": {"type": "integer", "minimum": 1},
+        "line_end": {"type": "integer", "minimum": 1},
+        "source_quote": {"type": "string", "maxLength": 240}
+      }
+    },
+    "evidenced": {
+      "type": "object",
+      "properties": {"evidence": {"$ref": "#/$defs/evidence"}},
+      "additionalProperties": true
+    },
+    "candidateFact": {
+      "type": "object",
+      "required": ["subject", "predicate", "epistemic_type", "confidence", "evidence"],
+      "properties": {
+        "subject": {
+          "type": "object",
+          "required": ["name", "type"],
+          "properties": {"id": {"type": "string"}, "name": {"type": "string"}, "type": {"type": "string"}}
+        },
+        "predicate": {"type": "string"},
+        "object": {"type": "string"},
+        "epistemic_type": {
+          "enum": ["FACT", "CLAIM", "BELIEF", "RUMOR", "LIE", "SPECULATION", "DREAM", "FLASHBACK", "UNRELIABLE_NARRATION", "UNKNOWN"]
+        },
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "evidence": {"$ref": "#/$defs/evidence"}
+      }
+    }
+  }
+}

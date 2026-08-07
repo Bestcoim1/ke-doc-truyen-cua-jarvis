@@ -31,6 +31,15 @@ describe("stories RLS", () => {
     const storyId = inserted!.id;
 
     try {
+      const { data: renamedByA, error: renameByAError } = await clientA
+        .from("stories")
+        .update({ title: "RLS renamed story" })
+        .eq("id", storyId)
+        .select("title")
+        .single();
+      expect(renameByAError).toBeNull();
+      expect(renamedByA?.title).toBe("RLS renamed story");
+
       const { error: signInBError } = await clientB.auth.signInWithPassword({
         email: USER_B_EMAIL,
         password: USER_B_PASSWORD,

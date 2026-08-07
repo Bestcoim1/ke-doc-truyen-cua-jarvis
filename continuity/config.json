@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "source_roots": ["LinhTInh"],
+  "work_dir": "continuity/generated",
+  "reports_dir": "continuity/reports",
+  "canon_dir": "continuity/canon",
+  "quote_limit": 240,
+  "forgotten_thread_chapters": 30,
+  "travel_rules": []
+}

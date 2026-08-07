@@ -6,6 +6,7 @@ import { Archive, BookOpen, Clock3, ListOrdered, Network, Plus, RefreshCw } from
 import { ArchiveStoryButton } from "@/components/library/archive-story-button";
 import { DeleteStoryButton } from "@/components/library/delete-story-button";
 import { LibrarySkeleton } from "@/components/library/library-skeleton";
+import { RenameStoryDialog } from "@/components/library/rename-story-dialog";
 import { RestoreStoryButton } from "@/components/library/restore-story-button";
 import { WritingStatusForm } from "@/components/library/writing-status-form";
 import { StoryCoverIcon } from "@/components/library/story-cover-icon";
@@ -233,9 +234,17 @@ function StoryCard({
             <StoryCoverIcon storyId={story.id} initialCoverUrl={story.coverImageUrl} />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="line-clamp-2 text-xl font-extrabold font-display leading-tight transition-colors group-hover/card:text-primary">
-              {story.title}
-            </h2>
+            <div className="flex items-start gap-1">
+              <h2 className="line-clamp-2 min-w-0 flex-1 text-xl font-extrabold font-display leading-tight transition-colors group-hover/card:text-primary">
+                {story.title}
+              </h2>
+              <div className="pointer-events-auto relative z-20">
+                <RenameStoryDialog
+                  storyId={story.id}
+                  storyTitle={story.title}
+                />
+              </div>
+            </div>
             <div
               className="mt-2 flex flex-wrap items-center gap-2 text-xs"
               style={{ color: "var(--kd-text-muted)" }}

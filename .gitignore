@@ -24,3 +24,8 @@ tmp-export/
 *.zip
 *.tar
 *.tgz
+
+# Continuity audit caches. Source DOCX, reviewed canon and reports stay trackable.
+continuity/generated/
+__pycache__/
+*.py[cod]
