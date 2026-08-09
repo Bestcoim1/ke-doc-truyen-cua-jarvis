@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logEvent } from "@/lib/telemetry";
+import { fetchAllPages } from "@/lib/supabase/pagination";
 import type { Database, Json } from "@/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -66,11 +67,15 @@ async function loadAppendTargetPath(
     throw new Error("Phân hồi đích không hợp lệ.");
   }
 
-  const { data, error } = await supabase
-    .from("sections")
-    .select("id, parent_section_id, title, type, sort_order")
-    .eq("story_id", storyId)
-    .eq("is_active", true);
+  const { data, error } = await fetchAllPages((from, to) =>
+    supabase
+      .from("sections")
+      .select("id, parent_section_id, title, type, sort_order")
+      .eq("story_id", storyId)
+      .eq("is_active", true)
+      .order("id")
+      .range(from, to),
+  );
   if (error) throw new Error("Chưa thể tải danh sách phân hồi của tác phẩm.");
 
   const sections: ExistingAppendSection[] = (data ?? []).map((section) => ({

@@ -46,7 +46,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.113.0
 
       # Applies every migration in web/supabase/migrations to a fresh local DB.
       - name: Start Supabase (local)

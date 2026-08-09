@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/database.types";
+import { chunkValues, fetchAllPages } from "@/lib/supabase/pagination";
 
 export type ImportJobSummary = {
   id: string;
@@ -65,34 +66,40 @@ export async function pruneActiveImportJobs(
   ownerId: string,
   keep = MAX_ACTIVE_IMPORT_JOBS,
 ): Promise<{ pruned: number; error: string | null }> {
-  const { data, error: listError } = await supabase
-    .from("import_jobs")
-    .select("id")
-    .eq("owner_id", ownerId)
-    .in("status", ACTIVE_IMPORT_STATUSES)
-    .order("created_at", { ascending: false });
+  const { data, error: listError } = await fetchAllPages((from, to) =>
+    supabase
+      .from("import_jobs")
+      .select("id")
+      .eq("owner_id", ownerId)
+      .in("status", ACTIVE_IMPORT_STATUSES)
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(from, to),
+  );
   if (listError) return { pruned: 0, error: listError.message };
 
   const staleIds = staleImportJobIds(data ?? [], keep);
   if (staleIds.length === 0) return { pruned: 0, error: null };
 
-  const { data: cancelled, error: cancelError } = await supabase
-    .from("import_jobs")
-    .update({
-      status: "cancelled",
-      draft_json: null,
-      warnings: [],
-      error_message: null,
-    })
-    .eq("owner_id", ownerId)
-    .in("id", staleIds)
-    .in("status", ACTIVE_IMPORT_STATUSES)
-    .select("id");
+  let pruned = 0;
+  for (const ids of chunkValues(staleIds)) {
+    const { data: cancelled, error: cancelError } = await supabase
+      .from("import_jobs")
+      .update({
+        status: "cancelled",
+        draft_json: null,
+        warnings: [],
+        error_message: null,
+      })
+      .eq("owner_id", ownerId)
+      .in("id", ids)
+      .in("status", ACTIVE_IMPORT_STATUSES)
+      .select("id");
+    pruned += cancelled?.length ?? 0;
+    if (cancelError) return { pruned, error: cancelError.message };
+  }
 
-  return {
-    pruned: cancelled?.length ?? 0,
-    error: cancelError?.message ?? null,
-  };
+  return { pruned, error: null };
 }
 
 export async function countActiveImportJobs(

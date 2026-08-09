@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStoryForReader, getSectionsAndChapters, buildFlatChapterList } from "@/lib/reader/queries";
 import { parseChapterContent } from "@/lib/reader/content";
+import { chunkValues, fetchAllPages } from "@/lib/supabase/pagination";
 import { logEvent } from "@/lib/telemetry";
 
 function escapeHtml(value: string) {
@@ -48,11 +49,20 @@ export async function GET(req: NextRequest) {
     .map((c) => c.current_revision_id)
     .filter((id): id is string => Boolean(id));
 
-  // Fetch all revisions at once
-  const { data: revisions, error: revisionsError } = await supabase
-    .from("chapter_revisions")
-    .select("id, content_blocks")
-    .in("id", revisionIds);
+  const revisionResults = await Promise.all(
+    chunkValues(revisionIds).map((ids) =>
+      fetchAllPages((from, to) =>
+        supabase
+          .from("chapter_revisions")
+          .select("id, content_blocks")
+          .in("id", ids)
+          .order("id")
+          .range(from, to),
+      ),
+    ),
+  );
+  const revisionsError = revisionResults.find((result) => result.error)?.error;
+  const revisions = revisionResults.flatMap((result) => result.data ?? []);
 
   if (revisionsError) {
     logEvent("export.revisions_query_error", { code: revisionsError.code });

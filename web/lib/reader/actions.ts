@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { chunkValues, fetchAllPages } from "@/lib/supabase/pagination";
 import { logEvent } from "@/lib/telemetry";
 import type { ReadingSettings } from "./types";
 
@@ -119,16 +120,26 @@ export async function getStoryForOfflineDownload(storyId: string) {
         .eq("id", storyId)
         .eq("owner_id", userId)
         .single(),
-      supabase
-        .from("sections")
-        .select("id, parent_section_id, title, sort_order")
-        .eq("story_id", storyId)
-        .eq("is_active", true),
-      supabase
-        .from("chapters")
-        .select("id, section_id, title, sort_order, current_revision_id")
-        .eq("story_id", storyId)
-        .eq("is_active", true),
+      fetchAllPages((from, to) =>
+        supabase
+          .from("sections")
+          .select("id, parent_section_id, title, sort_order")
+          .eq("story_id", storyId)
+          .eq("is_active", true)
+          .order("sort_order")
+          .order("id")
+          .range(from, to),
+      ),
+      fetchAllPages((from, to) =>
+        supabase
+          .from("chapters")
+          .select("id, section_id, title, sort_order, current_revision_id")
+          .eq("story_id", storyId)
+          .eq("is_active", true)
+          .order("sort_order")
+          .order("id")
+          .range(from, to),
+      ),
     ]);
 
   if (!story || !chapters) {
@@ -140,22 +151,38 @@ export async function getStoryForOfflineDownload(storyId: string) {
     .map((c) => c.current_revision_id)
     .filter(Boolean) as string[];
 
-  const { data: revisions } = await supabase
-    .from("chapter_revisions")
-    .select("id, content_blocks, content_hash, chapter_id")
-    .in("id", revisionIds);
+  const revisionResults = await Promise.all(
+    chunkValues(revisionIds).map((ids) =>
+      fetchAllPages((from, to) =>
+        supabase
+          .from("chapter_revisions")
+          .select("id, content_blocks, content_hash, chapter_id")
+          .in("id", ids)
+          .order("id")
+          .range(from, to),
+      ),
+    ),
+  );
+  const revisionError = revisionResults.find((result) => result.error)?.error;
+  if (revisionError) throw revisionError;
+  const revisions = revisionResults.flatMap((result) => result.data ?? []);
 
-  const { data: annotations } = await supabase
-    .from("chapter_annotations")
-    .select("*")
-    .eq("story_id", storyId)
-    .eq("user_id", userId);
+  const { data: annotations, error: annotationsError } = await fetchAllPages((from, to) =>
+    supabase
+      .from("chapter_annotations")
+      .select("*")
+      .eq("story_id", storyId)
+      .eq("user_id", userId)
+      .order("id")
+      .range(from, to),
+  );
+  if (annotationsError) throw annotationsError;
 
   return {
     story,
     sections: sections ?? [],
     chapters: chapters ?? [],
-    revisions: revisions ?? [],
+    revisions,
     annotations: annotations ?? [],
   };
 }

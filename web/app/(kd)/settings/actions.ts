@@ -1,32 +1,55 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { passwordLengthError } from "@/lib/auth/password-policy";
+import {
+  avatarPathFromPublicUrl,
+  MAX_AVATAR_BYTES,
+  validateAvatarUpload,
+} from "@/lib/settings/avatar-validation";
 import { createClient } from "@/lib/supabase/server";
+import { logEvent } from "@/lib/telemetry";
 
 export type FormState = { error?: string; success?: boolean };
 
-export async function updateProfile(prevState: FormState, formData: FormData): Promise<FormState> {
+export async function updateProfile(_prevState: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
-  const displayName = formData.get("displayName") as string;
-  let avatarUrl = formData.get("avatarUrl") as string;
-  const avatarFile = formData.get("avatarFile") as File | null;
+  const displayNameValue = formData.get("displayName");
+  const displayName = typeof displayNameValue === "string" ? displayNameValue.trim() : "";
+  if (displayName.length > 80) return { error: "Bút danh không được vượt quá 80 ký tự." };
+
+  const currentAvatarUrl =
+    typeof user.user_metadata.avatar_url === "string" ? user.user_metadata.avatar_url : "";
+  let avatarUrl = currentAvatarUrl;
+  const avatarValue = formData.get("avatarFile");
+  const avatarFile = avatarValue instanceof File ? avatarValue : null;
+  let uploadedPath: string | null = null;
 
   if (avatarFile && avatarFile.size > 0) {
-    if (avatarFile.size > 5242880) return { error: "Ảnh quá lớn, vui lòng chọn file dưới 5MB." };
-    
-    const ext = avatarFile.name.split('.').pop() || 'jpg';
-    const filePath = `${user.id}/avatars/${Date.now()}.${ext}`;
-    
+    if (avatarFile.size > MAX_AVATAR_BYTES) {
+      return { error: "Ảnh quá lớn, vui lòng chọn file dưới 5MB." };
+    }
+
+    const bytes = new Uint8Array(await avatarFile.arrayBuffer());
+    const format = validateAvatarUpload(bytes, avatarFile.type);
+    if (!format) {
+      return { error: "Ảnh không hợp lệ. Chỉ chấp nhận JPEG, PNG, WebP, GIF hoặc AVIF." };
+    }
+
+    uploadedPath = `${user.id}/avatars/${crypto.randomUUID()}.${format.extension}`;
     const { error: uploadError } = await supabase.storage
-      .from('media')
-      .upload(filePath, avatarFile, { upsert: true });
-      
+      .from("media")
+      .upload(uploadedPath, bytes, {
+        contentType: format.contentType,
+        upsert: false,
+      });
+
     if (uploadError) return { error: "Lỗi tải ảnh lên: " + uploadError.message };
-    
-    const { data: publicUrlData } = supabase.storage.from('media').getPublicUrl(filePath);
+
+    const { data: publicUrlData } = supabase.storage.from("media").getPublicUrl(uploadedPath);
     avatarUrl = publicUrlData.publicUrl;
   }
 
@@ -38,20 +61,32 @@ export async function updateProfile(prevState: FormState, formData: FormData): P
   });
 
   if (error) {
+    if (uploadedPath) {
+      const { error: cleanupError } = await supabase.storage.from("media").remove([uploadedPath]);
+      if (cleanupError) logEvent("settings.avatar_cleanup_error", { code: cleanupError.name });
+    }
     return { error: error.message };
+  }
+
+  if (uploadedPath) {
+    const oldPath = avatarPathFromPublicUrl(currentAvatarUrl, user.id);
+    if (oldPath && oldPath !== uploadedPath) {
+      const { error: cleanupError } = await supabase.storage.from("media").remove([oldPath]);
+      if (cleanupError) logEvent("settings.avatar_cleanup_error", { code: cleanupError.name });
+    }
   }
 
   revalidatePath("/", "layout");
   return { success: true };
 }
 
-export async function updatePassword(prevState: FormState, formData: FormData): Promise<FormState> {
+export async function updatePassword(_prevState: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
-  const password = formData.get("password") as string;
+  const passwordValue = formData.get("password");
+  const password = typeof passwordValue === "string" ? passwordValue : "";
 
-  if (!password || password.length < 6) {
-    return { error: "Mật khẩu phải có ít nhất 6 ký tự." };
-  }
+  const lengthError = passwordLengthError(password);
+  if (lengthError) return { error: lengthError };
 
   const { error } = await supabase.auth.updateUser({
     password,

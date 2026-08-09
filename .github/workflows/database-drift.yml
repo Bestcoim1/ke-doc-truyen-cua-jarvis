@@ -1,0 +1,46 @@
+name: Database migration drift
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "web/supabase/migrations/**"
+      - "web/scripts/check-migration-drift.mjs"
+      - ".github/workflows/database-drift.yml"
+  workflow_dispatch:
+
+jobs:
+  drift:
+    # Enable after adding SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD as
+    # repository secrets, plus SUPABASE_PROJECT_REF as a repository variable.
+    if: ${{ vars.SUPABASE_DRIFT_CHECK_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_TELEMETRY_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.113.0
+
+      - name: Validate drift-check configuration
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_DB_PASSWORD"
+          test -n "$SUPABASE_PROJECT_REF"
+
+      - name: Link production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - run: npm run db:check-drift

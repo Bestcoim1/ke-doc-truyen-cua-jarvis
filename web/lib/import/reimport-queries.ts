@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/database.types";
+import { fetchAllPages } from "@/lib/supabase/pagination";
 import { fingerprintParagraph } from "../reader/anchors";
 import type { ChapterRevisionContent } from "../reader/types";
 import type { OldChapterRef, OldSectionRef } from "./reimport-match";
@@ -40,18 +41,26 @@ export async function getStoryTreeForReimport(
   if (!story || story.status !== "active") return null;
 
   const [{ data: sectionRows }, { data: chapterRows }] = await Promise.all([
-    supabase
-      .from("sections")
-      .select("id, parent_section_id, title, type, updated_at")
-      .eq("story_id", storyId)
-      .eq("is_active", true),
-    supabase
-      .from("chapters")
-      .select(
-        "id, section_id, title, source_key, sort_order, updated_at, chapter_revisions!chapters_current_revision_fk(content_blocks)",
-      )
-      .eq("story_id", storyId)
-      .eq("is_active", true),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("sections")
+        .select("id, parent_section_id, title, type, updated_at")
+        .eq("story_id", storyId)
+        .eq("is_active", true)
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("chapters")
+        .select(
+          "id, section_id, title, source_key, sort_order, updated_at, chapter_revisions!chapters_current_revision_fk(content_blocks)",
+        )
+        .eq("story_id", storyId)
+        .eq("is_active", true)
+        .order("id")
+        .range(from, to),
+    ),
   ]);
 
   const oldSections: OldSectionRef[] = (sectionRows ?? []).map((row) => ({

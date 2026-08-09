@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/database.types";
+import { fetchAllPages, fetchAllValueChunks } from "@/lib/supabase/pagination";
 import { logEvent } from "@/lib/telemetry";
 import {
   type ChapterRow,
@@ -90,13 +91,17 @@ async function getSearchStoryRows(
   supabase: SupabaseClient<Database>,
   ownerId: string,
 ): Promise<{ stories: SearchStoryRow[] | null; error: string | null }> {
-  const withWritingStatus = await supabase
-    .from("stories")
-    .select("id, title, last_read_at, updated_at, writing_status")
-    .eq("owner_id", ownerId)
-    .eq("status", "active")
-    .order("last_read_at", { ascending: false, nullsFirst: false })
-    .order("updated_at", { ascending: false });
+  const withWritingStatus = await fetchAllPages((from, to) =>
+    supabase
+      .from("stories")
+      .select("id, title, last_read_at, updated_at, writing_status")
+      .eq("owner_id", ownerId)
+      .eq("status", "active")
+      .order("last_read_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false })
+      .order("id")
+      .range(from, to),
+  );
 
   if (!withWritingStatus.error) {
     return { stories: withWritingStatus.data as SearchStoryRow[], error: null };
@@ -112,13 +117,17 @@ async function getSearchStoryRows(
   logEvent("search.writing_status_missing_fallback", {
     code: withWritingStatus.error.code,
   });
-  const withoutWritingStatus = await supabase
-    .from("stories")
-    .select("id, title, last_read_at, updated_at")
-    .eq("owner_id", ownerId)
-    .eq("status", "active")
-    .order("last_read_at", { ascending: false, nullsFirst: false })
-    .order("updated_at", { ascending: false });
+  const withoutWritingStatus = await fetchAllPages((from, to) =>
+    supabase
+      .from("stories")
+      .select("id, title, last_read_at, updated_at")
+      .eq("owner_id", ownerId)
+      .eq("status", "active")
+      .order("last_read_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false })
+      .order("id")
+      .range(from, to),
+  );
 
   if (withoutWritingStatus.error) {
     logEvent("search.stories_query_error", {
@@ -189,16 +198,24 @@ export async function searchLibrary(
     { data: sections, error: sectionsError },
     { data: chapters, error: chaptersError },
   ] = await Promise.all([
-    supabase
-      .from("sections")
-      .select("id, story_id, parent_section_id, title, type, sort_order")
-      .in("story_id", storyIds)
-      .eq("is_active", true),
-    supabase
-      .from("chapters")
-      .select("id, story_id, section_id, title, sort_order")
-      .in("story_id", storyIds)
-      .eq("is_active", true),
+    fetchAllValueChunks(storyIds, (ids, from, to) =>
+      supabase
+        .from("sections")
+        .select("id, story_id, parent_section_id, title, type, sort_order")
+        .in("story_id", [...ids])
+        .eq("is_active", true)
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAllValueChunks(storyIds, (ids, from, to) =>
+      supabase
+        .from("chapters")
+        .select("id, story_id, section_id, title, sort_order")
+        .in("story_id", [...ids])
+        .eq("is_active", true)
+        .order("id")
+        .range(from, to),
+    ),
   ]);
 
   if (sectionsError)

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { logEvent } from "@/lib/telemetry";
 import type { Json } from "@/database.types";
 import { normalizeStoryTitle } from "@/lib/library/story-title";
+import { fetchAllPages } from "@/lib/supabase/pagination";
 import { createClient } from "@/lib/supabase/server";
 import {
   WRITING_STATUS_VALUES,
@@ -479,11 +480,15 @@ export async function updateStorySection(
     return { error: "Không tìm thấy tác phẩm để cập nhật.", message: null };
   }
 
-  const { data: sections, error: sectionsError } = await supabase
-    .from("sections")
-    .select("id, parent_section_id, type")
-    .eq("story_id", storyId)
-    .eq("is_active", true);
+  const { data: sections, error: sectionsError } = await fetchAllPages((from, to) =>
+    supabase
+      .from("sections")
+      .select("id, parent_section_id, type")
+      .eq("story_id", storyId)
+      .eq("is_active", true)
+      .order("id")
+      .range(from, to),
+  );
   if (sectionsError) {
     logEvent("library.section_update_lookup_error", {
       code: sectionsError.code,

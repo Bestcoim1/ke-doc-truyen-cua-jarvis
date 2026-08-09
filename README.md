@@ -17,18 +17,53 @@ Sử dụng script sau để tạo bản export sạch, không chứa secret ho�
 pwsh -File .\scripts\export-safe.ps1 -DestinationPath .\dist\kedoctruyen-export.zip
 ```
 
-Script sẽ tự loại bỏ:
+Script chỉ đóng gói các file đã được Git theo dõi, bao gồm sửa đổi hiện tại của
+các tracked file. File untracked không được đưa vào archive. Script cũng từ chối
+export nếu Git đang theo dõi đường dẫn nhạy cảm và xác minh lại nội dung ZIP
+trước khi ghi đè file đích.
 
-- web/node_modules
-- web/.next
-- web/out
-- web/coverage
-- web/.env.local
-- web/.env.*.local
-- fixtures/private
-- các file log/temp và thư mục .git
+Các đường dẫn nhạy cảm bị chặn gồm:
+
+- `.env`, `.env.*` (ngoại trừ `.env.example`)
+- `.vercel` ở mọi cấp
+- `mcp.json`, `.mcp.json`
+- private key/certificate container như `.key`, `.pem`, `.p12`, `.pfx`, `.jks`
+- nội dung trong `fixtures/private` ngoài file metadata `README.md`
+
+Chạy regression test cho exporter:
+
+```powershell
+pwsh -NoProfile -File .\scripts\test-export-safe.ps1
+```
 
 Không đưa nội dung trong fixtures/private vào public assets, log, snapshot hoặc test output.
+
+## Đồng bộ Supabase
+
+Local Supabase dùng PostgreSQL 17 và Supabase CLI `2.113.0`, khớp với môi
+trường hosted hiện tại. Trước khi đẩy migration, chạy dry-run từ thư mục
+`web/`:
+
+```powershell
+$env:SUPABASE_TELEMETRY_DISABLED = "true"
+npx --yes supabase@2.113.0 db push --linked --dry-run
+```
+
+Workflow `Database migration drift` sẽ so sánh migration local/remote khi
+repository có các cấu hình sau:
+
+- secret `SUPABASE_ACCESS_TOKEN`
+- secret `SUPABASE_DB_PASSWORD`
+- variable `SUPABASE_PROJECT_REF`
+- variable `SUPABASE_DRIFT_CHECK_ENABLED=true`
+
+Không bật biến cuối cùng trước khi ba giá trị còn lại đã được cấu hình. Có thể
+chạy cùng kiểm tra từ máy đã link project bằng `npm run db:check-drift` trong
+`web/`.
+
+Mật khẩu mới phải có ít nhất 12 ký tự ở cả UI, server action và local Auth.
+Tính năng chặn mật khẩu đã rò rỉ của Supabase chỉ có trên gói Pro trở lên nên
+không thể bật cho project Free hiện tại.
 
 ## Checklist secret và key
 

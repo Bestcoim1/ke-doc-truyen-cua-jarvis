@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MIN_PASSWORD_LENGTH, passwordLengthError } from "@/lib/auth/password-policy";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -35,6 +36,12 @@ export function SignUpForm({
 
     if (password !== repeatPassword) {
       setError("Mật khẩu nhập lại không khớp.");
+      setIsLoading(false);
+      return;
+    }
+    const lengthError = passwordLengthError(password);
+    if (lengthError) {
+      setError(lengthError);
       setIsLoading(false);
       return;
     }
@@ -85,6 +92,8 @@ export function SignUpForm({
                   id="password"
                   type="password"
                   required
+                  minLength={MIN_PASSWORD_LENGTH}
+                  placeholder={`Tối thiểu ${MIN_PASSWORD_LENGTH} ký tự`}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -97,6 +106,7 @@ export function SignUpForm({
                   id="repeat-password"
                   type="password"
                   required
+                  minLength={MIN_PASSWORD_LENGTH}
                   value={repeatPassword}
                   onChange={(e) => setRepeatPassword(e.target.value)}
                 />

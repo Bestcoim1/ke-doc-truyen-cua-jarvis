@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { updateProfile, updatePassword } from "@/app/(kd)/settings/actions";
 import type { FormState } from "@/app/(kd)/settings/actions";
 import { Button } from "@/components/ui/button";
+import { MIN_PASSWORD_LENGTH } from "@/lib/auth/password-policy";
 
 const INITIAL_STATE: FormState = {};
 
@@ -25,6 +26,13 @@ export function ProfileForm({
   );
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  useEffect(
+    () => () => {
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    },
+    [avatarPreview],
+  );
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,6 +56,7 @@ export function ProfileForm({
             name="displayName"
             defaultValue={initialDisplayName}
             placeholder="Ví dụ: Nam Cao"
+            maxLength={80}
             className="w-full rounded-xl border px-3 py-2 text-sm"
             style={{
               borderColor: "var(--kd-border)",
@@ -75,15 +84,9 @@ export function ProfileForm({
                 id="avatarFile"
                 name="avatarFile"
                 type="file"
-                accept="image/png, image/jpeg, image/webp, image/gif"
+                accept="image/png, image/jpeg, image/webp, image/gif, image/avif"
                 onChange={handleAvatarChange}
                 className="text-xs file:mr-3 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
-              />
-              <input
-                id="avatarUrl"
-                name="avatarUrl"
-                type="hidden"
-                value={initialAvatarUrl}
               />
             </div>
           </div>
@@ -114,8 +117,9 @@ export function ProfileForm({
             id="password"
             name="password"
             type="password"
-            minLength={6}
-            placeholder="Tối thiểu 6 ký tự"
+            required
+            minLength={MIN_PASSWORD_LENGTH}
+            placeholder={`Tối thiểu ${MIN_PASSWORD_LENGTH} ký tự`}
             className="w-full rounded-xl border px-3 py-2 text-sm"
             style={{
               borderColor: "var(--kd-border)",

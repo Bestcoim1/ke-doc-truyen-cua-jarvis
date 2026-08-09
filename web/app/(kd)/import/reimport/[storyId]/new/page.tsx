@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { ImportReimportMethodPicker } from "@/components/import/import-reimport-method-picker";
 import { orderAppendSectionOptions } from "@/lib/import/append-target";
+import { fetchAllPages } from "@/lib/supabase/pagination";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/utils";
 
@@ -48,11 +49,15 @@ async function ReimportNewContent({ params }: ReimportNewPageProps) {
 
   if (!story || story.status !== "active") notFound();
 
-  const { data: sectionRows } = await supabase
-    .from("sections")
-    .select("id, parent_section_id, title, type, sort_order")
-    .eq("story_id", storyId)
-    .eq("is_active", true);
+  const { data: sectionRows } = await fetchAllPages((from, to) =>
+    supabase
+      .from("sections")
+      .select("id, parent_section_id, title, type, sort_order")
+      .eq("story_id", storyId)
+      .eq("is_active", true)
+      .order("id")
+      .range(from, to),
+  );
   const sectionOptions = orderAppendSectionOptions(
     (sectionRows ?? []).map((section) => ({
       id: section.id,

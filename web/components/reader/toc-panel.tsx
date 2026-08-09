@@ -211,7 +211,11 @@ export function TocPanel({
     // Full navigation, not router.push() — see reader-view.tsx's
     // goToChapter for why (client Router Cache staleness across
     // [chapterId] param changes on the same page template).
-    window.location.href = `/read/${storyId}/${chapterId}`;
+    const chapterUrl = new URL(
+      `/read/${storyId}/${chapterId}`,
+      window.location.origin,
+    );
+    window.location.assign(chapterUrl.href);
   }
 
   return (

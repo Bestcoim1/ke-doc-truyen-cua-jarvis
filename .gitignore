@@ -3,6 +3,10 @@ fixtures/private/*
 !fixtures/private/README.md
 
 # Web application outputs and local configuration.
+.env
+.env.*
+!.env.example
+.vercel/
 web/node_modules/
 web/.next/
 web/out/

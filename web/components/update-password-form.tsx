@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MIN_PASSWORD_LENGTH, passwordLengthError } from "@/lib/auth/password-policy";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -29,6 +30,13 @@ export function UpdatePasswordForm({
     const supabase = createClient();
     setIsLoading(true);
     setError(null);
+
+    const lengthError = passwordLengthError(password);
+    if (lengthError) {
+      setError(lengthError);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { error } = await supabase.auth.updateUser({ password });
@@ -58,6 +66,7 @@ export function UpdatePasswordForm({
                   type="password"
                   placeholder="Mật khẩu mới"
                   required
+                  minLength={MIN_PASSWORD_LENGTH}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />

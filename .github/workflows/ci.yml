@@ -33,7 +33,12 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
+      - name: Verify safe export
+        working-directory: ${{ github.workspace }}
+        run: pwsh -NoProfile -File ./scripts/test-export-safe.ps1
+
       - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:unit

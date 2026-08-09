@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/database.types";
+import { fetchAllPages, fetchAllValueChunks } from "@/lib/supabase/pagination";
 import { logEvent } from "@/lib/telemetry";
 import {
   buildFlatChapterList,
@@ -72,13 +73,17 @@ async function getStoryRows(
   ownerId: string,
   status: "active" | "archived",
 ): Promise<{ stories: StoryListRow[] | null; error: string | null }> {
-  const withWritingStatus = await supabase
-    .from("stories")
-    .select("id, title, last_read_at, updated_at, writing_status, cover_image_url")
-    .eq("owner_id", ownerId)
-    .eq("status", status)
-    .order("last_read_at", { ascending: false, nullsFirst: false })
-    .order("updated_at", { ascending: false });
+  const withWritingStatus = await fetchAllPages((from, to) =>
+    supabase
+      .from("stories")
+      .select("id, title, last_read_at, updated_at, writing_status, cover_image_url")
+      .eq("owner_id", ownerId)
+      .eq("status", status)
+      .order("last_read_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false })
+      .order("id")
+      .range(from, to),
+  );
 
   if (!withWritingStatus.error) {
     return { stories: withWritingStatus.data as StoryListRow[], error: null };
@@ -94,13 +99,17 @@ async function getStoryRows(
   logEvent("library.writing_status_missing_fallback", {
     code: withWritingStatus.error.code,
   });
-  const withoutWritingStatus = await supabase
-    .from("stories")
-    .select("id, title, last_read_at, updated_at, cover_image_url")
-    .eq("owner_id", ownerId)
-    .eq("status", status)
-    .order("last_read_at", { ascending: false, nullsFirst: false })
-    .order("updated_at", { ascending: false });
+  const withoutWritingStatus = await fetchAllPages((from, to) =>
+    supabase
+      .from("stories")
+      .select("id, title, last_read_at, updated_at, cover_image_url")
+      .eq("owner_id", ownerId)
+      .eq("status", status)
+      .order("last_read_at", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false })
+      .order("id")
+      .range(from, to),
+  );
 
   if (withoutWritingStatus.error) {
     logEvent("library.stories_query_error", {
@@ -151,27 +160,41 @@ export async function getLibraryStories(
     { data: sectionRows, error: sectionsError },
     { data: chapterRows, error: chaptersError },
   ] = await Promise.all([
-    supabase
-      .from("sections")
-      .select("id, story_id, parent_section_id, title, sort_order")
-      .in("story_id", storyIds)
-      .eq("is_active", true),
-    supabase
-      .from("chapters")
-      .select("id, story_id, section_id, title, sort_order")
-      .in("story_id", storyIds)
-      .eq("is_active", true),
+    fetchAllValueChunks(storyIds, (ids, from, to) =>
+      supabase
+        .from("sections")
+        .select("id, story_id, parent_section_id, title, sort_order")
+        .in("story_id", [...ids])
+        .eq("is_active", true)
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAllValueChunks(storyIds, (ids, from, to) =>
+      supabase
+        .from("chapters")
+        .select("id, story_id, section_id, title, sort_order")
+        .in("story_id", [...ids])
+        .eq("is_active", true)
+        .order("id")
+        .range(from, to),
+    ),
   ]);
   if (sectionsError)
     logEvent("library.sections_query_error", { code: sectionsError.code });
   if (chaptersError)
     logEvent("library.chapters_query_error", { code: chaptersError.code });
 
-  const { data: progressRows, error: progressError } = await supabase
-    .from("reading_progress")
-    .select("story_id, chapter_id")
-    .eq("user_id", ownerId)
-    .in("story_id", storyIds);
+  const { data: progressRows, error: progressError } = await fetchAllValueChunks(
+    storyIds,
+    (ids, from, to) =>
+    supabase
+      .from("reading_progress")
+      .select("story_id, chapter_id")
+      .eq("user_id", ownerId)
+      .in("story_id", [...ids])
+      .order("story_id")
+      .range(from, to),
+  );
   if (progressError)
     logEvent("library.progress_query_error", { code: progressError.code });
 
@@ -238,16 +261,26 @@ export async function getChapterOrderStory(
 
   const [{ data: sections, error: sectionsError }, { data: chapters, error: chaptersError }] =
     await Promise.all([
-      supabase
-        .from("sections")
-        .select("id, parent_section_id, type, title, sort_order")
-        .eq("story_id", storyId)
-        .eq("is_active", true),
-      supabase
-        .from("chapters")
-        .select("id, section_id, title, sort_order")
-        .eq("story_id", storyId)
-        .eq("is_active", true),
+      fetchAllPages((from, to) =>
+        supabase
+          .from("sections")
+          .select("id, parent_section_id, type, title, sort_order")
+          .eq("story_id", storyId)
+          .eq("is_active", true)
+          .order("sort_order")
+          .order("id")
+          .range(from, to),
+      ),
+      fetchAllPages((from, to) =>
+        supabase
+          .from("chapters")
+          .select("id, section_id, title, sort_order")
+          .eq("story_id", storyId)
+          .eq("is_active", true)
+          .order("sort_order")
+          .order("id")
+          .range(from, to),
+      ),
     ]);
 
   if (sectionsError || chaptersError) {

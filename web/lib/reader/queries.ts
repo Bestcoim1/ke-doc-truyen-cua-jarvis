@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/database.types";
+import { fetchAllPages } from "@/lib/supabase/pagination";
 import { logEvent } from "@/lib/telemetry";
 import { parseChapterContent } from "./content";
 import type { Block, ReadingSettings } from "./types";
@@ -32,16 +33,26 @@ export async function getSectionsAndChapters(
     { data: sections, error: sectionsError },
     { data: chapters, error: chaptersError },
   ] = await Promise.all([
-    supabase
-      .from("sections")
-      .select("id, parent_section_id, title, sort_order")
-      .eq("story_id", storyId)
-      .eq("is_active", true),
-    supabase
-      .from("chapters")
-      .select("id, section_id, title, sort_order, current_revision_id")
-      .eq("story_id", storyId)
-      .eq("is_active", true),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("sections")
+        .select("id, parent_section_id, title, sort_order")
+        .eq("story_id", storyId)
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("chapters")
+        .select("id, section_id, title, sort_order, current_revision_id")
+        .eq("story_id", storyId)
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("id")
+        .range(from, to),
+    ),
   ]);
   if (sectionsError)
     logEvent("reader.sections_query_error", { code: sectionsError.code });
@@ -97,11 +108,15 @@ export async function getChapterReadStates(
   userId: string,
   storyId: string,
 ) {
-  const { data, error } = await supabase
-    .from("chapter_read_states")
-    .select("chapter_id, max_progress_pct, completed_content_hash")
-    .eq("user_id", userId)
-    .eq("story_id", storyId);
+  const { data, error } = await fetchAllPages((from, to) =>
+    supabase
+      .from("chapter_read_states")
+      .select("chapter_id, max_progress_pct, completed_content_hash")
+      .eq("user_id", userId)
+      .eq("story_id", storyId)
+      .order("chapter_id")
+      .range(from, to),
+  );
   if (error) logEvent("reader.read_states_query_error", { code: error.code });
 
   const map = new Map<
@@ -150,11 +165,15 @@ export async function getChapterAnnotations(
   userId: string,
   chapterId: string,
 ): Promise<ChapterAnnotationRow[]> {
-  const { data, error } = await supabase
-    .from("chapter_annotations")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("chapter_id", chapterId);
+  const { data, error } = await fetchAllPages((from, to) =>
+    supabase
+      .from("chapter_annotations")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("chapter_id", chapterId)
+      .order("id")
+      .range(from, to),
+  );
   if (error) {
     logEvent("reader.annotations_query_error", { code: error.code });
   }

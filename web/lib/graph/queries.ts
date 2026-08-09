@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/database.types";
+import { fetchAllPages } from "@/lib/supabase/pagination";
 import { logEvent } from "@/lib/telemetry";
 
 import {
@@ -38,16 +39,26 @@ async function getHierarchyRows(
   storyId: string,
 ): Promise<GraphQueryResult<{ sections: GraphSection[]; chapters: GraphChapter[] }>> {
   const [sectionsResult, chaptersResult] = await Promise.all([
-    supabase
-      .from("sections")
-      .select("id, story_id, parent_section_id, title, type, sort_order")
-      .eq("story_id", storyId)
-      .eq("is_active", true),
-    supabase
-      .from("chapters")
-      .select("id, story_id, section_id, title, kind, sort_order")
-      .eq("story_id", storyId)
-      .eq("is_active", true),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("sections")
+        .select("id, story_id, parent_section_id, title, type, sort_order")
+        .eq("story_id", storyId)
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("id")
+        .range(from, to),
+    ),
+    fetchAllPages((from, to) =>
+      supabase
+        .from("chapters")
+        .select("id, story_id, section_id, title, kind, sort_order")
+        .eq("story_id", storyId)
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("id")
+        .range(from, to),
+    ),
   ]);
 
   const error = sectionsResult.error ?? chaptersResult.error;
@@ -134,18 +145,26 @@ export async function getStoryGraphShell(
   const [hierarchyRows, relationshipsResult, activeStoriesResult] =
     await Promise.all([
       getHierarchyRows(supabase, storyId),
-      supabase
-        .from("story_relationships")
-        .select(
-          "id, source_story_id, target_story_id, relationship_type, created_at, updated_at",
-        )
-        .or(`source_story_id.eq.${storyId},target_story_id.eq.${storyId}`),
-      supabase
-        .from("stories")
-        .select("id, title")
-        .eq("owner_id", ownerId)
-        .eq("status", "active")
-        .order("title"),
+      fetchAllPages((from, to) =>
+        supabase
+          .from("story_relationships")
+          .select(
+            "id, source_story_id, target_story_id, relationship_type, created_at, updated_at",
+          )
+          .or(`source_story_id.eq.${storyId},target_story_id.eq.${storyId}`)
+          .order("id")
+          .range(from, to),
+      ),
+      fetchAllPages((from, to) =>
+        supabase
+          .from("stories")
+          .select("id, title")
+          .eq("owner_id", ownerId)
+          .eq("status", "active")
+          .order("title")
+          .order("id")
+          .range(from, to),
+      ),
     ]);
 
   if (!hierarchyRows.data) {
@@ -170,23 +189,10 @@ export async function getStoryGraphShell(
     ),
   ];
 
-  let relatedStoryRows: { id: string; title: string }[] = [];
-  if (relatedIds.length > 0) {
-    const relatedResult = await supabase
-      .from("stories")
-      .select("id, title")
-      .in("id", relatedIds)
-      .eq("owner_id", ownerId)
-      .eq("status", "active");
-    if (relatedResult.error) {
-      logEvent("graph.related_stories_query_error", {
-        code: relatedResult.error.code,
-        storyId,
-      });
-      return { data: null, error: relatedResult.error.code };
-    }
-    relatedStoryRows = relatedResult.data ?? [];
-  }
+  const relatedIdSet = new Set(relatedIds);
+  const relatedStoryRows = (activeStoriesResult.data ?? []).filter((activeStory) =>
+    relatedIdSet.has(activeStory.id),
+  );
 
   const activeRelatedIds = new Set(relatedStoryRows.map((row) => row.id));
   const relationships = candidateRelationships.filter((relationship) => {
@@ -237,12 +243,16 @@ export async function getLibraryGraphOverview(
   supabase: SupabaseClient<Database>,
   ownerId: string,
 ): Promise<GraphQueryResult<ConnectedStoryComponent[]>> {
-  const { data: storyRows, error: storiesError } = await supabase
-    .from("stories")
-    .select("id, title, created_at")
-    .eq("owner_id", ownerId)
-    .eq("status", "active")
-    .order("created_at");
+  const { data: storyRows, error: storiesError } = await fetchAllPages((from, to) =>
+    supabase
+      .from("stories")
+      .select("id, title, created_at")
+      .eq("owner_id", ownerId)
+      .eq("status", "active")
+      .order("created_at")
+      .order("id")
+      .range(from, to),
+  );
 
   if (storiesError) {
     logEvent("graph.library_stories_query_error", { code: storiesError.code });
@@ -252,14 +262,16 @@ export async function getLibraryGraphOverview(
     return { data: [], error: null };
   }
 
-  const storyIds = storyRows.map((story) => story.id);
-  const { data: relationshipRows, error: relationshipsError } = await supabase
-    .from("story_relationships")
-    .select(
-      "id, source_story_id, target_story_id, relationship_type, created_at, updated_at",
-    )
-    .in("source_story_id", storyIds)
-    .in("target_story_id", storyIds);
+  const storyIds = new Set(storyRows.map((story) => story.id));
+  const { data: relationshipRows, error: relationshipsError } = await fetchAllPages((from, to) =>
+    supabase
+      .from("story_relationships")
+      .select(
+        "id, source_story_id, target_story_id, relationship_type, created_at, updated_at",
+      )
+      .order("id")
+      .range(from, to),
+  );
 
   if (relationshipsError) {
     logEvent("graph.library_relationships_query_error", {
@@ -275,7 +287,13 @@ export async function getLibraryGraphOverview(
         title: story.title,
         createdAt: story.created_at,
       })),
-      (relationshipRows ?? []).map(mapRelationship),
+      (relationshipRows ?? [])
+        .filter(
+          (relationship) =>
+            storyIds.has(relationship.source_story_id) &&
+            storyIds.has(relationship.target_story_id),
+        )
+        .map(mapRelationship),
     ),
     error: null,
   };

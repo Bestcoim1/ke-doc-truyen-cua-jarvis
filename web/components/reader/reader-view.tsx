@@ -356,13 +356,21 @@ export function ReaderView({
     // returning correct, distinct data per chapter — the staleness is
     // client-only). Correctness matters far more than SPA transition
     // smoothness for chapter-to-chapter navigation here.
-    window.location.href = `/read/${storyId}/${chapterId}`;
+    const chapterUrl = new URL(
+      `/read/${storyId}/${chapterId}`,
+      window.location.origin,
+    );
+    window.location.assign(chapterUrl.href);
   }
 
   function handleNext() {
     flushProgress(hasSeenEndRef.current ? "next_action" : undefined);
     if (nextChapterEntry) {
-      window.location.href = `/read/${storyId}/${nextChapterEntry.chapterId}`;
+      const nextChapterUrl = new URL(
+        `/read/${storyId}/${nextChapterEntry.chapterId}`,
+        window.location.origin,
+      );
+      window.location.assign(nextChapterUrl.href);
     }
   }
 
