@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { ImportReimportMethodPicker } from "@/components/import/import-reimport-method-picker";
 import { orderAppendSectionOptions } from "@/lib/import/append-target";
-import { fetchAllPages } from "@/lib/supabase/pagination";
+import { getChapterOrderStory } from "@/lib/library/queries";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/utils";
 
@@ -40,36 +40,21 @@ async function ReimportNewContent({ params }: ReimportNewPageProps) {
     redirect(`/auth/login?next=/import/reimport/${storyId}/new`);
   }
 
-  const { data: story } = await supabase
-    .from("stories")
-    .select("id, title, status")
-    .eq("id", storyId)
-    .eq("owner_id", userId)
-    .maybeSingle();
+  const story = await getChapterOrderStory(supabase, storyId, userId);
+  if (!story) notFound();
 
-  if (!story || story.status !== "active") notFound();
-
-  const { data: sectionRows } = await fetchAllPages((from, to) =>
-    supabase
-      .from("sections")
-      .select("id, parent_section_id, title, type, sort_order")
-      .eq("story_id", storyId)
-      .eq("is_active", true)
-      .order("id")
-      .range(from, to),
-  );
   const sectionOptions = orderAppendSectionOptions(
-    (sectionRows ?? []).map((section) => ({
+    story.sections.map((section, index) => ({
       id: section.id,
-      parentSectionId: section.parent_section_id,
+      parentSectionId: section.parentSectionId,
       title: section.title,
       type: section.type,
-      sortOrder: section.sort_order,
+      sortOrder: index,
     })),
   );
 
   return (
-    <div className="mx-auto w-full max-w-3xl p-4 sm:p-6">
+    <div className="mx-auto w-full max-w-5xl p-4 sm:p-6">
       <div className="mb-6">
         <p className="text-sm" style={{ color: "var(--kd-text-muted)" }}>
           Cập nhật bản thảo
@@ -93,8 +78,7 @@ async function ReimportNewContent({ params }: ReimportNewPageProps) {
         }}
       >
         <ImportReimportMethodPicker
-          storyId={story.id}
-          storyTitle={story.title}
+          story={story}
           sectionOptions={sectionOptions}
         />
       </div>

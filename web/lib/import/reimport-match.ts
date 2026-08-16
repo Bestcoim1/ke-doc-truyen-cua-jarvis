@@ -20,6 +20,7 @@ import {
  */
 export type OldChapterRef = {
   id: string;
+  sectionId: string | null;
   sectionPath: string;
   title: string;
   sourceKey: string | null;

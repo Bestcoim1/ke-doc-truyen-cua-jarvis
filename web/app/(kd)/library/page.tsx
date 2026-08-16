@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Archive, BookOpen, Clock3, ListOrdered, Network, Plus, RefreshCw } from "lucide-react";
+import { Archive, BookOpen, Clock3, ListOrdered, Network, PenTool, Plus, RefreshCw } from "lucide-react";
 
 import { ArchiveStoryButton } from "@/components/library/archive-story-button";
 import { DeleteStoryButton } from "@/components/library/delete-story-button";
@@ -85,6 +85,16 @@ async function LibraryContent({ searchParams }: LibraryPageProps) {
           </p>
         </div>
         <div className="grid gap-2 sm:flex sm:items-center">
+          <Button
+            asChild
+            variant="outline"
+            className="justify-center rounded-full"
+          >
+            <Link href="/studio">
+              <PenTool size={16} />
+              Phòng Sáng Tác
+            </Link>
+          </Button>
           <Button
             asChild
             variant="outline"
@@ -298,6 +308,17 @@ function StoryCard({
       >
         {status === "active" ? (
           <>
+            <Link
+              href={`/studio/${story.id}`}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-bold"
+              style={{
+                background: "var(--kd-binding)",
+                color: "var(--kd-accent-foreground)",
+              }}
+            >
+              <PenTool size={14} />
+              Sáng tác
+            </Link>
             <Link
               href={`/read/${story.id}/graph`}
               className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-bold"

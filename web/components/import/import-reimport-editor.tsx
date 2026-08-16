@@ -38,6 +38,7 @@ import type {
   SectionMatch,
 } from "@/lib/import/reimport-match";
 import type { ReimportMode } from "@/lib/import/reimport-mode";
+import type { ReimportUpdateScope } from "@/lib/import/reimport-scope";
 import {
   changeSectionType,
   deleteChapter,
@@ -82,6 +83,7 @@ type ChapterEditorProps = {
   isFirst: boolean;
   isLast: boolean;
   canMerge: boolean;
+  allowStructuralEdits: boolean;
   matchBadge: MatchBadge | undefined;
   onRename: (title: string) => void;
   onMove: (targetSectionId: string) => void;
@@ -98,6 +100,7 @@ function ChapterEditor({
   isFirst,
   isLast,
   canMerge,
+  allowStructuralEdits,
   matchBadge,
   onRename,
   onMove,
@@ -163,6 +166,7 @@ function ChapterEditor({
           <select
             value={currentSectionId}
             onChange={(event) => onMove(event.target.value)}
+            disabled={!allowStructuralEdits}
             className="h-10 min-w-0 rounded-md border bg-transparent px-3 text-sm"
           >
             {sectionOptions.map((option) => (
@@ -180,7 +184,7 @@ function ChapterEditor({
               variant="outline"
               size="sm"
               className="flex-1"
-              disabled={isFirst}
+              disabled={!allowStructuralEdits || isFirst}
               onClick={() => onReorder("up")}
             >
               ▲ Lên
@@ -190,7 +194,7 @@ function ChapterEditor({
               variant="outline"
               size="sm"
               className="flex-1"
-              disabled={isLast}
+              disabled={!allowStructuralEdits || isLast}
               onClick={() => onReorder("down")}
             >
               ▼ Xuống
@@ -199,33 +203,40 @@ function ChapterEditor({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!canMerge}
-          onClick={onMerge}
-        >
-          Gộp với chương trước
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setSplitOpen((open) => !open)}
-        >
-          {splitOpen ? "Đóng tách chương" : "Tách chương"}
-        </Button>
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          onClick={onDelete}
-        >
-          Xóa chapter
-        </Button>
-      </div>
+      {allowStructuralEdits ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canMerge}
+            onClick={onMerge}
+          >
+            Gộp với chương trước
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setSplitOpen((open) => !open)}
+          >
+            {splitOpen ? "Đóng tách chương" : "Tách chương"}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={onDelete}
+          >
+            Xóa chapter
+          </Button>
+        </div>
+      ) : (
+        <p className="mt-4 text-xs leading-5" style={{ color: "var(--kd-text-muted)" }}>
+          Cập nhật một chương giữ nguyên section và vị trí. Chỉ tiêu đề và nội
+          dung của chương đã chọn được thay đổi.
+        </p>
+      )}
 
       <div
         className="mt-6 border-t pt-4"
@@ -495,6 +506,8 @@ export function ImportReimportEditor({
   initialDraft,
   initialManualOverrides,
   mode,
+  updateScope,
+  editableOldChapterIds,
 }: {
   jobId: string;
   oldChapters: OldChapterRef[];
@@ -504,6 +517,8 @@ export function ImportReimportEditor({
   initialDraft: ReviewDraft;
   initialManualOverrides?: Record<string, ManualOverride>;
   mode: ReimportMode;
+  updateScope: ReimportUpdateScope;
+  editableOldChapterIds: string[];
 }) {
   const { draft, pendingOps, canUndo, canRedo, apply, undo, redo, reset } =
     useDraftHistory(initialDraft);
@@ -515,6 +530,10 @@ export function ImportReimportEditor({
     Record<string, ManualOverride>
   >(initialManualOverrides || {});
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const editableOldChapterIdSet = useMemo(
+    () => new Set(editableOldChapterIds),
+    [editableOldChapterIds],
+  );
 
   useEffect(() => {
     if (!selectedId && draft.sections.length > 0) {
@@ -594,8 +613,13 @@ export function ImportReimportEditor({
   }, [decisions, autoMatches]);
 
   const manuallyDecidedOld = useMemo(
-    () => oldChapters.filter((old) => manualOverrides[old.id] !== undefined),
-    [oldChapters, manualOverrides],
+    () =>
+      oldChapters.filter(
+        (old) =>
+          editableOldChapterIdSet.has(old.id) &&
+          manualOverrides[old.id] !== undefined,
+      ),
+    [editableOldChapterIdSet, oldChapters, manualOverrides],
   );
 
   const summary = useMemo(() => {
@@ -687,11 +711,12 @@ export function ImportReimportEditor({
       JSON.stringify({
         version: 1,
         mode,
+        scope: updateScope,
         baseTreeToken,
         decisions,
         sections: sectionMatches,
       }),
-    [baseTreeToken, decisions, mode, sectionMatches],
+    [baseTreeToken, decisions, mode, sectionMatches, updateScope],
   );
 
   const applyMerge = useCallback(
@@ -884,7 +909,10 @@ export function ImportReimportEditor({
               ["Gộp", summary.mergedCount],
               ["Mới", summary.newCount],
               ["Lưu trữ", summary.archivedCount],
-              ["Không l.quan", summary.unrelatedCount],
+              [
+                updateScope.kind === "story" ? "Không l.quan" : "Ngoài phạm vi",
+                summary.unrelatedCount,
+              ],
             ]
         ).map(([label, value]) => (
           <div
@@ -917,6 +945,18 @@ export function ImportReimportEditor({
         >
           Chế độ nối tiếp: chỉ các chương trong bản review bên dưới được thêm
           vào cuối tác phẩm. Các chương hiện có không bị ánh xạ, sửa hoặc lưu trữ.
+        </p>
+      ) : updateScope.kind !== "story" ? (
+        <p
+          className="flex-shrink-0 rounded-lg border px-3 py-2 text-sm"
+          style={{
+            borderColor: "var(--kd-gilt)",
+            background: "var(--kd-surface)",
+            color: "var(--kd-text-muted)",
+          }}
+        >
+          Chế độ cập nhật có phạm vi: chỉ mục đã chọn được phép thay đổi. Các
+          chương ngoài phạm vi đã được khóa ở trạng thái giữ nguyên.
         </p>
       ) : null}
 
@@ -1088,6 +1128,7 @@ export function ImportReimportEditor({
                 isFirst={selectedNodeInfo.isFirst}
                 isLast={selectedNodeInfo.isLast}
                 canMerge={mergeableChapterIds.has(selectedNodeInfo.chapter.id)}
+                allowStructuralEdits={updateScope.kind !== "chapter"}
                 matchBadge={matchBadges.get(selectedNodeInfo.chapter.id)}
                 onRename={(title) =>
                   apply((current) =>
@@ -1123,7 +1164,7 @@ export function ImportReimportEditor({
                   applySplit(selectedNodeInfo.chapter.id, blockIndex)
                 }
               />
-            ) : (
+            ) : updateScope.kind !== "chapter" ? (
               <SectionEditor
                 section={selectedNodeInfo.section}
                 depth={selectedNodeInfo.depth}
@@ -1153,6 +1194,17 @@ export function ImportReimportEditor({
                   )
                 }
               />
+            ) : (
+              <div
+                className="rounded-lg border p-6 text-sm"
+                style={{
+                  borderColor: "var(--kd-border)",
+                  color: "var(--kd-text-muted)",
+                }}
+              >
+                Hãy chọn chương ở cột bên trái. Cấu trúc section được khóa trong
+                lần cập nhật chính xác một chương.
+              </div>
             )
           ) : (
             <div

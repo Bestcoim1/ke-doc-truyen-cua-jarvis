@@ -9,6 +9,12 @@ import type { ManualOverride } from "@/lib/import/reimport-decisions";
 import { matchChapters, matchSections } from "@/lib/import/reimport-match";
 import { reimportModeFromMapping } from "@/lib/import/reimport-mode";
 import { getStoryTreeForReimport } from "@/lib/import/reimport-queries";
+import {
+  buildScopedInitialOverrides,
+  collectDraftChapterIds,
+  oldChapterIdsInScope,
+  reimportUpdateScopeFromMapping,
+} from "@/lib/import/reimport-scope";
 import { toReviewDraft } from "@/lib/import/review-draft";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/utils";
@@ -146,19 +152,60 @@ async function ReviewImportContent({ params }: ReviewPageProps) {
     }
 
     const reimportMode = reimportModeFromMapping(job.mapping_json);
+    const updateScope = reimportUpdateScopeFromMapping(job.mapping_json);
+    const scopeStillExists =
+      updateScope.kind === "story" ||
+      (updateScope.kind === "chapter"
+        ? tree.oldChapters.some((chapter) => chapter.id === updateScope.targetId)
+        : tree.oldSections.some((section) => section.id === updateScope.targetId));
+    if (!scopeStillExists) {
+      return (
+        <div className="mx-auto max-w-xl p-6">
+          <h1 className="text-xl font-bold">Mục cần cập nhật không còn tồn tại</h1>
+          <p className="mt-2 text-sm" style={{ color: "var(--kd-text-muted)" }}>
+            Chương hoặc section đã chọn đã thay đổi sau khi job được tạo. Hãy tạo
+            lại bản cập nhật từ danh sách mới nhất.
+          </p>
+        </div>
+      );
+    }
+    const editableOldChapterIds = oldChapterIdsInScope(
+      updateScope,
+      tree.oldChapters,
+      tree.oldSections,
+    );
+    const oldChaptersForMatching =
+      reimportMode === "update" && updateScope.kind !== "story"
+        ? tree.oldChapters.filter((chapter) => editableOldChapterIds.has(chapter.id))
+        : tree.oldChapters;
     const { matches } =
       reimportMode === "append"
         ? { matches: [] }
-        : matchChapters(tree.oldChapters, fullDraft);
+        : matchChapters(oldChaptersForMatching, fullDraft);
     const savedSectionMatches = savedAppendSectionMatches(job.mapping_json);
     const { matches: automaticallyMatchedSections } = matchSections(
       tree.oldSections,
       fullDraft,
     );
-    const sectionMatches =
-      reimportMode === "append" && savedSectionMatches !== null
-        ? savedSectionMatches
-        : automaticallyMatchedSections;
+    let sectionMatches = automaticallyMatchedSections;
+    if (savedSectionMatches !== null && reimportMode === "append") {
+      sectionMatches = savedSectionMatches;
+    } else if (savedSectionMatches !== null && updateScope.kind !== "story") {
+      const usedNewIds = new Set(
+        savedSectionMatches.map((match) => match.newSectionId),
+      );
+      const usedOldIds = new Set(
+        savedSectionMatches.map((match) => match.oldSectionId),
+      );
+      sectionMatches = [
+        ...savedSectionMatches,
+        ...automaticallyMatchedSections.filter(
+          (match) =>
+            !usedNewIds.has(match.newSectionId) &&
+            !usedOldIds.has(match.oldSectionId),
+        ),
+      ];
+    }
     const initialManualOverrides =
       reimportMode === "append"
         ? Object.fromEntries(
@@ -167,10 +214,18 @@ async function ReviewImportContent({ params }: ReviewPageProps) {
               { unrelated: true as const },
             ]),
           )
-        : manualOverridesFromSavedMapping(
-            job.mapping_json,
-            tree.baseTreeToken,
-          );
+        : {
+            ...buildScopedInitialOverrides(
+              updateScope,
+              tree.oldChapters,
+              tree.oldSections,
+              collectDraftChapterIds(fullDraft),
+            ),
+            ...manualOverridesFromSavedMapping(
+              job.mapping_json,
+              tree.baseTreeToken,
+            ),
+          };
 
     return (
       <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
@@ -183,6 +238,8 @@ async function ReviewImportContent({ params }: ReviewPageProps) {
           baseTreeToken={tree.baseTreeToken}
           initialManualOverrides={initialManualOverrides}
           mode={reimportMode}
+          updateScope={updateScope}
+          editableOldChapterIds={[...editableOldChapterIds]}
         />
       </div>
     );

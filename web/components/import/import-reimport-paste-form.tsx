@@ -6,6 +6,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { createPasteReimportJob } from "@/lib/import/reimport-actions";
 import type { ReimportMode } from "@/lib/import/reimport-mode";
+import type { ReimportUpdateScope } from "@/lib/import/reimport-scope";
 
 const INITIAL_STATE = { error: null, message: null };
 
@@ -14,11 +15,15 @@ export function ImportReimportPasteForm({
   storyTitle,
   mode,
   appendTargetSectionId,
+  updateScope,
+  updateScopeLabel,
 }: {
   storyId: string;
   storyTitle: string;
   mode: ReimportMode;
   appendTargetSectionId: string;
+  updateScope: ReimportUpdateScope;
+  updateScopeLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(
     createPasteReimportJob,
@@ -30,11 +35,17 @@ export function ImportReimportPasteForm({
       <input type="hidden" name="storyId" value={storyId} />
       <input type="hidden" name="reimportMode" value={mode} />
       <input type="hidden" name="appendTargetSectionId" value={appendTargetSectionId} />
+      <input type="hidden" name="updateScopeKind" value={updateScope.kind} />
+      <input
+        type="hidden"
+        name="updateScopeId"
+        value={updateScope.kind === "story" ? "" : updateScope.targetId}
+      />
 
       <div className="grid gap-2">
         <div className="flex items-end justify-between gap-3">
           <label htmlFor="content" className="text-sm font-medium">
-            Bản thảo mới cho &ldquo;{storyTitle}&rdquo;
+            Bản thảo mới cho &ldquo;{mode === "update" ? updateScopeLabel : storyTitle}&rdquo;
           </label>
           <span className="text-xs" style={{ color: "var(--kd-text-muted)" }}>
             Paste text · tối đa 5 triệu ký tự
@@ -46,7 +57,11 @@ export function ImportReimportPasteForm({
           required
           autoFocus
           className="min-h-[50dvh] w-full resize-y rounded-xl border bg-transparent px-4 py-3 font-serif text-base leading-7 shadow-sm outline-none placeholder:font-sans placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring sm:min-h-[28rem]"
-          placeholder={`Hồi 1: Khởi đầu\n\nChương 1: Cuộc gặp gỡ\n\nNội dung chương...`}
+          placeholder={
+            mode === "update" && updateScope.kind === "chapter"
+              ? "Dán nội dung mới của chương đã chọn…"
+              : `Hồi 1: Khởi đầu\n\nChương 1: Cuộc gặp gỡ\n\nNội dung chương...`
+          }
         />
         <p
           className="text-xs leading-5"
@@ -54,7 +69,11 @@ export function ImportReimportPasteForm({
         >
           {mode === "append"
             ? "Ở bước sau, bạn có thể kiểm tra và chỉnh lại thứ tự các chương mới trước khi nối chúng vào cuối tác phẩm. Chương hiện có sẽ không bị thay đổi."
-            : "Ở bước sau, hệ thống sẽ so sánh bản này với nội dung hiện tại của tác phẩm — chương nào không đổi sẽ giữ nguyên, chương nào sửa nội dung sẽ có bản mới, chương biến mất sẽ cần bạn xác nhận trước khi lưu trữ."}
+            : updateScope.kind === "chapter"
+              ? "Bạn có thể dán thẳng phần nội dung, không cần thêm tiêu đề chương. Hệ thống sẽ giữ nguyên định danh và vị trí của chương đã chọn."
+              : updateScope.kind === "section"
+                ? "Ở bước sau, hệ thống chỉ so sánh các chương trong section đã chọn; mọi chương ngoài phạm vi được giữ nguyên."
+                : "Ở bước sau, hệ thống sẽ so sánh bản này với toàn bộ nội dung hiện tại của tác phẩm."}
         </p>
       </div>
 

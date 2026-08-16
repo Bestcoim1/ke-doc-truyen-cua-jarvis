@@ -117,6 +117,33 @@
   color: var(--kd-text);
 }
 
+.studio-shell {
+  --studio-bg: #f4f1ea;
+  --studio-surface: #fffdf8;
+  --studio-surface-raised: #ffffff;
+  --studio-sidebar: rgba(249, 246, 238, 0.96);
+  --studio-header: rgba(244, 241, 234, 0.88);
+  --studio-text: #24211d;
+  --studio-muted: #746d62;
+  --studio-border: rgba(74, 63, 48, 0.14);
+  --studio-accent: #315b50;
+  background-image:
+    radial-gradient(circle at 85% 10%, rgba(185, 133, 50, 0.12), transparent 28rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.36), transparent 24rem);
+}
+
+.dark .studio-shell {
+  --studio-bg: #151714;
+  --studio-surface: #20231e;
+  --studio-surface-raised: #272a24;
+  --studio-sidebar: rgba(25, 28, 24, 0.97);
+  --studio-header: rgba(21, 23, 20, 0.9);
+  --studio-text: #f0eee7;
+  --studio-muted: #aaa598;
+  --studio-border: rgba(225, 218, 198, 0.14);
+  --studio-accent: #78a495;
+}
+
 [data-kd-theme="light"] {
   --kd-bg: #f7f1e4;
   --kd-surface: #fffdf8;

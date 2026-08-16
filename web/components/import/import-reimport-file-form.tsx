@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createFileReimportJob } from "@/lib/import/reimport-actions";
 import type { ReimportMode } from "@/lib/import/reimport-mode";
+import type { ReimportUpdateScope } from "@/lib/import/reimport-scope";
 
 const INITIAL_STATE = { error: null, message: null };
 const MAX_UPLOAD_MB = 15;
@@ -33,11 +34,15 @@ export function ImportReimportFileForm({
   storyTitle,
   mode,
   appendTargetSectionId,
+  updateScope,
+  updateScopeLabel,
 }: {
   storyId: string;
   storyTitle: string;
   mode: ReimportMode;
   appendTargetSectionId: string;
+  updateScope: ReimportUpdateScope;
+  updateScopeLabel: string;
 }) {
   const [state, formAction, isActionPending] = useActionState(
     createFileReimportJob,
@@ -47,6 +52,8 @@ export function ImportReimportFileForm({
   const [files, setFiles] = useState<SelectedFile[]>([]);
   const [clientError, setClientError] = useState<string | null>(null);
   const isPending = isActionPending || isTransitionPending;
+  const maxFiles =
+    mode === "update" && updateScope.kind === "chapter" ? 1 : MAX_FILES;
   const totalBytes = files.reduce((total, item) => total + item.file.size, 0);
 
   function addFiles(nextFiles: File[]) {
@@ -58,8 +65,12 @@ export function ImportReimportFileForm({
       setClientError(`File “${unsupported.name}” không phải TXT hoặc DOCX.`);
       return;
     }
-    if (files.length + nextFiles.length > MAX_FILES) {
-      setClientError(`Mỗi lần chỉ có thể nhập tối đa ${MAX_FILES} file.`);
+    if (files.length + nextFiles.length > maxFiles) {
+      setClientError(
+        maxFiles === 1
+          ? "Khi cập nhật một chương, hãy chỉ chọn một file chứa đúng chương đó."
+          : `Mỗi lần chỉ có thể nhập tối đa ${MAX_FILES} file.`,
+      );
       return;
     }
     const nextTotal =
@@ -106,21 +117,27 @@ export function ImportReimportFileForm({
         name="appendTargetSectionId"
         value={appendTargetSectionId}
       />
+      <input type="hidden" name="updateScopeKind" value={updateScope.kind} />
+      <input
+        type="hidden"
+        name="updateScopeId"
+        value={updateScope.kind === "story" ? "" : updateScope.targetId}
+      />
 
       <div className="grid gap-3">
         <div className="flex items-end justify-between gap-3">
           <Label htmlFor="reimport-files">
-            Bản thảo mới cho &ldquo;{storyTitle}&rdquo;
+            Bản thảo mới cho &ldquo;{mode === "update" ? updateScopeLabel : storyTitle}&rdquo;
           </Label>
           <span className="text-xs" style={{ color: "var(--kd-text-muted)" }}>
-            tối đa {MAX_FILES} file · tổng {MAX_UPLOAD_MB}MB
+            tối đa {maxFiles} file · tổng {MAX_UPLOAD_MB}MB
           </span>
         </div>
         <Input
           id="reimport-files"
           type="file"
           accept=".txt,.docx"
-          multiple
+          multiple={maxFiles > 1}
           autoFocus
           disabled={isPending}
           onChange={(event) => {
@@ -165,7 +182,9 @@ export function ImportReimportFileForm({
         ) : null}
 
         <p className="text-xs leading-5" style={{ color: "var(--kd-text-muted)" }}>
-          Có thể chọn nhiều lần để thêm file. Hãy dùng nút mũi tên để đặt đúng thứ tự nối trước khi review. TXT phải là UTF-8; DOCX nên dùng Heading 1/2 cho Hồi và Chương.
+          {maxFiles === 1
+            ? "File phải chứa đúng một chương. TXT phải là UTF-8; DOCX có thể chỉ gồm phần nội dung chương."
+            : "Có thể chọn nhiều lần để thêm file. Hãy dùng nút mũi tên để đặt đúng thứ tự trước khi review. TXT phải là UTF-8; DOCX nên dùng Heading 1/2 cho Hồi và Chương."}
         </p>
       </div>
 

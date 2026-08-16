@@ -6,6 +6,7 @@ import { computeFinalDecisions } from "../../lib/import/reimport-decisions";
 import { matchChapters, matchSections } from "../../lib/import/reimport-match";
 import { getStoryTreeForReimport } from "../../lib/import/reimport-queries";
 import { remapReadingProgressAfterReimport } from "../../lib/import/reimport-progress";
+import { prepareScopedUpdateDraft } from "../../lib/import/reimport-scope";
 import {
   parseStoryText,
   type DraftSection,
@@ -858,6 +859,128 @@ Nội dung chương năm.`,
       expect(progressAfter!.chapter_revision_id).toBe(
         chapter3After!.current_revision_id,
       );
+    } finally {
+      await client.from("stories").delete().eq("id", storyId);
+    }
+  });
+
+  it("scoped chapter commit changes only the selected chapter and preserves order", async () => {
+    const client = createTestClient();
+    const { data: signIn, error: signInError } =
+      await client.auth.signInWithPassword({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+      });
+    expect(signInError).toBeNull();
+    const ownerId = signIn.user!.id;
+    const { storyId } = await commitFreshStory(
+      client,
+      ownerId,
+      "Scoped chapter update",
+      fiveChapterDraft("Scoped chapter update"),
+    );
+
+    try {
+      const { data: chaptersBefore, error: chaptersBeforeError } = await client
+        .from("chapters")
+        .select("id, section_id, title, kind, source_key, sort_order, current_revision_id")
+        .eq("story_id", storyId)
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("id");
+      expect(chaptersBeforeError).toBeNull();
+      expect(chaptersBefore).toHaveLength(5);
+      const target = chaptersBefore!.find((chapter) => chapter.title === "Chương 3")!;
+
+      const tree = await getStoryTreeForReimport(client, storyId, ownerId);
+      expect(tree).not.toBeNull();
+      const targetSection = tree!.oldSections.find(
+        (section) => section.id === target.section_id,
+      )!;
+      const prepared = prepareScopedUpdateDraft(
+        parseStoryText("Nội dung chương ba được cập nhật có phạm vi.", {
+          title: "Scoped chapter update",
+          sourceType: "paste",
+        }),
+        {
+          kind: "chapter",
+          scope: { kind: "chapter", targetId: target.id },
+          path: [
+            {
+              id: targetSection.id,
+              parentSectionId: targetSection.parentSectionId,
+              title: targetSection.title,
+              type: targetSection.type,
+              sortOrder: 0,
+            },
+          ],
+          chapter: {
+            title: target.title,
+            kind: target.kind,
+            sourceKey: target.source_key,
+          },
+        },
+      );
+      const newChapterId = prepared.draft.sections[0].chapters[0].id;
+      const decisions = tree!.oldChapters.map((chapter) =>
+        chapter.id === target.id
+          ? {
+              kind: "primary",
+              oldChapterId: chapter.id,
+              newChapterId,
+            }
+          : { kind: "unrelated", oldChapterId: chapter.id },
+      );
+      const jobId = await createReimportJob(
+        client,
+        ownerId,
+        storyId,
+        prepared.draft,
+        {
+          version: 1,
+          mode: "update",
+          scope: prepared.scope,
+          baseTreeToken: tree!.baseTreeToken,
+          decisions,
+          sections: prepared.sectionMatches,
+        },
+      );
+
+      const result = await client.rpc("commit_reimport_job_v3", {
+        p_job_id: jobId,
+      });
+      expect(result.error).toBeNull();
+
+      const { data: chaptersAfter, error: chaptersAfterError } = await client
+        .from("chapters")
+        .select("id, section_id, title, sort_order, current_revision_id")
+        .eq("story_id", storyId)
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("id");
+      expect(chaptersAfterError).toBeNull();
+      expect(
+        chaptersAfter!.map((chapter) => ({
+          id: chapter.id,
+          sectionId: chapter.section_id,
+          sortOrder: chapter.sort_order,
+        })),
+      ).toEqual(
+        chaptersBefore!.map((chapter) => ({
+          id: chapter.id,
+          sectionId: chapter.section_id,
+          sortOrder: chapter.sort_order,
+        })),
+      );
+
+      for (const before of chaptersBefore!) {
+        const after = chaptersAfter!.find((chapter) => chapter.id === before.id)!;
+        if (before.id === target.id) {
+          expect(after.current_revision_id).not.toBe(before.current_revision_id);
+        } else {
+          expect(after.current_revision_id).toBe(before.current_revision_id);
+        }
+      }
     } finally {
       await client.from("stories").delete().eq("id", storyId);
     }

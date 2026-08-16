@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logEvent } from "@/lib/telemetry";
+import { tryAnalyzeCommittedVersion } from "@/lib/studio/analysis-runner";
 import {
   assertUnderJobQuota,
   BATCH_PARSER_VERSION,
@@ -577,13 +578,16 @@ export async function reviewImportDraft(
   });
   const result = Array.isArray(data) ? data[0] : data;
   const storyId = result?.story_id;
-  if (error || !storyId) {
+  const versionId = result?.version_id;
+  if (error || !storyId || !versionId) {
     logEvent("import.commit_error", { code: error?.code ?? "missing_result" });
     return {
       error: "Không thể hoàn tất import. Bản nháp vẫn được giữ để thử lại.",
       message: null,
     };
   }
+
+  await tryAnalyzeCommittedVersion(supabase, userId, storyId, versionId, jobId);
 
   revalidatePath("/library");
   revalidatePath(reviewPath);

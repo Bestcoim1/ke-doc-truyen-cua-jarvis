@@ -294,6 +294,674 @@ export type Database = {
           },
         ]
       }
+      continuity_analysis_runs: {
+        Row: {
+          alert_count: number
+          candidate_count: number
+          chapters_analyzed: number
+          completed_at: string | null
+          created_at: string
+          detector_version: string
+          error_message: string | null
+          id: string
+          import_job_id: string | null
+          owner_id: string
+          started_at: string
+          status: Database["public"]["Enums"]["continuity_analysis_run_status"]
+          story_id: string
+          updated_at: string
+          version_id: string
+        }
+        Insert: {
+          alert_count?: number
+          candidate_count?: number
+          chapters_analyzed?: number
+          completed_at?: string | null
+          created_at?: string
+          detector_version: string
+          error_message?: string | null
+          id?: string
+          import_job_id?: string | null
+          owner_id: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["continuity_analysis_run_status"]
+          story_id: string
+          updated_at?: string
+          version_id: string
+        }
+        Update: {
+          alert_count?: number
+          candidate_count?: number
+          chapters_analyzed?: number
+          completed_at?: string | null
+          created_at?: string
+          detector_version?: string
+          error_message?: string | null
+          id?: string
+          import_job_id?: string | null
+          owner_id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["continuity_analysis_run_status"]
+          story_id?: string
+          updated_at?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuity_analysis_runs_job_story_fk"
+            columns: ["import_job_id", "story_id"]
+            isOneToOne: false
+            referencedRelation: "import_jobs"
+            referencedColumns: ["id", "story_id"]
+          },
+          {
+            foreignKeyName: "continuity_analysis_runs_story_owner_fk"
+            columns: ["story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_analysis_runs_version_story_fk"
+            columns: ["version_id", "story_id"]
+            isOneToOne: false
+            referencedRelation: "story_versions"
+            referencedColumns: ["id", "story_id"]
+          },
+        ]
+      }
+      continuity_character_knowledge: {
+        Row: {
+          acquired_chapter_id: string | null
+          certainty: Database["public"]["Enums"]["continuity_fact_status"]
+          chapter_sequence: number | null
+          character_entity_id: string
+          created_at: string
+          fact_id: string | null
+          id: string
+          is_secret: boolean
+          knowledge_state: Database["public"]["Enums"]["continuity_knowledge_state"]
+          knowledge_text: string
+          owner_id: string
+          source_inbox_item_id: string
+          story_id: string
+          updated_at: string
+        }
+        Insert: {
+          acquired_chapter_id?: string | null
+          certainty: Database["public"]["Enums"]["continuity_fact_status"]
+          chapter_sequence?: number | null
+          character_entity_id: string
+          created_at?: string
+          fact_id?: string | null
+          id?: string
+          is_secret?: boolean
+          knowledge_state: Database["public"]["Enums"]["continuity_knowledge_state"]
+          knowledge_text: string
+          owner_id: string
+          source_inbox_item_id: string
+          story_id: string
+          updated_at?: string
+        }
+        Update: {
+          acquired_chapter_id?: string | null
+          certainty?: Database["public"]["Enums"]["continuity_fact_status"]
+          chapter_sequence?: number | null
+          character_entity_id?: string
+          created_at?: string
+          fact_id?: string | null
+          id?: string
+          is_secret?: boolean
+          knowledge_state?: Database["public"]["Enums"]["continuity_knowledge_state"]
+          knowledge_text?: string
+          owner_id?: string
+          source_inbox_item_id?: string
+          story_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuity_character_knowledge_chapter_fk"
+            columns: ["acquired_chapter_id", "story_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id", "story_id"]
+          },
+          {
+            foreignKeyName: "continuity_character_knowledge_character_fk"
+            columns: ["character_entity_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_entities"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_character_knowledge_fact_fk"
+            columns: ["fact_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_facts"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_character_knowledge_source_item_fk"
+            columns: ["source_inbox_item_id", "story_id", "owner_id"]
+            isOneToOne: true
+            referencedRelation: "continuity_inbox_items"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_character_knowledge_story_owner_fk"
+            columns: ["story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
+      continuity_entities: {
+        Row: {
+          aliases: string[]
+          archived_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          kind: Database["public"]["Enums"]["continuity_entity_kind"]
+          name: string
+          owner_id: string
+          story_id: string
+          updated_at: string
+        }
+        Insert: {
+          aliases?: string[]
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["continuity_entity_kind"]
+          name: string
+          owner_id: string
+          story_id: string
+          updated_at?: string
+        }
+        Update: {
+          aliases?: string[]
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["continuity_entity_kind"]
+          name?: string
+          owner_id?: string
+          story_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuity_entities_story_owner_fk"
+            columns: ["story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
+      continuity_inbox_evidence: {
+        Row: {
+          chapter_id: string | null
+          chapter_revision_id: string | null
+          created_at: string
+          end_line: number | null
+          excerpt: string | null
+          id: string
+          inbox_item_id: string
+          owner_id: string
+          source_anchor_id: string | null
+          source_label: string
+          start_line: number | null
+          story_id: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          chapter_revision_id?: string | null
+          created_at?: string
+          end_line?: number | null
+          excerpt?: string | null
+          id?: string
+          inbox_item_id: string
+          owner_id: string
+          source_anchor_id?: string | null
+          source_label: string
+          start_line?: number | null
+          story_id: string
+        }
+        Update: {
+          chapter_id?: string | null
+          chapter_revision_id?: string | null
+          created_at?: string
+          end_line?: number | null
+          excerpt?: string | null
+          id?: string
+          inbox_item_id?: string
+          owner_id?: string
+          source_anchor_id?: string | null
+          source_label?: string
+          start_line?: number | null
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuity_inbox_evidence_chapter_same_story_fk"
+            columns: ["chapter_id", "story_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id", "story_id"]
+          },
+          {
+            foreignKeyName: "continuity_inbox_evidence_item_same_story_fk"
+            columns: ["inbox_item_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_inbox_items"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_inbox_evidence_revision_chapter_fk"
+            columns: ["chapter_revision_id", "chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapter_revisions"
+            referencedColumns: ["id", "chapter_id"]
+          },
+          {
+            foreignKeyName: "continuity_inbox_evidence_story_owner_fk"
+            columns: ["story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
+      continuity_inbox_items: {
+        Row: {
+          alert_kind: Database["public"]["Enums"]["continuity_alert_kind"] | null
+          created_at: string
+          fingerprint: string
+          id: string
+          kind: Database["public"]["Enums"]["continuity_inbox_kind"]
+          metadata: Json
+          owner_id: string
+          related_entity_id: string | null
+          review_status: Database["public"]["Enums"]["continuity_review_status"]
+          reviewed_at: string | null
+          run_id: string
+          severity: Database["public"]["Enums"]["continuity_severity"] | null
+          statement: string
+          story_id: string
+          subject_entity_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          alert_kind?: Database["public"]["Enums"]["continuity_alert_kind"] | null
+          created_at?: string
+          fingerprint: string
+          id?: string
+          kind: Database["public"]["Enums"]["continuity_inbox_kind"]
+          metadata?: Json
+          owner_id: string
+          related_entity_id?: string | null
+          review_status?: Database["public"]["Enums"]["continuity_review_status"]
+          reviewed_at?: string | null
+          run_id: string
+          severity?: Database["public"]["Enums"]["continuity_severity"] | null
+          statement: string
+          story_id: string
+          subject_entity_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alert_kind?: Database["public"]["Enums"]["continuity_alert_kind"] | null
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["continuity_inbox_kind"]
+          metadata?: Json
+          owner_id?: string
+          related_entity_id?: string | null
+          review_status?: Database["public"]["Enums"]["continuity_review_status"]
+          reviewed_at?: string | null
+          run_id?: string
+          severity?: Database["public"]["Enums"]["continuity_severity"] | null
+          statement?: string
+          story_id?: string
+          subject_entity_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuity_inbox_items_related_same_story_fk"
+            columns: ["related_entity_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_entities"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_inbox_items_run_same_story_fk"
+            columns: ["run_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_analysis_runs"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_inbox_items_story_owner_fk"
+            columns: ["story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_inbox_items_subject_same_story_fk"
+            columns: ["subject_entity_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_entities"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+        ]
+      }
+      continuity_evidence: {
+        Row: {
+          chapter_id: string | null
+          chapter_revision_id: string | null
+          created_at: string
+          end_line: number | null
+          excerpt: string | null
+          fact_id: string | null
+          id: string
+          owner_id: string
+          plot_thread_id: string | null
+          source_kind: Database["public"]["Enums"]["continuity_evidence_kind"]
+          source_anchor_id: string | null
+          source_label: string | null
+          start_line: number | null
+          story_id: string
+          updated_at: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          chapter_revision_id?: string | null
+          created_at?: string
+          end_line?: number | null
+          excerpt?: string | null
+          fact_id?: string | null
+          id?: string
+          owner_id: string
+          plot_thread_id?: string | null
+          source_kind: Database["public"]["Enums"]["continuity_evidence_kind"]
+          source_anchor_id?: string | null
+          source_label?: string | null
+          start_line?: number | null
+          story_id: string
+          updated_at?: string
+        }
+        Update: {
+          chapter_id?: string | null
+          chapter_revision_id?: string | null
+          created_at?: string
+          end_line?: number | null
+          excerpt?: string | null
+          fact_id?: string | null
+          id?: string
+          owner_id?: string
+          plot_thread_id?: string | null
+          source_kind?: Database["public"]["Enums"]["continuity_evidence_kind"]
+          source_anchor_id?: string | null
+          source_label?: string | null
+          start_line?: number | null
+          story_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuity_evidence_chapter_same_story_fk"
+            columns: ["chapter_id", "story_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id", "story_id"]
+          },
+          {
+            foreignKeyName: "continuity_evidence_fact_same_story_fk"
+            columns: ["fact_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_facts"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_evidence_revision_chapter_fk"
+            columns: ["chapter_revision_id", "chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapter_revisions"
+            referencedColumns: ["id", "chapter_id"]
+          },
+          {
+            foreignKeyName: "continuity_evidence_story_owner_fk"
+            columns: ["story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_evidence_thread_same_story_fk"
+            columns: ["plot_thread_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_plot_threads"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+        ]
+      }
+      continuity_facts: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          id: string
+          owner_id: string
+          source_inbox_item_id: string | null
+          statement: string
+          status: Database["public"]["Enums"]["continuity_fact_status"]
+          story_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          owner_id: string
+          source_inbox_item_id?: string | null
+          statement: string
+          status?: Database["public"]["Enums"]["continuity_fact_status"]
+          story_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          owner_id?: string
+          source_inbox_item_id?: string | null
+          statement?: string
+          status?: Database["public"]["Enums"]["continuity_fact_status"]
+          story_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuity_facts_entity_same_story_fk"
+            columns: ["entity_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_entities"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_facts_story_owner_fk"
+            columns: ["story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_facts_source_inbox_item_fk"
+            columns: ["source_inbox_item_id", "story_id", "owner_id"]
+            isOneToOne: true
+            referencedRelation: "continuity_inbox_items"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+        ]
+      }
+      continuity_plot_threads: {
+        Row: {
+          created_at: string
+          due_chapter_id: string | null
+          expected_payoff: string | null
+          id: string
+          last_touched_chapter_id: string | null
+          notes: string | null
+          owner_id: string
+          promise: string | null
+          setup: string | null
+          status: Database["public"]["Enums"]["continuity_thread_status"]
+          story_id: string
+          thread_type: Database["public"]["Enums"]["continuity_thread_type"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_chapter_id?: string | null
+          expected_payoff?: string | null
+          id?: string
+          last_touched_chapter_id?: string | null
+          notes?: string | null
+          owner_id: string
+          promise?: string | null
+          setup?: string | null
+          status?: Database["public"]["Enums"]["continuity_thread_status"]
+          story_id: string
+          thread_type: Database["public"]["Enums"]["continuity_thread_type"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_chapter_id?: string | null
+          expected_payoff?: string | null
+          id?: string
+          last_touched_chapter_id?: string | null
+          notes?: string | null
+          owner_id?: string
+          promise?: string | null
+          setup?: string | null
+          status?: Database["public"]["Enums"]["continuity_thread_status"]
+          story_id?: string
+          thread_type?: Database["public"]["Enums"]["continuity_thread_type"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuity_plot_threads_due_chapter_fk"
+            columns: ["due_chapter_id", "story_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id", "story_id"]
+          },
+          {
+            foreignKeyName: "continuity_plot_threads_last_chapter_fk"
+            columns: ["last_touched_chapter_id", "story_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id", "story_id"]
+          },
+          {
+            foreignKeyName: "continuity_plot_threads_story_owner_fk"
+            columns: ["story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
+      continuity_timeline_events: {
+        Row: {
+          certainty: Database["public"]["Enums"]["continuity_fact_status"]
+          chapter_sequence: number | null
+          created_at: string
+          id: string
+          location_entity_id: string | null
+          owner_id: string
+          participant_entity_id: string | null
+          source_inbox_item_id: string
+          story_id: string
+          time_end: string | null
+          time_start: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          certainty: Database["public"]["Enums"]["continuity_fact_status"]
+          chapter_sequence?: number | null
+          created_at?: string
+          id?: string
+          location_entity_id?: string | null
+          owner_id: string
+          participant_entity_id?: string | null
+          source_inbox_item_id: string
+          story_id: string
+          time_end?: string | null
+          time_start?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          certainty?: Database["public"]["Enums"]["continuity_fact_status"]
+          chapter_sequence?: number | null
+          created_at?: string
+          id?: string
+          location_entity_id?: string | null
+          owner_id?: string
+          participant_entity_id?: string | null
+          source_inbox_item_id?: string
+          story_id?: string
+          time_end?: string | null
+          time_start?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "continuity_timeline_events_location_fk"
+            columns: ["location_entity_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_entities"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_timeline_events_participant_fk"
+            columns: ["participant_entity_id", "story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "continuity_entities"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_timeline_events_source_item_fk"
+            columns: ["source_inbox_item_id", "story_id", "owner_id"]
+            isOneToOne: true
+            referencedRelation: "continuity_inbox_items"
+            referencedColumns: ["id", "story_id", "owner_id"]
+          },
+          {
+            foreignKeyName: "continuity_timeline_events_story_owner_fk"
+            columns: ["story_id", "owner_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id", "owner_id"]
+          },
+        ]
+      }
       import_jobs: {
         Row: {
           completed_at: string | null
@@ -658,6 +1326,14 @@ export type Database = {
           version_id: string
         }[]
       }
+      commit_reimport_job_v3: {
+        Args: { p_job_id: string }
+        Returns: {
+          chapter_id_pairs: Json
+          story_id: string
+          version_id: string
+        }[]
+      }
       delete_story_section_preserving_contents: {
         Args: { p_section_id: string; p_story_id: string }
         Returns: Json
@@ -669,6 +1345,20 @@ export type Database = {
       reorder_story_chapters: {
         Args: { p_sections: Json; p_story_id: string }
         Returns: number
+      }
+      review_continuity_inbox_item: {
+        Args: {
+          p_decision: Database["public"]["Enums"]["continuity_review_status"]
+          p_item_id: string
+          p_knowledge_state?: Database["public"]["Enums"]["continuity_knowledge_state"] | null
+          p_record_status?: Database["public"]["Enums"]["continuity_fact_status"] | null
+        }
+        Returns: {
+          fact_id: string | null
+          knowledge_id: string | null
+          out_review_status: Database["public"]["Enums"]["continuity_review_status"]
+          timeline_event_id: string | null
+        }[]
       }
       upsert_chapter_progress: {
         Args: {
@@ -702,6 +1392,64 @@ export type Database = {
     Enums: {
       chapter_kind: "regular" | "extra"
       completion_method: "reader_end" | "next_action" | "revision_migration"
+      continuity_alert_kind:
+        | "state_conflict"
+        | "impossible_travel"
+        | "premature_knowledge"
+        | "duplicate_item"
+        | "forgotten_thread"
+      continuity_analysis_run_status: "running" | "completed" | "failed"
+      continuity_entity_kind:
+        | "character"
+        | "location"
+        | "item"
+        | "organization"
+        | "world_rule"
+      continuity_evidence_kind:
+        | "direct_source"
+        | "author_document"
+        | "summary_derived"
+        | "inference"
+        | "suggestion"
+      continuity_fact_status:
+        | "canon"
+        | "candidate"
+        | "inference"
+        | "disputed"
+        | "retconned"
+        | "inactive"
+      continuity_inbox_kind:
+        | "state_change"
+        | "location_change"
+        | "knowledge_claim"
+        | "possession_change"
+        | "timeline_event"
+        | "alert"
+      continuity_knowledge_state:
+        | "knows"
+        | "does_not_know"
+        | "believes_false"
+        | "doubts"
+      continuity_review_status:
+        | "pending"
+        | "accepted"
+        | "dismissed"
+        | "intentional"
+        | "retcon"
+      continuity_severity: "minor" | "moderate" | "major" | "canon_breaking"
+      continuity_thread_status:
+        | "open"
+        | "progressing"
+        | "apparently_dropped"
+        | "resolved"
+        | "intentionally_unresolved"
+        | "unknown"
+      continuity_thread_type:
+        | "foreshadowing"
+        | "mystery"
+        | "promise"
+        | "setup_payoff"
+        | "other"
       import_job_status:
         | "uploaded"
         | "parsing"
@@ -860,6 +1608,73 @@ export const Constants = {
     Enums: {
       chapter_kind: ["regular", "extra"],
       completion_method: ["reader_end", "next_action", "revision_migration"],
+      continuity_alert_kind: [
+        "state_conflict",
+        "impossible_travel",
+        "premature_knowledge",
+        "duplicate_item",
+        "forgotten_thread",
+      ],
+      continuity_analysis_run_status: ["running", "completed", "failed"],
+      continuity_entity_kind: [
+        "character",
+        "location",
+        "item",
+        "organization",
+        "world_rule",
+      ],
+      continuity_evidence_kind: [
+        "direct_source",
+        "author_document",
+        "summary_derived",
+        "inference",
+        "suggestion",
+      ],
+      continuity_fact_status: [
+        "canon",
+        "candidate",
+        "inference",
+        "disputed",
+        "retconned",
+        "inactive",
+      ],
+      continuity_inbox_kind: [
+        "state_change",
+        "location_change",
+        "knowledge_claim",
+        "possession_change",
+        "timeline_event",
+        "alert",
+      ],
+      continuity_knowledge_state: [
+        "knows",
+        "does_not_know",
+        "believes_false",
+        "doubts",
+      ],
+      continuity_review_status: [
+        "pending",
+        "accepted",
+        "dismissed",
+        "intentional",
+        "retcon",
+      ],
+      continuity_severity: ["minor", "moderate", "major", "canon_breaking"],
+      continuity_thread_status: [
+        "open",
+        "progressing",
+        "apparently_dropped",
+        "resolved",
+        "intentionally_unresolved",
+        "unknown",
+      ],
+      continuity_thread_type: [
+        "foreshadowing",
+        "mystery",
+        "promise",
+        "setup_payoff",
+        "other",
+      ],
       import_job_status: [
         "uploaded",
         "parsing",

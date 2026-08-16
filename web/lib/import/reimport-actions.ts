@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { logEvent } from "@/lib/telemetry";
+import { tryAnalyzeCommittedVersion } from "@/lib/studio/analysis-runner";
 import { fetchAllPages } from "@/lib/supabase/pagination";
 import type { Database, Json } from "@/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -35,7 +36,15 @@ import {
   MAX_UPLOAD_BYTES,
 } from "./file-validation";
 import { remapReadingProgressAfterReimport } from "./reimport-progress";
-import { parseReimportMode } from "./reimport-mode";
+import { parseReimportMode, reimportModeFromMapping } from "./reimport-mode";
+import {
+  parseReimportUpdateScope,
+  prepareScopedUpdateDraft,
+  reimportUpdateScopeFromMapping,
+  sameReimportUpdateScope,
+  type LoadedUpdateTarget,
+  type ReimportUpdateScope,
+} from "./reimport-scope";
 import { parseStoryText, type ImportDraft } from "./text-parser";
 
 const PARSER_VERSION = "text-paste-v1";
@@ -97,6 +106,100 @@ function prepareAppendDraft(
     : { draft, sectionMatches: [] };
 }
 
+type PreparedReimportDraft = {
+  draft: ImportDraft;
+  sectionMatches: ReturnType<typeof prepareAppendDraft>["sectionMatches"];
+  scope?: ReimportUpdateScope;
+};
+
+async function loadUpdateTarget(
+  supabase: SupabaseClient<Database>,
+  storyId: string,
+  reimportMode: ReturnType<typeof parseReimportMode>,
+  scopeKind: string,
+  scopeId: string,
+): Promise<LoadedUpdateTarget> {
+  if (reimportMode !== "update") {
+    return { kind: "story", scope: { kind: "story" } };
+  }
+  const scope = parseReimportUpdateScope(scopeKind, scopeId);
+  if (scope.kind === "story") return { kind: "story", scope };
+
+  const { data: sectionRows, error: sectionsError } = await fetchAllPages(
+    (from, to) =>
+      supabase
+        .from("sections")
+        .select("id, parent_section_id, title, type, sort_order")
+        .eq("story_id", storyId)
+        .eq("is_active", true)
+        .order("id")
+        .range(from, to),
+  );
+  if (sectionsError) {
+    throw new Error("Chưa thể tải cấu trúc hiện tại của tác phẩm.");
+  }
+  const sections: ExistingAppendSection[] = (sectionRows ?? []).map(
+    (section) => ({
+      id: section.id,
+      parentSectionId: section.parent_section_id,
+      title: section.title,
+      type: section.type,
+      sortOrder: section.sort_order,
+    }),
+  );
+
+  if (scope.kind === "section") {
+    return {
+      kind: "section",
+      scope,
+      path: appendTargetPath(sections, scope.targetId),
+    };
+  }
+
+  const { data: chapter, error: chapterError } = await supabase
+    .from("chapters")
+    .select("id, section_id, title, kind, source_key")
+    .eq("id", scope.targetId)
+    .eq("story_id", storyId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (chapterError || !chapter || !chapter.section_id) {
+    throw new Error("Chương đã chọn không còn tồn tại trong tác phẩm.");
+  }
+  return {
+    kind: "chapter",
+    scope,
+    path: appendTargetPath(sections, chapter.section_id),
+    chapter: {
+      title: chapter.title,
+      kind: chapter.kind,
+      sourceKey: chapter.source_key,
+    },
+  };
+}
+
+function prepareReimportDraft(
+  draft: ImportDraft,
+  reimportMode: ReturnType<typeof parseReimportMode>,
+  appendPath: ExistingAppendSection[] | null,
+  updateTarget: LoadedUpdateTarget,
+): PreparedReimportDraft {
+  if (reimportMode === "append") return prepareAppendDraft(draft, appendPath);
+  return prepareScopedUpdateDraft(draft, updateTarget);
+}
+
+function initialReimportMapping(
+  reimportMode: ReturnType<typeof parseReimportMode>,
+  prepared: Pick<PreparedReimportDraft, "sectionMatches" | "scope">,
+) {
+  return {
+    version: 1,
+    mode: reimportMode,
+    sections: prepared.sectionMatches,
+    ...(prepared.scope ? { scope: prepared.scope } : {}),
+  };
+}
+
 /**
  * The mapping_json contract commit_reimport_job expects (migration 0008,
  * decision kinds extended with "unrelated" in 0009) — only shape-validated
@@ -132,6 +235,8 @@ function reimportCommitErrorMessage(code: string | undefined): string {
       return "Một ánh xạ tham chiếu tới chương không còn tồn tại. Hãy tải lại trang.";
     case "KD005":
       return "Dữ liệu ánh xạ chương không hợp lệ (loại quyết định không xác định). Hãy tải lại trang và thử lại.";
+    case "22023":
+      return "Bản review đã vượt ra ngoài phạm vi chương hoặc section được chọn. Hãy tạo lại lần cập nhật từ danh sách mới nhất.";
     default:
       return "Không thể hoàn tất cập nhật. Bản nháp vẫn được giữ để thử lại.";
   }
@@ -175,6 +280,7 @@ export async function createPasteReimportJob(
   }
 
   let targetPath: ExistingAppendSection[] | null;
+  let updateTarget: LoadedUpdateTarget;
   try {
     targetPath = await loadAppendTargetPath(
       supabase,
@@ -182,9 +288,16 @@ export async function createPasteReimportJob(
       reimportMode,
       formString(formData, "appendTargetSectionId"),
     );
+    updateTarget = await loadUpdateTarget(
+      supabase,
+      storyId,
+      reimportMode,
+      formString(formData, "updateScopeKind"),
+      formString(formData, "updateScopeId"),
+    );
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Phân hồi đích không hợp lệ.",
+      error: error instanceof Error ? error.message : "Phạm vi cập nhật không hợp lệ.",
       message: null,
     };
   }
@@ -212,8 +325,21 @@ export async function createPasteReimportJob(
     };
   }
 
-  const prepared = prepareAppendDraft(draft, targetPath);
-  draft = prepared.draft;
+  let prepared: PreparedReimportDraft;
+  try {
+    prepared = prepareReimportDraft(
+      draft,
+      reimportMode,
+      targetPath,
+      updateTarget,
+    );
+    draft = prepared.draft;
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Phạm vi cập nhật không hợp lệ.",
+      message: null,
+    };
+  }
 
   const sourceHash = createHash("sha256").update(content).digest("hex");
   const { data: job, error } = await supabase
@@ -226,11 +352,7 @@ export async function createPasteReimportJob(
       parser_version: PARSER_VERSION,
       status: "needs_review",
       draft_json: draft,
-      mapping_json: {
-        version: 1,
-        mode: reimportMode,
-        sections: prepared.sectionMatches,
-      },
+      mapping_json: initialReimportMapping(reimportMode, prepared),
       warnings: draft.warnings,
     })
     .select("id")
@@ -286,6 +408,7 @@ export async function createGoogleDocsReimportJob(
   }
 
   let targetPath: ExistingAppendSection[] | null;
+  let updateTarget: LoadedUpdateTarget;
   try {
     targetPath = await loadAppendTargetPath(
       supabase,
@@ -293,9 +416,16 @@ export async function createGoogleDocsReimportJob(
       reimportMode,
       formString(formData, "appendTargetSectionId"),
     );
+    updateTarget = await loadUpdateTarget(
+      supabase,
+      storyId,
+      reimportMode,
+      formString(formData, "updateScopeKind"),
+      formString(formData, "updateScopeId"),
+    );
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Phân hồi đích không hợp lệ.",
+      error: error instanceof Error ? error.message : "Phạm vi cập nhật không hợp lệ.",
       message: null,
     };
   }
@@ -331,7 +461,10 @@ export async function createGoogleDocsReimportJob(
       source_hash: sourceHash,
       parser_version: DOCX_PARSER_VERSION,
       status: "parsing",
-      mapping_json: { version: 1, mode: reimportMode, sections: [] },
+      mapping_json: initialReimportMapping(reimportMode, {
+        sectionMatches: [],
+        scope: reimportMode === "update" ? updateTarget.scope : undefined,
+      }),
     })
     .select("id")
     .single();
@@ -365,12 +498,18 @@ export async function createGoogleDocsReimportJob(
     };
   }
 
-  let draft: ImportDraft;
+  let prepared: PreparedReimportDraft;
   try {
-    draft = await parseDocxDraft(buffer, { title: story.title });
+    const draft = await parseDocxDraft(buffer, { title: story.title });
     if (draft.stats.chapterCount === 0) {
       throw new Error("Không tìm thấy nội dung chương để review.");
     }
+    prepared = prepareReimportDraft(
+      draft,
+      reimportMode,
+      targetPath,
+      updateTarget,
+    );
   } catch (error) {
     await deleteStorageObjectSafely(supabase, storagePath);
     const message = error instanceof Error ? error.message : "Không thể xử lý file này.";
@@ -381,20 +520,13 @@ export async function createGoogleDocsReimportJob(
     return { error: message, message: null };
   }
 
-  const prepared = prepareAppendDraft(draft, targetPath);
-  draft = prepared.draft;
-
   const { error: finalizeError } = await supabase
     .from("import_jobs")
     .update({
       status: "needs_review",
-      draft_json: draft,
-      mapping_json: {
-        version: 1,
-        mode: reimportMode,
-        sections: prepared.sectionMatches,
-      },
-      warnings: draft.warnings,
+      draft_json: prepared.draft,
+      mapping_json: initialReimportMapping(reimportMode, prepared),
+      warnings: prepared.draft.warnings,
     })
     .eq("id", job.id);
 
@@ -410,7 +542,7 @@ export async function createGoogleDocsReimportJob(
 
   logEvent("reimport.job_created", {
     storyId,
-    chapterCount: draft.stats.chapterCount,
+    chapterCount: prepared.draft.stats.chapterCount,
     sourceType: "google_docs",
   });
   redirect(`/import/review/${job.id}`);
@@ -478,6 +610,7 @@ export async function createFileReimportJob(
   }
 
   let targetPath: ExistingAppendSection[] | null;
+  let updateTarget: LoadedUpdateTarget;
   try {
     targetPath = await loadAppendTargetPath(
       supabase,
@@ -485,9 +618,16 @@ export async function createFileReimportJob(
       reimportMode,
       formString(formData, "appendTargetSectionId"),
     );
+    updateTarget = await loadUpdateTarget(
+      supabase,
+      storyId,
+      reimportMode,
+      formString(formData, "updateScopeKind"),
+      formString(formData, "updateScopeId"),
+    );
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Phân hồi đích không hợp lệ.",
+      error: error instanceof Error ? error.message : "Phạm vi cập nhật không hợp lệ.",
       message: null,
     };
   }
@@ -532,7 +672,10 @@ export async function createFileReimportJob(
           ? DOCX_PARSER_VERSION
           : TXT_PARSER_VERSION,
       status: "parsing",
-      mapping_json: { version: 1, mode: reimportMode, sections: [] },
+      mapping_json: initialReimportMapping(reimportMode, {
+        sectionMatches: [],
+        scope: reimportMode === "update" ? updateTarget.scope : undefined,
+      }),
     })
     .select("id")
     .single();
@@ -604,7 +747,12 @@ export async function createFileReimportJob(
     if (draft.stats.chapterCount === 0) {
       throw new Error("Không tìm thấy nội dung chương để review.");
     }
-    prepared = prepareAppendDraft(draft, targetPath);
+    prepared = prepareReimportDraft(
+      draft,
+      reimportMode,
+      targetPath,
+      updateTarget,
+    );
   } catch (error) {
     await Promise.all(
       uploadedPaths.map((path) => deleteStorageObjectSafely(supabase, path)),
@@ -623,11 +771,7 @@ export async function createFileReimportJob(
     .update({
       status: "needs_review",
       draft_json: prepared.draft,
-      mapping_json: {
-        version: 1,
-        mode: reimportMode,
-        sections: prepared.sectionMatches,
-      },
+      mapping_json: initialReimportMapping(reimportMode, prepared),
       warnings: prepared.draft.warnings,
     })
     .eq("id", job.id);
@@ -669,7 +813,7 @@ export async function reviewReimportDraft(
   const { supabase, userId } = await requireUser(reviewPath);
   const { data: job, error: jobError } = await supabase
     .from("import_jobs")
-    .select("id, owner_id, story_id, status, draft_json")
+    .select("id, owner_id, story_id, status, draft_json, mapping_json")
     .eq("id", jobId)
     .eq("owner_id", userId)
     .maybeSingle();
@@ -692,6 +836,20 @@ export async function reviewReimportDraft(
     return {
       error:
         error instanceof Error ? error.message : "Bản review không hợp lệ.",
+      message: null,
+    };
+  }
+
+  const originalMode = reimportModeFromMapping(job.mapping_json);
+  const submittedMode = reimportModeFromMapping(mapping);
+  const originalScope = reimportUpdateScopeFromMapping(job.mapping_json);
+  const submittedScope = reimportUpdateScopeFromMapping(mapping);
+  if (
+    originalMode !== submittedMode ||
+    !sameReimportUpdateScope(originalScope, submittedScope)
+  ) {
+    return {
+      error: "Phạm vi cập nhật đã thay đổi ngoài ý muốn. Hãy tải lại trang review.",
       message: null,
     };
   }
@@ -779,12 +937,13 @@ export async function reviewReimportDraft(
     }
   }
 
-  const { data, error } = await supabase.rpc("commit_reimport_job_v2", {
+  const { data, error } = await supabase.rpc("commit_reimport_job_v3", {
     p_job_id: jobId,
   });
   const result = Array.isArray(data) ? data[0] : data;
   const resultStoryId = result?.story_id;
-  if (error || !resultStoryId) {
+  const versionId = result?.version_id;
+  if (error || !resultStoryId || !versionId) {
     logEvent("reimport.commit_error", {
       code: error?.code ?? "missing_result",
     });
@@ -795,6 +954,13 @@ export async function reviewReimportDraft(
     supabase,
     resultStoryId,
     result?.chapter_id_pairs ?? null,
+  );
+  await tryAnalyzeCommittedVersion(
+    supabase,
+    userId,
+    resultStoryId,
+    versionId,
+    jobId,
   );
 
   revalidatePath("/library");

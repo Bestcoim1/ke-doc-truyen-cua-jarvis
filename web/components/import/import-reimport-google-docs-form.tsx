@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createGoogleDocsReimportJob } from "@/lib/import/reimport-actions";
 import type { ReimportMode } from "@/lib/import/reimport-mode";
+import type { ReimportUpdateScope } from "@/lib/import/reimport-scope";
 
 const INITIAL_STATE = { error: null, message: null };
 
@@ -16,11 +17,15 @@ export function ImportReimportGoogleDocsForm({
   storyTitle,
   mode,
   appendTargetSectionId,
+  updateScope,
+  updateScopeLabel,
 }: {
   storyId: string;
   storyTitle: string;
   mode: ReimportMode;
   appendTargetSectionId: string;
+  updateScope: ReimportUpdateScope;
+  updateScopeLabel: string;
 }) {
   const [state, formAction, isPending] = useActionState(
     createGoogleDocsReimportJob,
@@ -32,11 +37,17 @@ export function ImportReimportGoogleDocsForm({
       <input type="hidden" name="storyId" value={storyId} />
       <input type="hidden" name="reimportMode" value={mode} />
       <input type="hidden" name="appendTargetSectionId" value={appendTargetSectionId} />
+      <input type="hidden" name="updateScopeKind" value={updateScope.kind} />
+      <input
+        type="hidden"
+        name="updateScopeId"
+        value={updateScope.kind === "story" ? "" : updateScope.targetId}
+      />
 
       <div className="grid gap-2">
         <div className="flex items-end justify-between gap-3">
           <Label htmlFor="gdoc-url">
-            Link bản thảo mới cho &ldquo;{storyTitle}&rdquo;
+            Link bản thảo mới cho &ldquo;{mode === "update" ? updateScopeLabel : storyTitle}&rdquo;
           </Label>
         </div>
         <Input
@@ -52,6 +63,9 @@ export function ImportReimportGoogleDocsForm({
           style={{ color: "var(--kd-text-muted)" }}
         >
           Hãy chắc chắn rằng tài liệu của bạn đã được bật chế độ chia sẻ <strong>&quot;Bất kỳ ai có liên kết đều có thể xem&quot; (Anyone with the link can view)</strong>. Tài liệu sẽ được tải ngầm dưới định dạng .docx.
+          {mode === "update" && updateScope.kind === "chapter"
+            ? " Tài liệu phải chứa đúng một chương."
+            : ""}
         </p>
       </div>
 

@@ -78,6 +78,7 @@ export async function getStoryTreeForReimport(
     const blocks = revision?.content_blocks?.blocks ?? [];
     return {
       id: row.id,
+      sectionId: row.section_id,
       sectionPath:
         (row.section_id ? sectionPaths.get(row.section_id) : undefined) ??
         "unsectioned",

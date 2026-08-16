@@ -9,6 +9,7 @@ import type { OldChapterRef, ChapterMatch } from "../lib/import/reimport-match";
 function oldRef(id: string, title = id): OldChapterRef {
   return {
     id,
+    sectionId: "section-1",
     sectionPath: "arc:hồi 1",
     title,
     sourceKey: `arc:hồi 1/regular:${title}`,

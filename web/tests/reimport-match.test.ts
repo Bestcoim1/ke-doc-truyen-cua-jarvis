@@ -53,6 +53,7 @@ function draftToOldRefs(draft: ImportDraft): {
       for (const chapter of section.chapters) {
         chapters.push({
           id: chapter.id,
+          sectionId: section.id,
           sectionPath: path,
           title: chapter.title,
           sourceKey: chapter.sourceKey,
